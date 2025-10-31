@@ -9,7 +9,11 @@
     "/apps/reader/src/hooks/remote",
     "/apps/reader/src/components/pages",
     "/apps/website/src/components",
-    "/apps/reader/src/hooks/theme",
-    "/apps/reader/src/models"
+    "/apps/bookstore/src/components",
+    "/apps/bookstore/src/hooks",
+    "/apps/bookstore/src/components/base",
+    "/apps/bookstore/src/hooks/remote",
+    "/apps/bookstore/src/hooks/theme",
+    "/apps/bookstore/src/models"
   ]
 }

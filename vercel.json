@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/reader/:path*", "destination": "https://seedstorereader-app.vercel.app/:path*" },
+    { "source": "/:path*", "destination": "https://seedstore-app.vercel.app/:path*" }
+  ]
+}

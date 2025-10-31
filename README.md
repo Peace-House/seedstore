@@ -1,87 +1,77 @@
-<h1 align="center"><a href="https://flowoss.com">Flow - Open Source Software (OSS)</a></h1>
 
-<h2 align="center">Redefine ePub reader</h2>
+# Bookstore & Reader Monorepo
 
-<p align="center">Free. Open source. Browser-based.</p>
+This repository contains two main apps:
 
-<p align="center"><img src="apps/website/public/screenshots/en-US.webp"/>
-</p>
+- **Bookstore**: A Vite-based React app for browsing, searching, and purchasing eBooks.
+- **Reader**: A Next.js app for reading ePub books with advanced features like highlights and annotations.
+
+---
 
 ## Features
 
-- Grid layout
-- Search in book
-- Image preview
-- Custom typography
-- Highlight and Annotation
-- Theme
-- Share/Download book with link
-- Data export
-- Cloud storage
+**Bookstore**
+- Browse and search eBooks
+- Add to cart and purchase
+- Download free books
 
-For planed features, see our [roadmap](https://pacexy.notion.site/283696d0071c43bfb03652e8e5f47936?v=b43f4dd7a3cb4ce785d6c32b698a8ff5).
+**Reader**
+- Read ePub books in the browser
+- Highlight, annotate, and search within books
+- Custom themes and typography
 
-## Development
+---
+
+## Getting Started
 
 ### Prerequisites
-
 - [Node.js](https://nodejs.org)
 - [pnpm](https://pnpm.io/installation)
 - [Git](https://git-scm.com/downloads)
 
 ### Clone the repo
-
 ```bash
-git clone https://github.com/pacexy/flow
+git clone <your-repo-url>
+cd <repo-folder>
 ```
 
-### Install the dependencies
-
+### Install dependencies
 ```bash
-pnpm i
+pnpm install
 ```
 
-### Setup the environment variables
+### Setup environment variables
+Copy `.env.local.example` to `.env.local` in each app (`apps/bookstore`, `apps/reader`) and fill in the required values.
 
-Copy and rename all `.env.local.example`s to `.env.local` and setup the environment variables.
+### Run locally
+```bash
+pnpm --filter @flow/bookstore dev   # Start the Bookstore (Vite)
+pnpm --filter @flow/reader dev      # Start the Reader (Next.js)
+```
 
-### Run the apps
-
+Or run both with:
 ```bash
 pnpm dev
 ```
 
-## Self-hosting
+---
 
-Before self-hosting, you should [setup the environment variables](#setup-the-environment-variables).
+## Deployment
 
-### Docker
+Deploy each app separately (e.g., Vercel, Netlify, Docker). Set environment variables for cross-app navigation (e.g., READER_URL in Bookstore, STORE_URL in Reader).
 
-You can use docker-compose:
-
-```sh
-docker compose up -d
-```
-
-Or build the image and run it manually:
-
-```sh
-docker build -t flow .
-docker run -p 3000:3000 --env-file apps/reader/.env.local flow
-```
+---
 
 ## Contributing
 
-There are many ways in which you can participate in this project, for example:
+Pull requests and issues are welcome!
 
-- [Submit bugs and feature requests](https://github.com/pacexy/flow/issues/new), and help us verify as they are checked in
-- [Submit pull requests](https://github.com/pacexy/flow/pulls)
+---
 
 ## Credits
 
 - [Epub.js](https://github.com/futurepress/epub.js/)
 - [React](https://github.com/facebook/react)
 - [Next.js](https://nextjs.org/)
+- [Vite](https://vitejs.dev/)
 - [TypeScript](https://www.typescriptlang.org)
-- [Vercel](https://vercel.com)
-- [Turborepo](https://turbo.build/repo)

@@ -1,6 +1,7 @@
 import { atom, useRecoilState, useSetRecoilState } from 'recoil'
 
 export type Action =
+  | 'store'
   | 'toc'
   | 'search'
   | 'annotation'

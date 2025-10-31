@@ -10,6 +10,8 @@ import {
   MdToc,
   MdTimeline,
   MdOutlineLightMode,
+  MdChevronLeft,
+  MdExitToApp,
 } from 'react-icons/md'
 import { RiFontSize, RiHome6Line, RiSettings5Line } from 'react-icons/ri'
 import { useRecoilState } from 'recoil'
@@ -75,6 +77,13 @@ interface IViewAction extends IAction {
 }
 
 const viewActions: IViewAction[] = [
+  {
+    name: 'store',
+    title: 'Store',
+    Icon: MdExitToApp,
+    View: TocView,
+    env: Env.Desktop | Env.Mobile,
+  },
   {
     name: 'toc',
     title: 'toc',
@@ -159,7 +168,13 @@ function ViewActionBar({ className, env }: EnvActionBarProps) {
               title={t(`${title}.title`)}
               Icon={Icon}
               active={active}
-              onClick={() => setAction(active ? undefined : name)}
+              onClick={() => {
+                if(name === 'store') {
+                  window.location.href = 'http://localhost:8080'
+                  return
+                }
+                setAction(active ? undefined : name)
+              }}
               key={name}
             />
           )
@@ -180,6 +195,13 @@ function PageActionBar({ env }: EnvActionBarProps) {
 
   const pageActions: IPageAction[] = useMemo(
     () => [
+       {
+    name: 'store',
+    title: 'Store',
+    Icon: MdChevronLeft,
+    View: null,
+    env:  Env.Mobile,
+  },
       {
         name: 'home',
         title: 'home',
