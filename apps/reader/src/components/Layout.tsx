@@ -42,7 +42,7 @@ import { TocView } from './viewlets/TocView'
 import { TypographyView } from './viewlets/TypographyView'
 
 
-export const Layout = ({ children }: PropsWithChildren<{}>) => {
+export const Layout = ({ children }: PropsWithChildren<Record<string, any>>) => {
   useColorScheme()
 
   const [ready, setReady] = useState(false)

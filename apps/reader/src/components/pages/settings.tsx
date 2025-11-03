@@ -137,6 +137,7 @@ const Synchronization: React.FC = () => {
 
 interface PartProps {
   title: string
+  children: React.ReactNode
 }
 const Item: React.FC<PartProps> = ({ title, children }) => {
   return (
