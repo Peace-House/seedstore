@@ -1,7 +1,6 @@
 {
   "rewrites": [
     { "source": "/reader/:path*", "destination": "https://reader.seedstore.livingseed.org/:path*" },
-    { "source": "/bookstore/:path*", "destination": "https://seedstore.livingseed.org/:path*" },
     { "source": "/:path*", "destination": "https://seedstore.livingseed.org/:path*" }
   ]
 }
