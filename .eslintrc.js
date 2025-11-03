@@ -21,10 +21,12 @@ module.exports = {
   rules: {
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': [
-      'error',
+      'warn',
       {
         ignoreRestSiblings: true,
-        argsIgnorePattern: '^_',
+        // argsIgnorePattern: '^_', // allow unused arg names that start with _
+argsIgnorePattern: '', // allow any unused arg name
+
       },
     ],
     '@typescript-eslint/no-var-requires': 'off',

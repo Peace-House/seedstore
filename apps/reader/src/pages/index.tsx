@@ -1,6 +1,6 @@
 import { useBoolean } from '@literal-ui/hooks'
 import clsx from 'clsx'
-import { useLiveQuery } from 'dexie-react-hooks'
+// import { useLiveQuery } from 'dexie-react-hooks'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
@@ -25,6 +25,7 @@ import { usePrevious } from 'react-use'
 import { ReaderGridView, Button, TextField, DropZone } from '../components'
 import { BookRecord, CoverRecord, db } from '../db'
 import { addFile, fetchBook, handleFiles } from '../file'
+// import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
 import {
   useDisablePinchZooming,
   useLibrary,
@@ -37,7 +38,6 @@ import { reader, useReaderSnapshot } from '../models'
 import { lock } from '../styles'
 import { dbx, pack, uploadData } from '../sync'
 import { copy } from '../utils'
-import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
 
 const placeholder = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="gray" fill-opacity="0" width="1" height="1"/></svg>`
 
@@ -376,7 +376,7 @@ interface BookProps {
 }
 const Book = ({
   book,
-  covers,
+  // covers,
   select,
   selected,
   loading,
