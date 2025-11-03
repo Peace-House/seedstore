@@ -159,6 +159,8 @@ function ViewActionBar({ className, env }: EnvActionBarProps) {
   const [action, setAction] = useAction()
   const t = useTranslation()
 
+  const bookstore_url = process.env.NEXT_PUBLIC_BOOKSTORE_URL
+
   return (
     <ActionBar className={className}>
       {viewActions
@@ -172,7 +174,7 @@ function ViewActionBar({ className, env }: EnvActionBarProps) {
               active={active}
               onClick={() => {
                 if(name === 'store') {
-                  window.location.href = 'http://localhost:8080'
+                  window.location.href = bookstore_url as string
                   return
                 }
                 setAction(active ? undefined : name)
