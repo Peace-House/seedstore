@@ -166,7 +166,7 @@ function ViewActionBar({ className, env }: EnvActionBarProps) {
         .map(({ name, title, Icon }) => {
           const active = action === name
           return (
-            <Action
+            <ActionButton
               title={t(`${title}.title`)}
               Icon={Icon}
               active={active}
@@ -226,7 +226,7 @@ function PageActionBar({ env }: EnvActionBarProps) {
       {pageActions
         .filter((a) => a.env & env)
         .map(({ name, title, Icon, Component, disabled }, i) => (
-          <Action
+          <ActionButton
             title={t(`${title}.title`)}
             Icon={Icon}
             active={mobile ? action === name : undefined}
@@ -276,11 +276,11 @@ function ActionBar({ className, ...props }: ActionBarProps) {
   )
 }
 
-interface ActionProps extends ComponentProps<'button'> {
+interface ActionButtonProps extends ComponentProps<'button'> {
   Icon: IconType
   active?: boolean
 }
-const Action: React.FC<ActionProps> = ({
+const ActionButton: React.FC<ActionButtonProps> = ({
   className,
   Icon,
   active,
