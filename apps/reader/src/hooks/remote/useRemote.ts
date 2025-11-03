@@ -15,3 +15,10 @@ export function useRemoteBooks() {
     shouldRetryOnError: false,
   })
 }
+
+// Fetch a single remote book by ID
+export function useRemoteBook(id: string | number) {
+  const { data: books, ...rest } = useRemoteBooks()
+  const book = books?.find((b: any) => b.id === id || b.id === String(id))
+  return { book, ...rest }
+}

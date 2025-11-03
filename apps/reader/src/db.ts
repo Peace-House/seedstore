@@ -15,12 +15,14 @@ export interface FileRecord {
 export interface CoverRecord {
   id: string
   cover: string | null
+  coverImage: string | null
 }
 
 export interface BookRecord {
   // TODO: use file hash as id
   id: string
   name: string
+  cover?: string | null
   size: number
   metadata: PackagingMetadataObject
   createdAt: number

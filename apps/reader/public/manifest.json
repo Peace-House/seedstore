@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
-  "name": "Flow",
-  "short_name": "Flow",
+  "name": "SeedStoreReader",
+  "short_name": "SeedStoreReader",
   "description": "Redefine EPUB reader",
   "icons": [
     {
@@ -10,7 +10,7 @@
       "sizes": "192x192"
     },
     {
-      "src": "/icons/512.png",
+      "src": "/icons/logo.png",
       "type": "image/png",
       "sizes": "512x512"
     },
@@ -21,7 +21,7 @@
       "purpose": "maskable"
     },
     {
-      "src": "/icons/maskable-512.png",
+      "src": "/icons/logo.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"

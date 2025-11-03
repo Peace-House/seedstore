@@ -4,6 +4,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
+// Store auth_token from URL to localStorage if present
+if (typeof window !== 'undefined') {
+  const url = new URL(window.location.href)
+  const authToken = url.searchParams.get('auth_token')
+  if (authToken) {
+    localStorage.setItem('auth_token', authToken)
+  }
+}
 import {
   MdCheckBox,
   MdCheckBoxOutlineBlank,
@@ -29,6 +37,7 @@ import { reader, useReaderSnapshot } from '../models'
 import { lock } from '../styles'
 import { dbx, pack, uploadData } from '../sync'
 import { copy } from '../utils'
+import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
 
 const placeholder = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="gray" fill-opacity="0" width="1" height="1"/></svg>`
 
@@ -87,7 +96,7 @@ export default function Index() {
           name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
         />
-        <title>{focusedTab?.title ?? 'Flow'}</title>
+        <title>{focusedTab?.title ?? 'Seed Store'}</title>
       </Head>
       <ReaderGridView />
       {loading || <Library />}
@@ -95,9 +104,11 @@ export default function Index() {
   )
 }
 
-const Library: React.FC = () => {
+const Library = () => {
   const books = useLibrary()
-  const covers = useLiveQuery(() => db?.covers.toArray() ?? [])
+  const bookss = useBookstoreLibrary()
+  console.log('bookss', books);
+  // const covers = useLiveQuery(() => db?.covers.toArray() ?? [])
   const t = useTranslation('home')
 
   const { data: remoteBooks, mutate: mutateRemoteBooks } = useRemoteBooks()
@@ -338,11 +349,11 @@ const Library: React.FC = () => {
             rowGap: lock(24, 40),
           }}
         >
-          {books.map((book) => (
+          {books?.map((book:any) => (
             <Book
               key={book.id}
               book={book}
-              covers={covers}
+              covers={book?.coverImage || book.cover}
               select={select}
               selected={has(book.id)}
               loading={loading === book.id}
@@ -363,20 +374,20 @@ interface BookProps {
   loading?: boolean
   toggle: (id: string) => void
 }
-const Book: React.FC<BookProps> = ({
+const Book = ({
   book,
   covers,
   select,
   selected,
   loading,
   toggle,
-}) => {
+}: BookProps) => {
   const remoteFiles = useRemoteFiles()
 
   const router = useRouter()
   const mobile = useMobile()
 
-  const cover = covers?.find((c) => c.id === book.id)?.cover
+  // const cover = covers?.find((c) => c.id === book.id)?.cover
   const remoteFile = remoteFiles.data?.find((f) => f.name === book.name)
 
   const Icon = selected ? MdCheckBox : MdCheckBoxOutlineBlank
@@ -407,7 +418,7 @@ const Book: React.FC<BookProps> = ({
           </div>
         )}
         <img
-          src={cover ?? placeholder}
+          src={book?.cover ?? placeholder}
           alt="Cover"
           className="mx-auto aspect-[9/12] object-cover"
           draggable={false}
