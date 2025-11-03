@@ -19,7 +19,7 @@ import { useRecoilState } from 'recoil'
 
 import {
   Env,
-  Action,
+  type Action,
   useAction,
   useBackground,
   useColorScheme,
