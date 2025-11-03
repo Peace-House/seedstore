@@ -42,7 +42,7 @@ const LibraryPane: React.FC = () => {
           title={book.name}
           draggable
           onClick={() => reader.addTab(book)}
-          onDragStart={(e) => {
+          onDragStart={(e:any) => {
             e.dataTransfer.setData('text/plain', book.id)
           }}
         >

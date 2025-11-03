@@ -130,7 +130,7 @@ export const TypographyView: React.FC<PaneViewProps> = (props) => {
           // Preload fonts to ensure `localFonts` is available on first mouse click.
           // Without preloading, datalist dropdown will be empty for the first mouse click.
           onMouseEnter={queryLocalFonts}
-          onChange={(e) => {
+          onChange={(e: any) => {
             setTypography('fontFamily', e.target.value)
           }}
         />
