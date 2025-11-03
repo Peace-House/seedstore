@@ -4,7 +4,7 @@ declare module '@literal-ui/core' {
   // Augment the LiteralProvider type to accept children
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface LiteralProviderProps {
-    children?: ReactNode | ReactNode[] | any | undefined ;
+    children?: ReactNode;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const LiteralProvider: React.FC<LiteralProviderProps>;

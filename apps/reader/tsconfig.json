@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.next.json",
   "compilerOptions": {
     "experimentalDecorators": true,
+    "jsx": "preserve",
     "typeRoots": [
       "./types",
       "./node_modules/@types"
