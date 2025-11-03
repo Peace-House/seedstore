@@ -67,7 +67,7 @@ export async function addFile(id: string, file: File, epub?: Book) {
 
   const url = await epub.coverUrl()
   const cover = url && (await toDataUrl(url))
-  db?.covers.add({ id, cover })
+  db?.covers.add({ id, cover } as any)
 }
 
 export function readBlob(fn: (reader: FileReader) => void) {
