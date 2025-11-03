@@ -16,22 +16,22 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <ErrorBoundary fallback={<Fallback />}>
-      {/* <LiteralProvider>
+      <LiteralProvider>
         <RecoilRoot>
           <Theme />
           <Layout>
             <Component {...pageProps} />
           </Layout>
         </RecoilRoot>
-      </LiteralProvider> */}
-      <LiteralProvider children={
+      </LiteralProvider>
+      {/* <LiteralProvider children={
         <RecoilRoot>
           <Theme />
           <Layout>
             <Component {...pageProps} />
           </Layout>
         </RecoilRoot>
-      } />
+      } /> */}
     </ErrorBoundary>
   )
 }
