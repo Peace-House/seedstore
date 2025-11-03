@@ -1,5 +1,5 @@
-import useSWR from 'swr/immutable'
 import axios from 'axios'
+import useSWR from 'swr/immutable'
 
 // You may want to move this to an env variable or config
 const API_BASE_URL = 'http://localhost:4000/api/v1'
