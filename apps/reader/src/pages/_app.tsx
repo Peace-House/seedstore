@@ -16,7 +16,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <ErrorBoundary fallback={<Fallback />}>
-      <LiteralProvider>
+      <LiteralProvider options={undefined} >
         <RecoilRoot>
           <Theme />
           <Layout>
