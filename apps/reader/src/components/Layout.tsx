@@ -40,7 +40,7 @@ import { TimelineView } from './viewlets/TimelineView'
 import { TocView } from './viewlets/TocView'
 import { TypographyView } from './viewlets/TypographyView'
 
-export const Layout: React.FC = ({ children }) => {
+export const Layout = ({ children }:{children: React.ReactNode | any}) => {
   useColorScheme()
 
   const [ready, setReady] = useState(false)
