@@ -25,8 +25,7 @@ module.exports = {
       {
         ignoreRestSiblings: true,
         // argsIgnorePattern: '^_', // allow unused arg names that start with _
-argsIgnorePattern: '', // allow any unused arg name
-
+        argsIgnorePattern: '', // allow any unused arg name
       },
     ],
     '@typescript-eslint/no-var-requires': 'off',

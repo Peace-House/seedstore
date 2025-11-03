@@ -1,3 +1,4 @@
+import React, {ComponentPropsWithoutRef} from 'react'
 import clsx from 'clsx'
 import {
   ElementType,
@@ -20,19 +21,37 @@ type Action = {
   onClick: (el: HTMLInputElement | null) => void
 }
 
-export type TextFieldProps<T extends ElementType> = PolymorphicPropsWithoutRef<
-  {
-    name: string
-    hideLabel?: boolean
-    autoFocus?: boolean
-    actions?: Action[]
-    datalist?: React.ReactNode[]
-    onClear?: () => void
-    // https://react-typescript-cheatsheet.netlify.app/docs/basic/getting-started/forward_and_create_ref/#generic-forwardrefs
-    mRef?: RefObject<HTMLInputElement> | null
-  },
-  T
->
+// export type TextFieldProps<T extends ElementType> = PolymorphicPropsWithoutRef<
+//   {
+//     name: string
+//     hideLabel?: boolean
+//     className?: string
+//     autoFocus?: boolean
+//     actions?: Action[]
+//     datalist?: React.ReactNode[]
+//     onClear?: () => void
+//     // https://react-typescript-cheatsheet.netlify.app/docs/basic/getting-started/forward_and_create_ref/#generic-forwardrefs
+//     mRef?: RefObject<HTMLInputElement> | null
+//   },
+//   T
+// >
+
+export type TextFieldProps<T extends ElementType = 'input'> = {
+  name: string
+  as?: T
+  className?: string
+  hideLabel?: boolean
+  autoFocus?: boolean
+  actions?: Array<{
+    title: string
+    Icon: any
+    onClick: (element: HTMLInputElement | null) => void
+  }>
+  datalist?: React.ReactNode
+  onClear?: (element: HTMLInputElement | null) => void
+  mRef?: React.RefObject<HTMLInputElement>
+} & Omit<ComponentPropsWithoutRef<T>, 'name' | 'as' | 'ref'>
+
 export function TextField<T extends ElementType = 'input'>({
   name,
   as,
@@ -45,7 +64,8 @@ export function TextField<T extends ElementType = 'input'>({
   mRef: outerRef,
   ...props
 }: TextFieldProps<T>) {
-  const Component = as || 'input'
+  // const Component = as || 'input'
+  const Component = (as || 'input') as any
   const isInput = Component === 'input'
   const innerRef = useRef<HTMLInputElement>(null)
   const datalistId = `${name}-datalist` // TODO: use `useId`
@@ -89,7 +109,7 @@ export function TextField<T extends ElementType = 'input'>({
           {...(datalist && { list: datalistId })}
           {...props}
         />
-        {datalist && <datalist id={datalistId}>{datalist}</datalist>}
+        {datalist && <datalist id={datalistId}>{datalist as any}</datalist>}
         {!!actions.length && (
           <div className="mx-1 flex gap-0.5">
             {actions.map(({ onClick, ...a }) => (
@@ -179,11 +199,12 @@ interface LabelProps extends ComponentProps<'label'> {
   name: string
   hide?: boolean
 }
-export const Label: React.FC<LabelProps> = ({
+
+export const Label= ({
   name,
   hide = false,
   className,
-}) => {
+}: LabelProps) => {
   return (
     <label
       htmlFor={name}
