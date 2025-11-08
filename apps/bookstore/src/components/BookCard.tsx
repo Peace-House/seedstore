@@ -16,7 +16,7 @@ interface BookCardProps {
   showActions?: boolean;
   className?: string;
 }
-    const reader_route =  import.meta.env.VITE_BOOKREADER_URL!
+const reader_route = import.meta.env.VITE_BOOKREADER_URL!
 const BookCard = ({ book, listView, showActions = true, className }: BookCardProps) => {
   // Helper to get orderId for purchased book
   const getOrderId = () => {
@@ -78,6 +78,12 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
     });
   };
 
+  const handleReadNow = (bookId: string) => {
+    const token = localStorage.getItem('auth_token');
+    const url = `${reader_route}?bookId=${bookId}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`;
+    window.location.href = url;
+  }
+
   if (listView) {
     return (
       <Card className="flex flex-row items-center bg-white rounded-md justify-between gap-4 border-none  h-max shadow-none w-full overflow-hidden">
@@ -118,11 +124,8 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  const token = localStorage.getItem('auth_token')
-                  const url = `${reader_route}${token ? `?auth_token=${encodeURIComponent(token)}` : ''}`
-                  window.location.href = url
-                }}
+                onClick={() => handleReadNow(book.id as string)}
+
               >
                 <BookOpen className="mr-2 h-4 w-4" />
                 Read Now
@@ -216,12 +219,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
                 <Button
                   size="sm"
                   variant="outline"
-                onClick={() => {
-                  const token = localStorage.getItem('auth_token')
-                  const url = `${reader_route}${token ? `?auth_token=${encodeURIComponent(token)}` : ''}`
-                  window.location.href = url
-                }}
-                  // onClick={() => navigate(`/reader/${getOrderId()}/${book.id}`)}
+                  onClick={() => handleReadNow(book.id as string)}
                   className='text-xs gap-0 max-[768px]:h-max py-1 px-1.5'
                 >
                   <BookOpen className="mr-2 h-4 w-4 hidden md:block" />
@@ -236,7 +234,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
                 >
                   <Download className="mr-2 h-4 w-4" />
                   <span className='hidden md:block'>
-                  Download
+                    Download
                   </span>
                 </Button>
               ) : isInCart ? (
@@ -248,7 +246,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
                 >
                   <ShoppingCart className="hidden md:block mr-2 h-4 w-4" />
                   <span className=''>
-                  Added to Cart
+                    Added to Cart
                   </span>
                 </Button>
               ) : (
@@ -260,7 +258,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
                 >
                   <ShoppingCart className="hidden md:block mr-2 h-4 w-4" />
                   <span className=''>
-                  Add to Cart
+                    Add to Cart
                   </span>
                 </Button>
               )

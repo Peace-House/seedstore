@@ -13,8 +13,10 @@ import {
   MdOutlineLightMode,
   MdChevronLeft,
   MdExitToApp,
+  MdMenuBook,
+  MdLibraryBooks,
 } from 'react-icons/md'
-import { RiFontSize, RiHome6Line, RiSettings5Line } from 'react-icons/ri'
+import { RiFontSize, RiHome6Line, RiSettings5Line, RiShieldFill } from 'react-icons/ri'
 import { useRecoilState } from 'recoil'
 
 import {
@@ -37,6 +39,7 @@ import { AnnotationView } from './viewlets/AnnotationView'
 import { ImageView } from './viewlets/ImageView'
 import { SearchView } from './viewlets/SearchView'
 import { ThemeView } from './viewlets/ThemeView'
+import Link from 'next/link'
 import { TimelineView } from './viewlets/TimelineView'
 import { TocView } from './viewlets/TocView'
 import { TypographyView } from './viewlets/TypographyView'
@@ -78,6 +81,14 @@ interface IViewAction extends IAction {
   View: React.FC<any>
 }
 
+const LibraryView: React.FC<any> = () => (
+  <div className="flex flex-col h-full">
+    <Link href="/library" legacyBehavior>
+      <a className="block p-6 text-lg font-bold">Go to Library</a>
+    </Link>
+  </div>
+)
+
 const viewActions: IViewAction[] = [
   {
     name: 'store',
@@ -89,8 +100,15 @@ const viewActions: IViewAction[] = [
   {
     name: 'toc',
     title: 'toc',
-    Icon: MdToc,
+    Icon: MdMenuBook,
     View: TocView,
+    env: Env.Desktop | Env.Mobile,
+  },
+  {
+    name: 'library',
+    title: 'library',
+    Icon: MdLibraryBooks,
+    View: LibraryView,
     env: Env.Desktop | Env.Mobile,
   },
   {

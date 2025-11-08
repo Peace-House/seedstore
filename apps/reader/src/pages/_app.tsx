@@ -7,12 +7,14 @@ import type { AppProps } from 'next/app'
 import { useRouter } from 'next/router'
 import { RecoilRoot } from 'recoil'
 
-import { Layout, Theme } from '../components'
+// import { Layout, Theme } from '../components'
+import {Theme } from '../components'
+import { Layout } from '../components/layout/Layout'
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter()
 
-  if (router.pathname === '/success') return <Component {...pageProps} />
+  // if (router.pathname === '/success') return <Component {...pageProps} />
 
   return (
     <ErrorBoundary fallback={<Fallback />}>
@@ -24,14 +26,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           </Layout>
         </RecoilRoot>
       </LiteralProvider>
-      {/* <LiteralProvider children={
-        <RecoilRoot>
-          <Theme />
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
-        </RecoilRoot>
-      } /> */}
     </ErrorBoundary>
   )
 }

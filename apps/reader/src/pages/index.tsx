@@ -4,12 +4,18 @@ import clsx from 'clsx'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
-// Store auth_token from URL to localStorage if present
+
+// Store auth_token from URL to localStorage if present, then remove it from the URL
 if (typeof window !== 'undefined') {
   const url = new URL(window.location.href)
   const authToken = url.searchParams.get('auth_token')
   if (authToken) {
     localStorage.setItem('auth_token', authToken)
+  // Remove only auth_token from URL, keep other params
+  url.searchParams.delete('auth_token')
+  const newSearch = url.searchParams.toString()
+  const newUrl = url.pathname + (newSearch ? `?${newSearch}` : '') + url.hash
+  window.history.replaceState({}, '', newUrl)
   }
 }
 import {
@@ -184,163 +190,163 @@ const Library = () => {
   const allSelected = selectedBookIds.size === books.length
 
   return (
-    <DropZone
-      className="scroll-parent h-full p-4"
-      onDrop={(e) => {
-        const bookId = e.dataTransfer.getData('text/plain')
-        const book = books.find((b) => b.id === bookId)
-        if (book) reader.addTab(book)
+    // <DropZone
+    //   className="scroll-parent h-full p-4"
+    //   onDrop={(e) => {
+    //     const bookId = e.dataTransfer.getData('text/plain')
+    //     const book = books.find((b) => b.id === bookId)
+    //     if (book) reader.addTab(book)
 
-        handleFiles(e.dataTransfer.files)
-      }}
-    >
-      <div className="mb-4 space-y-2.5">
-        <div>
-          <TextField
-            name={SOURCE}
-            placeholder="https://link.to/remote.epub"
-            type="url"
-            hideLabel
-            actions={[
-              {
-                title: t('share'),
-                Icon: MdOutlineShare,
-                onClick(el) {
-                  if (el?.reportValidity()) {
-                    copy(`${window.location.origin}/?${SOURCE}=${el.value}`)
-                  }
-                },
-              },
-              {
-                title: t('download'),
-                Icon: MdOutlineFileDownload,
-                onClick(el) {
-                  if (el?.reportValidity()) fetchBook(el.value)
-                },
-              },
-            ]}
-          />
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-x-2">
-            {books.length ? (
-              <Button variant="secondary" onClick={toggleSelect}>
-                {t(select ? 'cancel' : 'select')}
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                disabled={!books}
-                onClick={() => {
-                  fetchBook(
-                    'https://epubtest.org/books/Fundamental-Accessibility-Tests-Basic-Functionality-v1.0.0.epub',
-                  )
-                }}
-              >
-                {t('download_sample_book')}
-              </Button>
-            )}
-            {select &&
-              (allSelected ? (
-                <Button variant="secondary" onClick={reset}>
-                  {t('deselect_all')}
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  onClick={() => books.forEach((b) => add(b.id))}
-                >
-                  {t('select_all')}
-                </Button>
-              ))}
-          </div>
+    //     handleFiles(e.dataTransfer.files)
+    //   }}
+    // >
+      //  <div className="mb-4 space-y-2.5">
+      //   <div>
+      //     <TextField
+      //       name={SOURCE}
+      //       placeholder="https://link.to/remote.epub"
+      //       type="url"
+      //       hideLabel
+      //       actions={[
+      //         {
+      //           title: t('share'),
+      //           Icon: MdOutlineShare,
+      //           onClick(el) {
+      //             if (el?.reportValidity()) {
+      //               copy(`${window.location.origin}/?${SOURCE}=${el.value}`)
+      //             }
+      //           },
+      //         },
+      //         {
+      //           title: t('download'),
+      //           Icon: MdOutlineFileDownload,
+      //           onClick(el) {
+      //             if (el?.reportValidity()) fetchBook(el.value)
+      //           },
+      //         },
+      //       ]}
+      //     />
+      //   </div>
+      //   <div className="flex items-center justify-between gap-4">
+      //     <div className="space-x-2">
+      //       {books.length ? (
+      //         <Button variant="secondary" onClick={toggleSelect}>
+      //           {t(select ? 'cancel' : 'select')}
+      //         </Button>
+      //       ) : (
+      //         <Button
+      //           variant="secondary"
+      //           disabled={!books}
+      //           onClick={() => {
+      //             fetchBook(
+      //               'https://epubtest.org/books/Fundamental-Accessibility-Tests-Basic-Functionality-v1.0.0.epub',
+      //             )
+      //           }}
+      //         >
+      //           {t('download_sample_book')}
+      //         </Button>
+      //       )}
+      //       {select &&
+      //         (allSelected ? (
+      //           <Button variant="secondary" onClick={reset}>
+      //             {t('deselect_all')}
+      //           </Button>
+      //         ) : (
+      //           <Button
+      //             variant="secondary"
+      //             onClick={() => books.forEach((b) => add(b.id))}
+      //           >
+      //             {t('select_all')}
+      //           </Button>
+      //         ))}
+      //     </div>
 
-          <div className="space-x-2">
-            {select ? (
-              <>
-                <Button
-                  onClick={async () => {
-                    toggleSelect()
+      //     <div className="space-x-2">
+      //       {select ? (
+      //         <>
+      //           <Button
+      //             onClick={async () => {
+      //               toggleSelect()
 
-                    for (const book of selectedBooks) {
-                      const remoteFile = remoteFiles?.find(
-                        (f) => f.name === book.name,
-                      )
-                      if (remoteFile) continue
+      //               for (const book of selectedBooks) {
+      //                 const remoteFile = remoteFiles?.find(
+      //                   (f) => f.name === book.name,
+      //                 )
+      //                 if (remoteFile) continue
 
-                      const file = await db?.files.get(book.id)
-                      if (!file) continue
+      //                 const file = await db?.files.get(book.id)
+      //                 if (!file) continue
 
-                      setLoading(book.id)
-                      await dbx.filesUpload({
-                        path: `/files/${book.name}`,
-                        contents: file.file,
-                      })
-                      setLoading(undefined)
+      //                 setLoading(book.id)
+      //                 await dbx.filesUpload({
+      //                   path: `/files/${book.name}`,
+      //                   contents: file.file,
+      //                 })
+      //                 setLoading(undefined)
 
-                      mutateRemoteFiles()
-                    }
-                  }}
-                >
-                  {t('upload')}
-                </Button>
-                <Button
-                  onClick={async () => {
-                    toggleSelect()
-                    const bookIds = [...selectedBookIds]
+      //                 mutateRemoteFiles()
+      //               }
+      //             }}
+      //           >
+      //             {t('upload')}
+      //           </Button>
+      //           <Button
+      //             onClick={async () => {
+      //               toggleSelect()
+      //               const bookIds = [...selectedBookIds]
 
-                    db?.books.bulkDelete(bookIds)
-                    db?.covers.bulkDelete(bookIds)
-                    db?.files.bulkDelete(bookIds)
+      //               db?.books.bulkDelete(bookIds)
+      //               db?.covers.bulkDelete(bookIds)
+      //               db?.files.bulkDelete(bookIds)
 
-                    // folder data is not updated after `filesDeleteBatch`
-                    mutateRemoteFiles(
-                      async (data) => {
-                        await dbx.filesDeleteBatch({
-                          entries: selectedBooks.map((b) => ({
-                            path: `/files/${b.name}`,
-                          })),
-                        })
-                        return data?.filter(
-                          (f) => !selectedBooks.find((b) => b.name === f.name),
-                        )
-                      },
-                      { revalidate: false },
-                    )
-                  }}
-                >
-                  {t('delete')}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="secondary"
-                  disabled={!books.length}
-                  onClick={pack}
-                >
-                  {t('export')}
-                </Button>
-                <Button className="relative">
-                  <input
-                    type="file"
-                    accept="application/epub+zip,application/epub,application/zip"
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                    onChange={(e) => {
-                      const files = e.target.files
-                      if (files) handleFiles(files)
-                    }}
-                    multiple
-                  />
-                  {t('import')}
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      //               // folder data is not updated after `filesDeleteBatch`
+      //               mutateRemoteFiles(
+      //                 async (data) => {
+      //                   await dbx.filesDeleteBatch({
+      //                     entries: selectedBooks.map((b) => ({
+      //                       path: `/files/${b.name}`,
+      //                     })),
+      //                   })
+      //                   return data?.filter(
+      //                     (f) => !selectedBooks.find((b) => b.name === f.name),
+      //                   )
+      //                 },
+      //                 { revalidate: false },
+      //               )
+      //             }}
+      //           >
+      //             {t('delete')}
+      //           </Button>
+      //         </>
+      //       ) : (
+      //         <>
+      //           <Button
+      //             variant="secondary"
+      //             disabled={!books.length}
+      //             onClick={pack}
+      //           >
+      //             {t('export')}
+      //           </Button>
+      //           <Button className="relative">
+      //             <input
+      //               type="file"
+      //               accept="application/epub+zip,application/epub,application/zip"
+      //               className="absolute inset-0 cursor-pointer opacity-0"
+      //               onChange={(e) => {
+      //                 const files = e.target.files
+      //                 if (files) handleFiles(files)
+      //               }}
+      //               multiple
+      //             />
+      //             {t('import')}
+      //           </Button>
+      //         </>
+      //       )}
+      //     </div>
+      //   </div>
+      // </div> 
 
-      <div className="scroll h-full">
+      <div className="scroll h-full p-2">
         <ul
           className="grid"
           style={{
@@ -362,7 +368,7 @@ const Library = () => {
           ))}
         </ul>
       </div>
-    </DropZone>
+    // </DropZone>
   )
 }
 

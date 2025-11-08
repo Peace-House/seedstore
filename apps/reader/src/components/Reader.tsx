@@ -72,8 +72,8 @@ export function ReaderGridView() {
   if (!groups.length) return null
   return (
     <SplitView className={clsx('ReaderGridView')}>
-      {groups.map(({ id }, i) => (
-        <ReaderGroup key={id} index={i} />
+      {groups.map((group: { id: string }, i: number) => (
+        <ReaderGroup key={group.id} index={i} />
       ))}
     </SplitView>
   )
@@ -107,7 +107,7 @@ function ReaderGroup({ index }: ReaderGroupProps) {
         className="hidden sm:flex"
         onDelete={() => reader.removeGroup(index)}
       >
-        {tabs.map((tab, i) => {
+        {tabs.map((tab: any, i: number) => {
           const selected = i === selectedIndex
           const focused = index === focusedIndex && selected
           return (
