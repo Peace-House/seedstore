@@ -8,16 +8,26 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Check, Grid, List, Search, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 const BookSearchPage = () => {
-  const { params } = useBookSearchParams();
+  const location = useLocation();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState(params.title || '');
-  const [categoryFilter, setCategoryFilter] = useState<(string | number)[]>(params.category ? [params.category] : []);
-  const [minPrice, setMinPrice] = useState(params.priceMin ? String(params.priceMin) : '');
-  const [maxPrice, setMaxPrice] = useState(params.priceMax ? String(params.priceMax) : '');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<(string | number)[]>([]);
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  // Update filters when URL search params change
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    setSearchQuery(searchParams.get('title') || '');
+    setCategoryFilter(searchParams.get('category') ? [searchParams.get('category')!] : []);
+    setMinPrice(searchParams.get('priceMin') || '');
+    setMaxPrice(searchParams.get('priceMax') || '');
+    setPage(1);
+  }, [location.search]);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -45,18 +55,12 @@ const BookSearchPage = () => {
 
   // Filtering logic (client-side)
   const filteredBooks = books.filter(book => {
-    const matchesSearch =
-      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (book.author && book.author.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory =
-      categoryFilter.length === 0 || (book.category && categoryFilter.includes(book.category.id));
-    const price = Number(book.price);
-    const min = minPrice ? Number(minPrice) : null;
-    const max = maxPrice ? Number(maxPrice) : null;
-    const matchesPrice =
-      (min === null || price >= min) &&
-      (max === null || price <= max);
-    return matchesSearch && matchesCategory && matchesPrice;
+    const search = searchQuery.trim().toLowerCase();
+    if (!search) return true;
+    const inTitle = book.title && book.title.toLowerCase().includes(search);
+    const inAuthor = book.author && book.author.toLowerCase().includes(search);
+    const inCategory = book.category && book.category.name && book.category.name.toLowerCase().includes(search);
+    return inTitle || inAuthor || inCategory;
   });
 
   // Pagination
@@ -73,6 +77,7 @@ const BookSearchPage = () => {
         <span className="mx-1">/</span>
         <span className="text-primary font-semibold">Search Results</span>
       </nav>
+      
       <div className='flex items-center justify-between mb-8'>
         <h2 className="text-3xl font-bold">Search Results</h2>
         <div className='flex'>
@@ -173,7 +178,7 @@ const BookSearchPage = () => {
             <p className="text-muted-foreground">No books found matching your search.</p>
           </div>
         ) : (
-          <>
+          <div>
             {view === 'grid' ? (
               // grid view
               <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-5 md:gap-4 shadow p-1 md:p-4 rounded-md bg-white/80 min-h-[500px] w-full">
@@ -212,7 +217,7 @@ const BookSearchPage = () => {
                 </Button>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </section>

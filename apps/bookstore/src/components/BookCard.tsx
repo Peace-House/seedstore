@@ -2,12 +2,13 @@ import { Card, CardContent, CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { ShoppingCart, Eye, Download } from 'lucide-react';
 import { BookOpen } from 'lucide-react';
-import { slugify, truncate } from '@/lib/utils';
+import { capitalizeWords, slugify, truncate } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/hooks/useCart';
 import { useLibrary } from '@/hooks/useLibrary';
 import { Book } from '@/services';
+import LiquidGlassWrapper from './LiquidGlassWrapper';
 
 
 interface BookCardProps {
@@ -86,7 +87,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
 
   if (listView) {
     return (
-      <Card className="flex flex-row items-center bg-white rounded-md justify-between gap-4 border-none  h-max shadow-none w-full overflow-hidden">
+      <Card className="flex flex-row items-center bg-white rounded-md justify-between gap-4 border-none hover:shadow-md  h-max shadow-none w-full overflow-hidden">
         {/* Cover Image */}
         <div className="w-24 h-32 flex-shrink-0 bg-muted  overflow-hidden">
           {book.coverImage ? (
@@ -107,7 +108,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
             <Link to={`/book/${book.id}`}>
               <h3 className="font-semibold text-xs truncate hover:underline">{truncate(book.title, 30)}</h3>
             </Link>
-            <p className="text-muted-foreground truncate">{book.author}</p>
+            <p className="text-muted-foreground truncate">{capitalizeWords(book.author)}</p>
             <div className="flex items-center gap-2 mt-2">
               {book.category?.name && (
                 <span className="px-2 py-0.5 text-xs rounded bg-muted-foreground/10 text-muted-foreground">{book.category.name}</span>
@@ -117,47 +118,51 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
               )}
             </div>
           </div>
-          <div className="flex items-end justify-between w-full">
+          <div className="flex items-end justify-between w-full px-1">
             <span className="text-primary font-bold">₦{Number(book.price).toLocaleString()}</span>
 
             {isPurchased ? (
               <Button
                 size="sm"
                 variant="outline"
+                className='border-none'
                 onClick={() => handleReadNow(book.id as string)}
 
               >
-                <BookOpen className="mr-2 h-4 w-4" />
-                Read Now
+                <BookOpen className="h-4 w-4" />
+                {/* Read Now */}
               </Button>
             ) : book?.price === 0 ? (
               <Button
                 size="sm"
+                variant="outline"
                 onClick={handleDownload}
                 disabled={isAddingToCart}
-                className='text-xs gap-0 px-1.5'
+                className='border-none'
 
               >
-                <Download className="mr-2 h-4 w-4" />
-                Download
+                <Download className=" h-4 w-4" />
+                {/* Download */}
               </Button>
             ) : isInCart ? (
-              <Button size="sm" disabled variant="outline"
-                className='text-xs gap-0 px-1.5'
+              <Button size="sm"
+                className='border-none'
+              
+              disabled variant="outline"
               >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Added to Cart
+                <ShoppingCart className=" h-4 w-4" />
+                {/* Added to Cart */}
               </Button>
             ) : (
               <Button
                 size="sm"
                 onClick={handleAddToCart}
                 disabled={isAddingToCart}
-                className='text-xs gap-0 px-1.5'
-
+                variant="outline"
+                className='border-none'
               >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Add to Cart
+                <ShoppingCart className="h-4 w-4" />
+                {/* Add to Cart */}
               </Button>
             )}
           </div>
@@ -166,14 +171,14 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
     );
   }
   return (
-    <Card className={`overflow border-none shadow-none bg-white overflow-hidden rounded-md hover:shadow-lg transition-shadow group h-max md:min-w-[180px] ${className}`}>
+    <LiquidGlassWrapper className={`overflow border-none  overflow-hidden transition-shadow group h-max md:min-w-[180px] ${className}`}>
       <div className="relative overflow-hidden bg-muted flex-1 w-full">
         {book.coverImage ? (
-          <div className='relative h-[220px] w-full md:w-[200px] flex flex-shrink-0 items-center justify-center'>
+          <div className='relative h-[220px] w-full md:w-[200px] overflow-hidden'>
             <img
               src={book.coverImage}
               alt={book.title}
-              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+              className="object-fill w-full h-full group-hover:scale-105 transition-transform duration-300"
             />
           </div>
         ) : (
@@ -194,16 +199,16 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
           </Button>
         </div>
         {book.category && (
-          <span className="inline-block shadow-lg text-xs px-2 py-1 bg-white/60 text-primary rounded-full absolute right-1 top-1 z-10">
+          <LiquidGlassWrapper className="inline-block !shadow-lg text-xs px-2 py-1 bg-white/60 text-primary rounded-full !absolute right-1 top-1 z-10">
             {book.category?.name}
-          </span>
+          </LiquidGlassWrapper>
         )}
       </div>
       <div className='h-max-[150px] flex flex-col justify-between'>
         <CardContent className="p-2 bg-none">
-          <h3 className="text-xs font-semibold line-clamp-2 mb-1">{truncate(book.title, 21)}</h3>
+          {/* <h3 className="text-xs font-semibold line-clamp-2 mb-1">{truncate(book.title, 21)}</h3> */}
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground capitalize">{book.author}</p>
+            <p className="text-xs text-muted-foreground capitalize">{capitalizeWords(book.author)}</p>
           </div>
         </CardContent>
 
@@ -219,32 +224,39 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
                 <Button
                   size="sm"
                   variant="outline"
+                  liquidGlass
                   onClick={() => handleReadNow(book.id as string)}
-                  className='text-xs gap-0 max-[768px]:h-max py-1 px-1.5'
+                  style={{ inset: '-10px 20px 30px -40px' }}
+
+                  className='text-xs gap-0  max-[768px]:h-max py-1 px-1.5 rounded-full'
                 >
-                  <BookOpen className="mr-2 h-4 w-4 hidden md:block" />
+                  <BookOpen className="mr-1 h-4 w-4 hidden md:block" />
                   Read Now
                 </Button>
               ) : book?.price === 0 ? (
                 <Button
                   size="sm"
+                  variant="outline"
                   onClick={handleDownload}
                   disabled={isAddingToCart}
-                  className='text-xs gap-0 max-[768px]:h-max py-1 px-1.5'
+                  style={{ inset: '10px 20px 30px 40px' }}
+                  className='text-xs gap-0 max-[768px]:h-max py-1 px-1.5 rounded-full'
                 >
-                  <Download className="mr-2 h-4 w-4" />
+                  {/* <Download className="mr-2 h-4 w-4" />
                   <span className='hidden md:block'>
                     Download
-                  </span>
+                  </span> */}
+                  <BookOpen className="mr-1 h-4 w-4 hidden md:block" />
+                  Read Now
                 </Button>
               ) : isInCart ? (
                 <Button
                   size="sm"
                   disabled
                   variant="outline"
-                  className='text-[11px] gap-0 max-[768px]:h-max py-1 px-1.5'
+                  className='text-[11px] gap-0 max-[768px]:h-max py-1 px-1.5 rounded-full'
                 >
-                  <ShoppingCart className="hidden md:block mr-2 h-4 w-4" />
+                  <ShoppingCart className="hidden md:block mr-1 h-4 w-4" />
                   <span className=''>
                     Added to Cart
                   </span>
@@ -252,11 +264,12 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
               ) : (
                 <Button
                   size="sm"
+                  variant="outline"
                   onClick={handleAddToCart}
                   disabled={isAddingToCart}
-                  className='text-xs gap-0 max-[768px]:h-max py-1 px-1.5'
+                  className='text-xs gap-0 max-[768px]:h-max py-1 px-1.5 rounded-full'
                 >
-                  <ShoppingCart className="hidden md:block mr-2 h-4 w-4" />
+                  <ShoppingCart className="hidden md:block mr-1 h-4 w-4" />
                   <span className=''>
                     Add to Cart
                   </span>
@@ -267,7 +280,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
           }
         </CardFooter>
       </div>
-    </Card>
+    </LiquidGlassWrapper>
   );
 };
 

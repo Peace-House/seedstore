@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAnalytics } from '@/services/analytics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import LiquidGlassWrapper from '../LiquidGlassWrapper';
 
 const analyticsCards = [
     { key: 'totalUsers', label: 'Total Users' },
@@ -29,7 +30,10 @@ const AdminOverview = () => {
       {data && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {analyticsCards.map(card => (
-            <Card key={card.key} className="shadow-md">
+            <LiquidGlassWrapper
+            // variant="defa"
+            liquidGlass={true}
+            key={card.key} className="!shadow-md">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">{card.label}</CardTitle>
               </CardHeader>
@@ -40,7 +44,7 @@ const AdminOverview = () => {
                     : data[card.key as keyof typeof data]}
                 </div>
               </CardContent>
-            </Card>
+            </LiquidGlassWrapper>
           ))}
         </div>
       )}
