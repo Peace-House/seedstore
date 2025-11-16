@@ -87,7 +87,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
 
   if (listView) {
     return (
-      <Card className="flex flex-row items-center bg-white rounded-md justify-between gap-4 border-none hover:shadow-md  h-max shadow-none w-full overflow-hidden">
+      <Card className="flex flex-row items-center bg-white rounded-md justify-between gap-2 border-none hover:shadow-md h-max shadow-none w-full overflow-hidden">
         {/* Cover Image */}
         <div className="w-24 h-32 flex-shrink-0 bg-muted  overflow-hidden">
           {book.coverImage ? (
@@ -102,13 +102,13 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
         </div>
 
         {/* Actions: Cart/Read/Details */}
-        <div className="flex flex-col flex-1 gap-2 items-end">
+        <div className="flex flex-col justify-between h-32 p-1 flex-1 gap-2 items-end">
           {/* Book Info */}
           <div className="flex-1 min-w-0 w-full">
             <Link to={`/book/${book.id}`}>
-              <h3 className="font-semibold text-xs truncate hover:underline">{truncate(book.title, 30)}</h3>
+              <h3 className="font-semibold text-xs truncate hover:underline">{truncate(book.title, 20)}</h3>
             </Link>
-            <p className="text-muted-foreground truncate">{capitalizeWords(book.author)}</p>
+            <p className="text-muted-foreground text-xs truncate">{capitalizeWords(book.author)}</p>
             <div className="flex items-center gap-2 mt-2">
               {book.category?.name && (
                 <span className="px-2 py-0.5 text-xs rounded bg-muted-foreground/10 text-muted-foreground">{book.category.name}</span>
@@ -118,7 +118,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
               )}
             </div>
           </div>
-          <div className="flex items-end justify-between w-full px-1">
+          <div className="flex items-end justify-between w-full">
             <span className="text-primary font-bold">₦{Number(book.price).toLocaleString()}</span>
 
             {isPurchased ? (

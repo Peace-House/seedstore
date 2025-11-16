@@ -27,6 +27,12 @@ const Library = () => {
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
+  const handleReadNow = (bookId: number|string, orderId:string) => {
+     const reader_route = import.meta.env.VITE_BOOKREADER_URL!;
+    const token = localStorage.getItem('auth_token');
+    const url = `${reader_route}?bookId=${bookId}&orderId=${orderId}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`;
+    window.location.href = url;
+  }
 
   return (
     <>
@@ -68,7 +74,8 @@ const Library = () => {
                   <Button
                     className="w-full mt-2"
                     size="sm"
-                    onClick={() => navigate(`/reader/${book.orderId}/${book.id}`)}
+                    onClick={() => handleReadNow(book.id, book.orderId!)}
+                    // onClick={() => navigate(`/reader?orderId=${book.orderId}&bookId=${book.id}`)}
                   >
                     <BookOpen className="mr-2 h-4 w-4" />
                     Read Now

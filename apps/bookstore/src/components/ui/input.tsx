@@ -9,7 +9,7 @@ interface InputProps extends React.ComponentProps<"input"> {
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, liquidGlass = true, ...props }, ref) => {
     const glassClass = liquidGlass
-      ? "bg-white/30 backdrop-blur-lg border border-white/30 shadow border text-black"
+      ? "bg-white/30 backdrop-blur-lg border-[0.5px] bg-background shadow border text-black"
       : "";
     return (
       <input

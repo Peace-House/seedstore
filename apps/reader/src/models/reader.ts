@@ -141,13 +141,14 @@ export class BookTab extends BaseTab {
   }
   undefine(def: string) {
     this.updateBook({
-      definitions: this.book.definitions.filter(
+      definitions: this.book.definitions?.filter(
         (d) => !compareDefinition(d, def),
       ),
     })
   }
   isDefined(def: string) {
-    return this.book.definitions.some((d) => compareDefinition(d, def))
+    const defs = Array.isArray(this?.book?.definitions) ? this.book.definitions : [];
+    return defs.some((d) => compareDefinition(d, def))
   }
 
   rangeToCfi(range: Range) {
@@ -163,8 +164,9 @@ export class BookTab extends BaseTab {
     const spine = this.section
     if (!spine?.navitem) return
 
-    const i = this.book.annotations.findIndex((a) => a.cfi === cfi)
-    let annotation = this.book.annotations[i]
+  const annotationsArr = Array.isArray(this.book.annotations) ? this.book.annotations : [];
+  const i = annotationsArr.findIndex((a) => a.cfi === cfi)
+  let annotation = annotationsArr[i]
 
     const now = Date.now()
     if (!annotation) {
@@ -184,9 +186,18 @@ export class BookTab extends BaseTab {
         text,
       }
 
+      const arr = Array.isArray(this.book.annotations)
+        ? this.book.annotations
+        : [];
+      let safeAnnotations: typeof arr;
+      try {
+        safeAnnotations = Array.isArray(snapshot(arr)) ? Array.from(snapshot(arr)) : [...arr]
+      } catch {
+        safeAnnotations = [...arr]
+      }
       this.updateBook({
         // DataCloneError: Failed to execute 'put' on 'IDBObjectStore': #<Object> could not be cloned.
-        annotations: [...snapshot(this.book.annotations), annotation],
+        annotations: [...safeAnnotations, annotation],
       })
     } else {
       annotation = {

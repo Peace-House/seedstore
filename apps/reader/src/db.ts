@@ -20,13 +20,29 @@ export interface CoverRecord {
 
 export interface BookRecord {
   // TODO: use file hash as id
+  // id: string | number
   id: string
   name: string
+  title?: string
+  author?: string
+  price?: number
   cover?: string | null
+  coverImage?: string | null
+  description?: string
+  rating?: number
+  genre?: string
+  categoryId?: number
+  fileUrl?: string
+  format?: string
+  ISBN?: string
+  pages?: number
+  publishedDate?: string
+  featured?: boolean
+  createdAt: number | string
+  updatedAt?: number | string
+  orderId?: number
   size: number
   metadata: PackagingMetadataObject
-  createdAt: number
-  updatedAt?: number
   cfi?: string
   percentage?: number
   definitions: string[]
