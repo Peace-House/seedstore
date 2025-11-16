@@ -4,26 +4,9 @@ import clsx from 'clsx'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
-
-// Store auth_token from URL to localStorage if present, then remove it from the URL
-if (typeof window !== 'undefined') {
-  const url = new URL(window.location.href)
-  const authToken = url.searchParams.get('auth_token')
-  if (authToken) {
-    localStorage.setItem('auth_token', authToken)
-  // Remove only auth_token from URL, keep other params
-  url.searchParams.delete('auth_token')
-  const newSearch = url.searchParams.toString()
-  const newUrl = url.pathname + (newSearch ? `?${newSearch}` : '') + url.hash
-  window.history.replaceState({}, '', newUrl)
-  }
-}
 import {
   MdCheckBox,
   MdCheckBoxOutlineBlank,
-  MdCheckCircle,
-  MdOutlineFileDownload,
-  MdOutlineShare,
 } from 'react-icons/md'
 import { useSet } from 'react-use'
 import { usePrevious } from 'react-use'
@@ -44,33 +27,79 @@ import { reader, useReaderSnapshot } from '../models'
 import { lock } from '../styles'
 import { pack } from '../sync'
 import { copy } from '../utils'
+import { useGetLibraryBookById } from '../hooks/remote/useGetLibraryBookById'
+
+
+// Store auth_token from URL to localStorage if present, then remove it from the URL
+if (typeof window !== 'undefined') {
+  const url = new URL(window.location.href)
+  const authToken = url.searchParams.get('auth_token')
+  if (authToken) {
+    localStorage.setItem('auth_token', authToken)
+  // // Remove only auth_token from URL, keep other params
+  // url.searchParams.delete('auth_token')
+  // const newSearch = url.searchParams.toString()
+  // const newUrl = url.pathname + (newSearch ? `?${newSearch}` : '') + url.hash
+  // window.history.replaceState({}, '', newUrl)
+  }
+}
+
 
 const placeholder = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="gray" fill-opacity="0" width="1" height="1"/></svg>`
 
 const SOURCE = 'src'
 
 export default function Index() {
-  const { focusedTab } = useReaderSnapshot()
-  const router = useRouter()
-  const src = new URL(window.location.href).searchParams.get(SOURCE)
-  const [loading, setLoading] = useState(!!src)
+  const { focusedTab } = useReaderSnapshot();
+  const router = useRouter();
+  useDisablePinchZooming();
 
-  useDisablePinchZooming()
+  // Extract bookId and orderId from router.query or URL
+  const bookId =router.query.bookId as string | undefined
+  const orderId = router.query.orderId as string | undefined
+  const [loading, setLoading] = useState(!!bookId);
 
+  // Fetch book details from server using custom hook
+  const { book: remoteBook, error: remoteBookError } = useGetLibraryBookById(
+    orderId ?? undefined,
+    bookId ?? undefined
+  );
+
+  // Only open the book once per visit
+  const [hasOpenedBook, setHasOpenedBook] = useState(false);
   useEffect(() => {
-    let src = router.query[SOURCE]
-    if (!src) return
-    if (!Array.isArray(src)) src = [src]
-
-    Promise.all(
-      src.map((s) =>
-        fetchBook(s).then((b) => {
-          reader.addTab(b)
-        }),
-      ),
-    ).finally(() => setLoading(false))
-  }, [router.query])
-
+    if (hasOpenedBook) return;
+    if (!bookId || !orderId) return;
+    setLoading(true);
+    if (remoteBook && remoteBook.fileUrl) {
+      fetch(remoteBook.fileUrl)
+        .then(async (res) => {
+          if (!res.ok) throw new Error('Failed to download book file');
+          const blob = await res.blob();
+          const file = new File([blob], remoteBook.name || 'book.epub', { type: 'application/epub+zip' });
+          if (db?.files) await db.files.put({ id: remoteBook.id, file });
+          reader.addTab({ ...remoteBook, file });
+          setLoading(false);
+          setHasOpenedBook(true);
+          // Remove all URL search params for a clean URL
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            if (url.search) {
+              const newUrl = url.pathname + url.hash;
+              window.history.replaceState({}, '', newUrl);
+            }
+          }
+        })
+        .catch((err) => {
+          setLoading(false);
+          console.error(err);
+        });
+    } else if (remoteBookError) {
+      setLoading(false);
+      alert('Could not fetch book from server.');
+      setHasOpenedBook(true);
+    }
+  }, [bookId, orderId, remoteBook, remoteBookError, hasOpenedBook]);
   useEffect(() => {
     if ('launchQueue' in window && 'LaunchParams' in window) {
       window.launchQueue.setConsumer((params) => {
@@ -102,10 +131,10 @@ export default function Index() {
           name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
         />
-        <title>{focusedTab?.title ?? 'Seed Store'}</title>
+        <title>{focusedTab?.title ?? 'SeedStore'}</title>
       </Head>
       <ReaderGridView />
-      {loading || <Library />}
+      {loading ? <div className='animate-pulse text-white dark:text-gray-400'>Loading...</div> : <Library />}
     </>
   )
 }

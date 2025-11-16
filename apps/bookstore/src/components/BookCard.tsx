@@ -81,7 +81,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
 
   const handleReadNow = (bookId: string) => {
     const token = localStorage.getItem('auth_token');
-    const url = `${reader_route}?bookId=${bookId}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`;
+    const url = `${reader_route}?bookId=${bookId}&orderId=${getOrderId()}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`;
     window.location.href = url;
   }
 
@@ -171,7 +171,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
     );
   }
   return (
-    <LiquidGlassWrapper className={`overflow border-none !bg-white/70 overflow-hidden transition-shadow group h-max md:min-w-[180px] ${className}`}>
+    <LiquidGlassWrapper className={`overflow border-none !bg-white/70  overflow-hidden transition-shadow group h-max md:min-w-[180px] ${className}`}>
       <div className="relative overflow-hidden bg-muted flex-1 w-full">
         {book.coverImage ? (
           <div className='relative h-[220px] w-full md:w-[200px] overflow-hidden'>
