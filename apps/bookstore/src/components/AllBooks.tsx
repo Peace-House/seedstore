@@ -107,7 +107,6 @@ const AllBooks = () => {
           uniqueAuthors={uniqueAuthors}
         />
         <LiquidGlassWrapper 
-        liquidGlass={true}
         className='flex-1 rounded-lg overflow-hidden min-h-[500px] shadow pb-4 '>
           {!filteredBooks || filteredBooks.length === 0 ? (
             <div className='w-full shadow flex flex-col items-center justify-center'>

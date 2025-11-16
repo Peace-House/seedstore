@@ -87,7 +87,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
 
   if (listView) {
     return (
-      <Card className="flex flex-row items-center bg-white rounded-md justify-between gap-2 border-none hover:shadow-md h-max shadow-none w-full overflow-hidden">
+      <LiquidGlassWrapper className="flex flex-row items-center !bg-white/70 rounded-md justify-between gap-2 border-none hover:shadow-md h-max shadow-none w-full overflow-hidden">
         {/* Cover Image */}
         <div className="w-24 h-32 flex-shrink-0 bg-muted  overflow-hidden">
           {book.coverImage ? (
@@ -167,11 +167,11 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
             )}
           </div>
         </div>
-      </Card>
+      </LiquidGlassWrapper>
     );
   }
   return (
-    <LiquidGlassWrapper className={`overflow border-none  overflow-hidden transition-shadow group h-max md:min-w-[180px] ${className}`}>
+    <LiquidGlassWrapper className={`overflow border-none !bg-white/70 overflow-hidden transition-shadow group h-max md:min-w-[180px] ${className}`}>
       <div className="relative overflow-hidden bg-muted flex-1 w-full">
         {book.coverImage ? (
           <div className='relative h-[220px] w-full md:w-[200px] overflow-hidden'>
