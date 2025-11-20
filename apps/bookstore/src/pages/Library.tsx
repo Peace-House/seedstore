@@ -27,8 +27,8 @@ const Library = () => {
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  const handleReadNow = (bookId: number|string, orderId:string) => {
-     const reader_route = import.meta.env.VITE_BOOKREADER_URL!;
+  const handleReadNow = (bookId: number | string, orderId: string) => {
+    const reader_route = import.meta.env.VITE_BOOKREADER_URL!;
     const token = localStorage.getItem('auth_token');
     const url = `${reader_route}?bookId=${bookId}&orderId=${orderId}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`;
     window.location.href = url;
@@ -50,7 +50,9 @@ const Library = () => {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-8 gap-8 py-3 bookshelf-bg">
             {purchasedBooks.map((book: Book) => (
-              <div key={book.id} className="flex flex-col items-center">
+              <div key={book.id} className="flex flex-col items-center"
+                onClick={() => handleReadNow(book.id, book.orderId!)}
+              >
                 <div className="relative w-32 h-48 mb-4 shadow-lg  overflow-hidden bg-muted group">
                   {book.coverImage ? (
                     <img
@@ -66,14 +68,15 @@ const Library = () => {
                     </div>
                   )}
                 </div>
-                <Button
-                  className="w-28 font-semibold text-base"
-                  size="lg"
+                {/* <Button
+                  className="w-28 font-normal text-sm !bg-none !shadow-none"
+                  size="sm"
+                  variant='link'
                   onClick={() => handleReadNow(book.id, book.orderId!)}
                 >
                   <BookOpen className="mr-2 h-5 w-5" />
                   Read Now
-                </Button>
+                </Button> */}
               </div>
             ))}
           </div>
