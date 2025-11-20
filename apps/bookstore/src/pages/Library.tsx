@@ -48,7 +48,7 @@ const Library = () => {
             <Button onClick={() => navigate('/')}>Browse Books</Button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-8 gap-8 py-3 bookshelf-bg">
+          <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-8 gap-2 py-3 bookshelf-bg">
             {purchasedBooks.map((book: Book) => (
               <div key={book.id} className="flex flex-col items-center"
                 onClick={() => handleReadNow(book.id, book.orderId!)}
