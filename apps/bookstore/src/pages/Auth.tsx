@@ -130,7 +130,7 @@ const Auth = () => {
     <div
       className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4"
       style={{
-        backgroundImage: 'url(/public/cross.jpg)',
+        backgroundImage: 'url(/cross.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',

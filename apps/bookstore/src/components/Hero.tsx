@@ -33,15 +33,15 @@ const Hero = () => {
                 <p className='font-medium mb-1'>Most read</p>
                 <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 w-full h-full px-1'>
                   {books?.data?.books?.map((book: Book) => (
-                <li key={book.id} className="bg-white/90 h-full min-w-[150px] max-w-[250px] border border-gray-200 rounded-none shadow-lg flex flex-col items-center">
-                  <img
-                    src={book.coverImage}
-                    alt={book.title}
-                    className="h-full w-[150px] object-full mb-3"
-                  />
-                  {/* <div className="text-[10px] mb-1 text-gray-600 font-semibold text-center line-clamp-1">{book.author}</div> */}
-                </li>
-              ))}
+                    <li key={book.id} className="bg-white/90 h-full min-w-[150px] max-w-[250px] border border-gray-200 rounded-none shadow-lg flex flex-col items-center">
+                      <img
+                        src={book.coverImage}
+                        alt={book.title}
+                        className="h-full w-[150px] object-full mb-3"
+                      />
+                      {/* <div className="text-[10px] mb-1 text-gray-600 font-semibold text-center line-clamp-1">{book.author}</div> */}
+                    </li>
+                  ))}
 
                 </ul>
               </div>
@@ -75,7 +75,7 @@ const Hero = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent opacity-90" />
             <div className="absolute inset-0 flex items-center justify-center"
               style={{
-                backgroundImage: 'url(/public/cross.jpg)',
+                backgroundImage: 'url(/cross.jpg)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
