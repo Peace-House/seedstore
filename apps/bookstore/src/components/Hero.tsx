@@ -14,7 +14,7 @@ const Hero = () => {
   const books = useBooks();
 
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden from-transparent via-transparent to-primary/20 bg-gradient-to-b">
       <div className="container py-6 md:py-12 lg:py-12">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8 h-4/5 mt-auto">
@@ -37,7 +37,7 @@ const Hero = () => {
                   <img
                     src={book.coverImage}
                     alt={book.title}
-                    className="h-full w-[150px] object-cover mb-3"
+                    className="h-full w-[150px] object-full mb-3"
                   />
                   {/* <div className="text-[10px] mb-1 text-gray-600 font-semibold text-center line-clamp-1">{book.author}</div> */}
                 </li>

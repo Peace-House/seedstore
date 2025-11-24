@@ -117,12 +117,12 @@ const BookDetail = () => {
         <Breadcrumb />
         <br />
         <div className="grid lg:grid-cols-2 gap-12">
-            <div className="aspect-[3.5/4] rounded-lg overflow-hidden shadow-2xl bg-muted md:sticky top-20">
+            <div className="aspect-[4.5/4] rounded-lg overflow-hidden bg-none shadow-none md:sticky top-20">
               {book.coverImage ? (
                 <img
                   src={book.coverImage}
                   alt={book.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-no-repeat"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">

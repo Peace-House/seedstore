@@ -1,8 +1,10 @@
-import { useAction, useMobile, useTranslation } from '../../hooks'
-import { useSplitViewItem } from '../base'
-import { viewActions } from './viewActions'
 import { Overlay } from '@literal-ui/core'
 import clsx from 'clsx'
+
+import { useAction, useMobile, useTranslation } from '../../hooks'
+import { useSplitViewItem } from '../base'
+
+import { viewActions } from './viewActions'
 
 const SideBar: React.FC = () => {
   const [action, setAction] = useAction()

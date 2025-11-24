@@ -34,12 +34,32 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  liquidGlass?: boolean;
+    style?: React.CSSProperties;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, liquidGlass = true, style, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    const glassClass = liquidGlass
+      ? "bg-white/30 backdrop-blur-md shadow border border-white/30 text-black "
+      : "";
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }), glassClass)}
+        ref={ref}
+        style={
+          {
+            ...style,
+            ...(liquidGlass && {
+              WebkitBackdropFilter: 'blur(20px)',
+            
+            }),
+          }
+        }
+        {...props}
+      />
+    );
   },
 );
 Button.displayName = "Button";

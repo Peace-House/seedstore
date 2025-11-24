@@ -1,10 +1,13 @@
 import { useState, useMemo, ComponentProps } from 'react'
-import { Env, useMobile, useTranslation } from '../../hooks'
-import ActionButton from './ActionButton'
-import { Settings } from '../pages'
-import { RiHome6Line, RiSettings5Line } from 'react-icons/ri'
 import { MdChevronLeft } from 'react-icons/md'
+import { RiHome6Line, RiSettings5Line } from 'react-icons/ri'
+
 import { ActionBar } from 'apps/reader/types'
+
+import { Env, useMobile, useTranslation } from '../../hooks'
+import { Settings } from '../pages'
+
+import ActionButton from './ActionButton'
 
 interface EnvActionBarProps extends ComponentProps<'div'> {
   env: Env
@@ -16,10 +19,10 @@ interface IAction {
   Icon: any
   env: number
 }
-  interface IPageAction extends IAction {
-    Component?: React.FC
-    disabled?: boolean
-  }
+interface IPageAction extends IAction {
+  Component?: React.FC
+  disabled?: boolean
+}
 
 const PageActionBar = ({ env }: EnvActionBarProps) => {
   const mobile = useMobile()

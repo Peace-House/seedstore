@@ -1,21 +1,99 @@
-import { useLibrary } from '../hooks'
 import { useRouter } from 'next/router'
-import { useMobile } from '../hooks'
-import { MdCheckBox, MdCheckBoxOutlineBlank, MdCheckCircle } from 'react-icons/md'
-import clsx from 'clsx'
-import { reader } from '../models'
+import { MdCheckCircle } from 'react-icons/md'
+
+import { db } from '../db'
+import { addBook } from '../file'
+import { useMobile, useSetAction } from '../hooks'
 import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
+import { reader } from '../models'
 
 const placeholder = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="gray" fill-opacity="0" width="1" height="1"/></svg>`
 
 export default function LibraryPage() {
-//   const books = useLibrary()
+  //   const books = useLibrary()
   const router = useRouter()
   const mobile = useMobile()
-    const books = useBookstoreLibrary()
+  const setAction = useSetAction()
+  const books = useBookstoreLibrary()
 
 
   if (!books) return null
+
+  // Helper: Convert file to EPUB if needed
+  async function convertIfNeeded(book: any) {
+    const ext = book.name.split('.').pop()?.toLowerCase();
+    if (["pdf", "docx", "htm", "html"].includes(ext)) {
+      // Fetch the file from db or remote (assume db.files.get)
+      const fileRecord = await db?.files.get(book.id);
+      if (!fileRecord) return;
+      const file = fileRecord.file;
+      let epubBlob = null;
+      if (ext === "docx") {
+        const mammoth = (await import('mammoth')).default;
+        const arrayBuffer = await file.arrayBuffer();
+        const { value: html } = await mammoth.convertToHtml({ arrayBuffer });
+        epubBlob = await htmlToEpub(html, book.name.replace(/\.docx$/, '.epub'));
+      } else if (["htm", "html"].includes(ext)) {
+        const text = await file.text();
+        epubBlob = await htmlToEpub(text, book.name.replace(/\.(html?|htm)$/, '.epub'));
+      } else if (ext === "pdf") {
+        // PDF conversion not implemented
+        alert('PDF conversion not implemented.');
+        return;
+      }
+      if (epubBlob) {
+        const epubFile = new File([epubBlob], book.name.replace(/\.[^.]+$/, '.epub'), {
+          type: 'application/epub+zip',
+        });
+        const newBook = await addBook(epubFile);
+        reader.addTab(newBook);
+        return;
+      }
+    } else {
+      reader.addTab(book);
+    }
+  }
+
+  // Minimal EPUB packaging from HTML using JSZip
+  async function htmlToEpub(html: string, filename: string): Promise<Blob> {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' });
+    zip.file('META-INF/container.xml',
+      `<?xml version="1.0"?>
+      <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+        <rootfiles>
+          <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+        </rootfiles>
+      </container>`
+    );
+    zip.file('OEBPS/content.xhtml',
+      `<?xml version="1.0" encoding="utf-8"?>
+      <html xmlns="http://www.w3.org/1999/xhtml">
+        <head>
+          <title>${filename.replace(/\.epub$/, '')}</title>
+        </head>
+        <body>${html}</body>
+      </html>`
+    );
+    zip.file('OEBPS/content.opf',
+      `<?xml version="1.0" encoding="utf-8"?>
+      <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId" version="3.0">
+        <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+          <dc:identifier id="BookId">urn:uuid:${crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)}</dc:identifier>
+          <dc:title>${filename.replace(/\.epub$/, '')}</dc:title>
+          <dc:language>en</dc:language>
+        </metadata>
+        <manifest>
+          <item id="content" href="content.xhtml" media-type="application/xhtml+xml"/>
+        </manifest>
+        <spine>
+          <itemref idref="content"/>
+        </spine>
+      </package>`
+    );
+    return await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
+  }
 
   return (
     <div className="p-4">
@@ -27,9 +105,9 @@ export default function LibraryPage() {
       }}>
         {books.map((book: any) => (
           <li key={book.id}>
-            <LibraryBookCard book={book} onClick={() => {
-              if (mobile) router.push('/')
-              reader.addTab(book)
+            <LibraryBookCard book={book} onClick={async () => {
+              setAction('toc')
+              convertIfNeeded(book)
             }} />
           </li>
         ))}

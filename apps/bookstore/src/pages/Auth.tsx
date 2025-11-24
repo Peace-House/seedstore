@@ -15,6 +15,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 const authSchema = z.object({
   // email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().min(6, 'Confirm Password must be at least 6 characters'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
 });
 
 const Auth = () => {
@@ -27,6 +31,7 @@ const Auth = () => {
   const [email, setEmail] = useState(admin_email?admin_email:'');
   const [phcode, setPhcode] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -206,7 +211,8 @@ const Auth = () => {
                 required
               />
             </div>
-           {(!isLogin && admin_email && token )&& <div className="">
+           {(!isLogin && admin_email && token ) && 
+           <div className="">
               <Label htmlFor="phcode">PH-Code </Label>
               <Input
                 id="phcode"
@@ -217,8 +223,25 @@ const Auth = () => {
                 required
               />
             </div>}
+            {!isLogin &&
+            <div className="">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>}
+
+            
             </div>
-            <Button type="submit" className="w-full !mt-8 mb-3 shadow-lg" disabled={loading}>
+            <Button variant='outline' type="submit" className="w-full !mt-8 mb-3 shadow-lg !bg-primary !text-white" 
+            disabled={loading || (!isLogin && password !== confirmPassword)
+              || (isLogin && (!email || !password))
+            }>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLogin ? 'Sign In' : 'Sign Up'}
             </Button>

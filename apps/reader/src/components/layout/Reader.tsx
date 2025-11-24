@@ -1,10 +1,11 @@
-import { useSplitViewItem } from '../base'
-import { useBackground } from '../../hooks'
-import { useReaderSnapshot } from '../../models'
 import clsx from 'clsx'
 import { ComponentProps } from 'react'
 
-interface ReaderProps extends ComponentProps<'div'> {}
+import { useBackground } from '../../hooks'
+import { useReaderSnapshot } from '../../models'
+import { useSplitViewItem } from '../base'
+
+interface ReaderProps extends ComponentProps<'div'> { }
 const Reader = ({ className, ...props }: ReaderProps) => {
   useSplitViewItem(Reader)
   const [bg] = useBackground()

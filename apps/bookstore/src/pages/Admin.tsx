@@ -8,10 +8,11 @@ import BookUpload from '@/components/admin/BookUpload';
 import BookManagement from '@/components/admin/BookManagement';
 import OrderManagement from '@/components/admin/OrderManagement';
 import AdminManagement from '@/components/admin/AdminManagement';
-import AdminOverview from '@/pages/admin/AdminOverview';
+import AdminOverview from '@/components/admin/AdminOverview';
 import { PageLoader } from '@/components/Loader';
 import Logo from '@/components/Logo';
 import EPUBConverter from '@/components/admin/Converter';
+import LiquidGlassWrapper from '@/components/LiquidGlassWrapper';
 
 const Admin = () => {
   const { user, loading } = useAuth();
@@ -46,10 +47,10 @@ const Admin = () => {
 
   return (
     <>
-      {/* <Navbar /> */}
-      <div className="flex max-h-screen bg-muted/30">
+
+      <div className="flex max-h-screen overflow-hidden bg-transparent">
         {/* Sidebar */}
-        <aside className={`transition-all duration-200 bg-white shadow h-screen sticky top-0 z-20 flex flex-col ${sidebarOpen ? 'w-56' : 'w-16'} border-r`}>
+        <LiquidGlassWrapper liquidGlass={true} className={`transition-all !shadow-md duration-200 h-[98vh] sticky top-0 z-20 flex flex-col ${sidebarOpen ? 'w-56' : 'w-16'} m-2`}>
             <Logo withText={sidebarOpen} />
 
           <div className="flex items-center justify-between p-4 border-b relative">
@@ -59,7 +60,7 @@ const Admin = () => {
             </div>
             <button
               onClick={() => setSidebarOpen(v => !v)}
-              className={`p-1 rounded hover:bg-muted absolute z-30 bg-white shadow border transition-all duration-200`}
+              className={`p-1 rounded hover:bg-muted absolute z-30 shadow border transition-all duration-200`}
               style={{
                 right: '18px',
                 top: '50%',
@@ -81,7 +82,7 @@ const Admin = () => {
                 title={item.label}
               >
                 {item.icon}
-                <span className={`transition-all ${sidebarOpen ? 'opacity-100 ml-2' : 'opacity-0 w-0 ml-0'}`}>{item.label}</span>
+                <span className={` text-sm transition-all ${sidebarOpen ? 'opacity-100 ml-2' : 'opacity-0 w-0 ml-0'}`}>{item.label}</span>
               </button>
             ))}
           </nav>
@@ -95,9 +96,9 @@ const Admin = () => {
               <span className={`transition-all text-sm ${sidebarOpen ? 'opacity-100 ml-2' : 'opacity-0 w-0 ml-0'}`}>{"Leave"}</span>
             </button>
           </div>
-        </aside>
+        </LiquidGlassWrapper>
         {/* Main Content */}
-        <main className="flex-1 p-8  overflow-y-auto">
+        <main className="flex-1 p-8 custom-scrollbar overflow-y-auto ">
           <h1 className="text-3xl font-bold mb-8">
             {navItems.find(item => item.value === tab)?.label}
           </h1>

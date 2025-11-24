@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-import { OAUTH_SUCCESS_MESSAGE } from '../sync'
+// import { OAUTH_SUCCESS_MESSAGE } from '../sync'
 
 export default function Success() {
   const [countdown, setCountdown] = useState(3)
@@ -8,7 +8,7 @@ export default function Success() {
   useEffect(() => {
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/opener
     const opener: Window | null = window.opener
-    opener?.postMessage(OAUTH_SUCCESS_MESSAGE)
+    // opener?.postMessage(OAUTH_SUCCESS_MESSAGE)
 
     const id = setInterval(() => {
       setCountdown((cd) => {
