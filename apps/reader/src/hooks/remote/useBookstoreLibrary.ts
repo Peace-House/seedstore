@@ -16,7 +16,7 @@ export function useBookstoreLibrary() {
     const res = await api.get('/library', {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-    console.log('Bookstore library response:', res.data);   
+    console.log('Bookstore library response:', res.data);
     return res.data
   })
 
@@ -24,19 +24,19 @@ export function useBookstoreLibrary() {
   const transformedData = data ? data?.map((book: any) => ({
     ...book,
     id: String(book.id), // Ensure id is a string
-      name: String(book.title),
-      size: Number(book?.size),
-      cover: book?.coverImage || null,
-      metadata: {},
-      createdAt: Number(book?.createdAt),
-      updatedAt: book?.updatedAt ? Number(book.updatedAt) : undefined,
-      cfi: book?.cfi,
-      percentage: book?.percentage,
-      definitions: book?.description,
-      annotations: book?.annotations,
-      configuration: {
-        typography: book?.configuration?.typography,
-      },
+    name: String(book.title),
+    size: Number(book?.size),
+    cover: book?.coverImage || null,
+    metadata: {},
+    createdAt: Number(book?.createdAt),
+    updatedAt: book?.updatedAt ? Number(book.updatedAt) : undefined,
+    cfi: book?.cfi,
+    percentage: book?.percentage,
+    definitions: book?.description,
+    annotations: book?.annotations,
+    configuration: {
+      typography: book?.configuration?.typography,
+    },
   })) : []
   return transformedData
 }

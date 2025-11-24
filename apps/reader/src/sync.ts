@@ -1,5 +1,12 @@
+// Stub for mapToToken to resolve import errors
+export function mapToToken(data: any): string {
+  // Implement your logic here or return a dummy token
+  return typeof data === 'string' ? data : '';
+}
+
 import { saveAs } from 'file-saver'
 import JSZip from 'jszip'
+
 import { BookRecord, db } from './db'
 import { readBlob } from './file'
 

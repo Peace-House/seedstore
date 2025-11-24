@@ -1,5 +1,4 @@
 import React from 'react'
-import clsx from 'clsx'
 
 // Simple shimmer effect
 const shimmerStyle: React.CSSProperties = {

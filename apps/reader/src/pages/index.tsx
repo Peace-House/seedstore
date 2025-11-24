@@ -1,6 +1,5 @@
 import { useBoolean } from '@literal-ui/hooks'
 import clsx from 'clsx'
-// import { useLiveQuery } from 'dexie-react-hooks'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
@@ -11,23 +10,20 @@ import {
 import { useSet } from 'react-use'
 import { usePrevious } from 'react-use'
 
-import { ReaderGridView, Button, TextField, DropZone } from '../components'
+import { ReaderGridView, DropZone } from '../components'
 import { BookRecord, CoverRecord, db } from '../db'
-import { addFile, fetchBook, handleFiles } from '../file'
-import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
+import { addFile, handleFiles } from '../file'
 import {
   useDisablePinchZooming,
-  useLibrary,
   useMobile,
   useRemoteBooks,
   useRemoteFiles,
   useTranslation,
 } from '../hooks'
+import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
+import { useGetLibraryBookById } from '../hooks/remote/useGetLibraryBookById'
 import { reader, useReaderSnapshot } from '../models'
 import { lock } from '../styles'
-import { pack } from '../sync'
-import { copy } from '../utils'
-import { useGetLibraryBookById } from '../hooks/remote/useGetLibraryBookById'
 
 
 // Store auth_token from URL to localStorage if present, then remove it from the URL
@@ -36,11 +32,11 @@ if (typeof window !== 'undefined') {
   const authToken = url.searchParams.get('auth_token')
   if (authToken) {
     localStorage.setItem('auth_token', authToken)
-  // // Remove only auth_token from URL, keep other params
-  // url.searchParams.delete('auth_token')
-  // const newSearch = url.searchParams.toString()
-  // const newUrl = url.pathname + (newSearch ? `?${newSearch}` : '') + url.hash
-  // window.history.replaceState({}, '', newUrl)
+    // // Remove only auth_token from URL, keep other params
+    // url.searchParams.delete('auth_token')
+    // const newSearch = url.searchParams.toString()
+    // const newUrl = url.pathname + (newSearch ? `?${newSearch}` : '') + url.hash
+    // window.history.replaceState({}, '', newUrl)
   }
 }
 
@@ -55,7 +51,7 @@ export default function Index() {
   useDisablePinchZooming();
 
   // Extract bookId and orderId from router.query or URL
-  const bookId =router.query.bookId as string | undefined
+  const bookId = router.query.bookId as string | undefined
   const orderId = router.query.orderId as string | undefined
   const [loading, setLoading] = useState(!!bookId);
 
@@ -153,7 +149,7 @@ const Library = () => {
   const previousRemoteFiles = usePrevious(remoteFiles)
 
   const [select, toggleSelect] = useBoolean(false)
-  const [selectedBookIds, { add, has, toggle, reset }] = useSet<string>()
+  const [selectedBookIds, { has, toggle, reset }] = useSet<string>()
 
   const [loading, setLoading] = useState<string | undefined>()
   const [readyToSync, setReadyToSync] = useState(false)
@@ -188,13 +184,13 @@ const Library = () => {
       className="scroll-parent h-full p-4"
       onDrop={(e) => {
         const bookId = e.dataTransfer.getData('text/plain')
-  const book = books.find((b: BookRecord) => b.id === bookId)
+        const book = books.find((b: BookRecord) => b.id === bookId)
         if (book) reader.addTab(book)
 
         handleFiles(e.dataTransfer.files)
       }}
     >
-       {/* <div className="mb-4 space-y-2.5">
+      {/* <div className="mb-4 space-y-2.5">
         <div>
           <TextField
             name={SOURCE}
@@ -330,7 +326,7 @@ const Library = () => {
             rowGap: lock(24, 40),
           }}
         >
-          {books?.map((book:any) => (
+          {books?.map((book: any) => (
             <Book
               key={book.id}
               book={book}
@@ -366,7 +362,6 @@ const Book = ({
   const remoteFiles = useRemoteFiles()
   const router = useRouter()
   const mobile = useMobile()
-  const remoteFile = remoteFiles.data?.find((f: { name: string }) => f.name === book.name)
   const Icon = selected ? MdCheckBox : MdCheckBoxOutlineBlank
 
   async function handleBookOpen() {

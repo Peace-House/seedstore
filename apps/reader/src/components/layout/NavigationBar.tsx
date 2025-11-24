@@ -1,11 +1,13 @@
-import { useRecoilState } from 'recoil'
 import { Overlay } from '@literal-ui/core'
 import clsx from 'clsx'
+import { useRecoilState } from 'recoil'
+
+import { Env } from '../../hooks'
 import { useReaderSnapshot } from '../../models'
 import { navbarState } from '../../state'
-import ViewActionBar from './ViewActionBar'
+
 import PageActionBar from './PageActionBar'
-import { Env } from '../../hooks'
+import ViewActionBar from './ViewActionBar'
 
 const NavigationBar = () => {
   const r = useReaderSnapshot()

@@ -1,5 +1,6 @@
 import { Overlay } from '@literal-ui/core'
 import clsx from 'clsx'
+import Link from 'next/link'
 import { PropsWithChildren } from 'react'
 import { ComponentProps, useEffect, useState } from 'react'
 import { useMemo } from 'react'
@@ -8,7 +9,6 @@ import {
   MdFormatUnderlined,
   MdOutlineImage,
   MdSearch,
-  MdToc,
   MdTimeline,
   MdOutlineLightMode,
   MdChevronLeft,
@@ -16,7 +16,7 @@ import {
   MdMenuBook,
   MdLibraryBooks,
 } from 'react-icons/md'
-import { RiFontSize, RiHome6Line, RiSettings5Line, RiShieldFill } from 'react-icons/ri'
+import { RiFontSize, RiHome6Line, RiSettings5Line } from 'react-icons/ri'
 import { useRecoilState } from 'recoil'
 
 import {
@@ -39,7 +39,6 @@ import { AnnotationView } from './viewlets/AnnotationView'
 import { ImageView } from './viewlets/ImageView'
 import { SearchView } from './viewlets/SearchView'
 import { ThemeView } from './viewlets/ThemeView'
-import Link from 'next/link'
 import { TimelineView } from './viewlets/TimelineView'
 import { TocView } from './viewlets/TocView'
 import { TypographyView } from './viewlets/TypographyView'
@@ -191,7 +190,7 @@ function ViewActionBar({ className, env }: EnvActionBarProps) {
               Icon={Icon}
               active={active}
               onClick={() => {
-                if(name === 'store') {
+                if (name === 'store') {
                   window.location.href = bookstore_url as string
                   return
                 }
@@ -217,13 +216,13 @@ function PageActionBar({ env }: EnvActionBarProps) {
 
   const pageActions: IPageAction[] = useMemo(
     () => [
-       {
-    name: 'store',
-    title: 'Store',
-    Icon: MdChevronLeft,
-    View: null,
-    env:  Env.Mobile,
-  },
+      {
+        name: 'store',
+        title: 'Store',
+        Icon: MdChevronLeft,
+        View: null,
+        env: Env.Mobile,
+      },
       {
         name: 'home',
         title: 'home',
@@ -289,7 +288,7 @@ function NavigationBar() {
   )
 }
 
-interface ActionBarProps extends ComponentProps<'ul'> {}
+interface ActionBarProps extends ComponentProps<'ul'> { }
 function ActionBar({ className, ...props }: ActionBarProps) {
   return (
     <ul className={clsx('ActionBar flex sm:flex-col', className)} {...props} />
@@ -363,7 +362,7 @@ const SideBar: React.FC = () => {
   )
 }
 
-interface ReaderProps extends ComponentProps<'div'> {}
+interface ReaderProps extends ComponentProps<'div'> { }
 const Reader = ({ className, ...props }: ReaderProps) => {
   useSplitViewItem(Reader)
   const [bg] = useBackground()

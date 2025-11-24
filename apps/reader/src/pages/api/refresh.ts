@@ -8,7 +8,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const token = req.cookies[mapToToken['dropbox']]
+  const token = req.cookies['auth_token']
   if (typeof token !== 'string') {
     return res.status(401).end()
   }

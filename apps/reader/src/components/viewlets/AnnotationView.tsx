@@ -25,7 +25,7 @@ const DefinitionPane: React.FC = () => {
   const t = useTranslation('annotation')
 
   const definitions = Array.isArray(focusedBookTab?.book?.definitions)
-    ? focusedBookTab.book.definitions
+    ? focusedBookTab?.book?.definitions ?? []
     : [];
   return (
     <Pane headline={t('definitions')} preferredSize={120}>

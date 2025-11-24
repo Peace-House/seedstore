@@ -1,6 +1,5 @@
-
-import useSWR from 'swr/immutable';
 import axios from 'axios';
+import useSWR from 'swr/immutable';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -33,22 +32,22 @@ export function useGetLibraryBookById(orderId?: string, bookId?: string | null) 
   // Transform the book object to match useBookstoreLibrary
   const transformedBook = data
     ? {
-        ...data,
-        id: String(data.id),
-        name: String(data.title),
-        size: Number(data?.size),
-        cover: data?.coverImage || null,
-        metadata: {},
-        createdAt: Number(data?.createdAt),
-        updatedAt: data?.updatedAt ? Number(data.updatedAt) : undefined,
-        cfi: data?.cfi,
-        percentage: data?.percentage,
-        definitions: data?.description,
-        annotations: data?.annotations,
-        configuration: {
-          typography: data?.configuration?.typography,
-        },
-      }
+      ...data,
+      id: String(data.id),
+      name: String(data.title),
+      size: Number(data?.size),
+      cover: data?.coverImage || null,
+      metadata: {},
+      createdAt: Number(data?.createdAt),
+      updatedAt: data?.updatedAt ? Number(data.updatedAt) : undefined,
+      cfi: data?.cfi,
+      percentage: data?.percentage,
+      definitions: data?.description,
+      annotations: data?.annotations,
+      configuration: {
+        typography: data?.configuration?.typography,
+      },
+    }
     : undefined;
   return { book: transformedBook, error, isLoading: isLoading || isValidating };
 }

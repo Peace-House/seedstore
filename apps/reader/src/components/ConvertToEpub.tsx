@@ -1,7 +1,8 @@
+import mammoth from 'mammoth'
 import React, { useState } from 'react';
+
 import { addBook } from '../file';
-import mammoth from 'mammoth';
-// You may need to install mammoth and a PDF-to-HTML library for browser use
+
 
 export default function ConvertToEpub() {
   const [loading, setLoading] = useState(false);

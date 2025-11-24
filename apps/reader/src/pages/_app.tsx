@@ -4,15 +4,13 @@ import 'react-photo-view/dist/react-photo-view.css'
 import { LiteralProvider } from '@literal-ui/core'
 import { ErrorBoundary } from '@sentry/nextjs'
 import type { AppProps } from 'next/app'
-import { useRouter } from 'next/router'
 import { RecoilRoot } from 'recoil'
 
 // import { Layout, Theme } from '../components'
-import {Theme } from '../components'
+import { Theme } from '../components'
 import { Layout } from '../components/layout/Layout'
 
 export default function MyApp({ Component, pageProps }: AppProps) {
-  const router = useRouter()
 
   // if (router.pathname === '/success') return <Component {...pageProps} />
 

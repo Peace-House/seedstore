@@ -1,17 +1,16 @@
-
 import { useRouter } from 'next/router'
-import { useMobile } from '../hooks'
 import { MdCheckCircle } from 'react-icons/md'
-import { reader } from '../models'
-import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
+
 import { db } from '../db'
 import { addBook } from '../file'
-import { useSetAction } from '../hooks'
+import { useMobile, useSetAction } from '../hooks'
+import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
+import { reader } from '../models'
 
 const placeholder = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="gray" fill-opacity="0" width="1" height="1"/></svg>`
 
 export default function LibraryPage() {
-//   const books = useLibrary()
+  //   const books = useLibrary()
   const router = useRouter()
   const mobile = useMobile()
   const setAction = useSetAction()
@@ -25,9 +24,9 @@ export default function LibraryPage() {
     const ext = book.name.split('.').pop()?.toLowerCase();
     if (["pdf", "docx", "htm", "html"].includes(ext)) {
       // Fetch the file from db or remote (assume db.files.get)
-      let fileRecord = await db?.files.get(book.id);
+      const fileRecord = await db?.files.get(book.id);
       if (!fileRecord) return;
-      let file = fileRecord.file;
+      const file = fileRecord.file;
       let epubBlob = null;
       if (ext === "docx") {
         const mammoth = (await import('mammoth')).default;
