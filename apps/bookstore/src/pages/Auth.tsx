@@ -10,16 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { acceptAdminInvite } from '@/services';
 import { Button } from '@/components/ui/button';
+import { detectPlatform, getDeviceId } from '@/utils/platform';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-const authSchema = z.object({
-  // email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string().min(6, 'Confirm Password must be at least 6 characters'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
-});
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -27,47 +19,74 @@ const Auth = () => {
   const admin_email = searchParams.get('email')
   const token = searchParams.get('token')
 
-  const [isLogin, setIsLogin] = useState(admin_email&&token ? false: true);
-  const [email, setEmail] = useState(admin_email?admin_email:'');
+  const [isLogin, setIsLogin] = useState(admin_email && token ? false : true);
+  const [email, setEmail] = useState(admin_email ? admin_email : '');
   const [phcode, setPhcode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  
-  const { login, register, user, loading, token:authToken } = useAuth();
+
+  const { login, register, user, loading, token: authToken } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     // Redirect if already logged in
-      if (user && authToken) {
-    navigate('/#all-books');
-  }
+    if (user && authToken) {
+      navigate('/#all-books');
+    }
   }, [user, authToken])
-  
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    const validation = authSchema.safeParse({ password });
-    if (!validation.success) {
-      toast({
-        variant: 'destructive',
-        title: 'Validation Error',
-        description: validation.error.errors[0].message,
+
+    // Only validate confirmPassword for signup
+    if (!isLogin) {
+      const signupSchema = z.object({
+        password: z.string().min(6, 'Password must be at least 6 characters'),
+        confirmPassword: z.string().min(6, 'Confirm Password must be at least 6 characters'),
+      }).refine((data) => data.password === data.confirmPassword, {
+        message: "Passwords don't match",
+        path: ['confirmPassword'],
       });
-      return;
+
+      const validation = signupSchema.safeParse({ password, confirmPassword });
+      if (!validation.success) {
+        toast({
+          variant: 'destructive',
+          title: 'Validation Error',
+          description: validation.error.errors[0].message,
+        });
+        return;
+      }
+    } else {
+      // For login, just validate password length
+      const loginSchema = z.object({
+        password: z.string().min(6, 'Password must be at least 6 characters'),
+      });
+
+      const validation = loginSchema.safeParse({ password });
+      if (!validation.success) {
+        toast({
+          variant: 'destructive',
+          title: 'Validation Error',
+          description: validation.error.errors[0].message,
+        });
+        return;
+      }
     }
 
     try {
       if (isLogin) {
-        await login({ email, password });
+        await login({ email, password, platform: detectPlatform(), deviceId: getDeviceId() });
         toast({
           title: 'Welcome back!',
           description: 'Successfully logged in.',
         });
 
-        if (goto==='cart') {
+        if (goto === 'cart') {
           navigate('/cart?action=checkout');
         } else {
           navigate('/#all-books');
@@ -81,7 +100,7 @@ const Auth = () => {
             title: 'Admin Account Created!',
             description: 'You can now log in to your admin account.',
           });
-        setIsLogin(true);
+          setIsLogin(true);
           navigate('/auth');
           return;
         }
@@ -117,7 +136,7 @@ const Auth = () => {
     >
 
       <Card className="w-full max-w-md shadow-lg relative">
-        <button onClick={()=> navigate(-1)} className='absolute top-3 left-3'>
+        <button onClick={() => navigate(-1)} className='absolute top-3 left-3'>
           <ChevronLeft className='h-5 w-5' />
         </button>
         <CardHeader className="space-y-1 text-center">
@@ -200,48 +219,48 @@ const Auth = () => {
               </div>
             }
             <div className={`grid  ${isLogin ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 md:gap-2'}`}>
-            <div className="">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-           {(!isLogin && admin_email && token ) && 
-           <div className="">
-              <Label htmlFor="phcode">PH-Code </Label>
-              <Input
-                id="phcode"
-                type="text"
-                placeholder="Enter your PH-Code"
-                value={phcode}
-                onChange={(e) => setPhcode(e.target.value)}
-                required
-              />
-            </div>}
-            {!isLogin &&
-            <div className="">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Enter your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>}
+              <div className="">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              {(!isLogin && admin_email && token) &&
+                <div className="">
+                  <Label htmlFor="phcode">PH-Code </Label>
+                  <Input
+                    id="phcode"
+                    type="text"
+                    placeholder="Enter your PH-Code"
+                    value={phcode}
+                    onChange={(e) => setPhcode(e.target.value)}
+                    required
+                  />
+                </div>}
+              {!isLogin &&
+                <div className="">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                </div>}
 
-            
+
             </div>
-            <Button variant='outline' type="submit" className="w-full !mt-8 mb-3 shadow-lg !bg-primary !text-white" 
-            disabled={loading || (!isLogin && password !== confirmPassword)
-              || (isLogin && (!email || !password))
-            }>
+            <Button variant='outline' type="submit" className="w-full !mt-8 mb-3 shadow-lg !bg-primary !text-white"
+              disabled={loading || (!isLogin && password !== confirmPassword)
+                || (isLogin && (!email || !password))
+              }>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLogin ? 'Sign In' : 'Sign Up'}
             </Button>

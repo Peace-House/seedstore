@@ -39,13 +39,13 @@ export interface AuthResponse {
 
 
 // Auth APIs
-export const login = async (email_phcode: string, password: string): Promise<AuthResponse> => {
+export const login = async (email_phcode: string, password: string, platform: string = 'web', deviceId: string): Promise<AuthResponse> => {
   const isEmail = email_phcode?.search('@')
-  const res = await api.post<AuthResponse>('/users/login', isEmail === 11 ? { email:email_phcode, password }:{phcode:email_phcode, password});
+  const res = await api.post<AuthResponse>('/users/login', isEmail === 11 ? { email: email_phcode, password, platform, deviceId } : { phcode: email_phcode, password, platform, deviceId });
   return res.data;
 };
 
-export const register = async ({email, firstName, lastName, password, phoneNumber}: {email: string, firstName: string, lastName: string, password: string, phoneNumber?: string}): Promise<AuthResponse> => {
+export const register = async ({ email, firstName, lastName, password, phoneNumber }: { email: string, firstName: string, lastName: string, password: string, phoneNumber?: string }): Promise<AuthResponse> => {
   const res = await api.post<AuthResponse>('/users/signup', { email, firstName, lastName, password, phoneNumber });
   return res.data;
 };
