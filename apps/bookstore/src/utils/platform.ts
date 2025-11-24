@@ -56,8 +56,8 @@ export const getDeviceId = (): string => {
 };
 
 /**
- * Generates a secure unique identifier using UUID v4 and platform information
- * Format: {uuid}-{platform}-{browserFingerprint}
+ * Generates a secure unique identifier using UUID v4, platform, device name, and browser fingerprint
+ * Format: {uuid}-{platform}-{deviceName}-{browserFingerprint}
  * @returns string - secure unique identifier
  */
 const generateSecureDeviceId = (): string => {
@@ -67,9 +67,10 @@ const generateSecureDeviceId = (): string => {
         : generateFallbackUUID();
 
     const platform = detectPlatform();
+    const deviceName = getDeviceName();
     const browserFingerprint = getBrowserFingerprint();
 
-    return `${uuid}-${platform}-${browserFingerprint}`;
+    return `${uuid}-${platform}-${deviceName}-${browserFingerprint}`;
 };
 
 /**
@@ -82,6 +83,51 @@ const generateFallbackUUID = (): string => {
         const v = c === 'x' ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
+};
+
+/**
+ * Detects the device name from user agent
+ * @returns string - device name (e.g., 'iPhone', 'iPad', 'Samsung', 'Windows', 'Mac', etc.)
+ */
+const getDeviceName = (): string => {
+    if (typeof window === 'undefined') {
+        return 'unknown';
+    }
+
+    const userAgent = navigator.userAgent.toLowerCase();
+    const platform = navigator.platform?.toLowerCase() || '';
+
+    // iOS devices
+    if (/iphone/i.test(userAgent)) return 'iPhone';
+    if (/ipad/i.test(userAgent)) return 'iPad';
+    if (/ipod/i.test(userAgent)) return 'iPod';
+
+    // Android devices - try to extract manufacturer/model
+    if (/android/i.test(userAgent)) {
+        // Try to extract device model
+        const androidMatch = userAgent.match(/android.*;\s*([^)]+)\s*build/i);
+        if (androidMatch && androidMatch[1]) {
+            const deviceModel = androidMatch[1].trim();
+            // Extract brand name (usually first word)
+            const brand = deviceModel.split(/[\s_-]/)[0];
+            return brand.charAt(0).toUpperCase() + brand.slice(1);
+        }
+        return 'Android';
+    }
+
+    // Desktop platforms
+    if (/win/i.test(platform)) return 'Windows';
+    if (/mac/i.test(platform)) return 'Mac';
+    if (/linux/i.test(platform)) return 'Linux';
+
+    // Other mobile devices
+    if (/blackberry/i.test(userAgent)) return 'BlackBerry';
+    if (/windows phone/i.test(userAgent)) return 'WindowsPhone';
+
+    // Tablets
+    if (/kindle/i.test(userAgent)) return 'Kindle';
+
+    return 'Unknown';
 };
 
 /**
