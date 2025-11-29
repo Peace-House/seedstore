@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getBooks, deleteBook, updateBook, Book } from '@/services/book';
 import { useState } from 'react';
 
-
 import { Button } from '@/components/ui/button';
 import { Trash2, Edit, MoreVertical } from 'lucide-react';
 import {
@@ -24,12 +23,15 @@ import {
 } from '@/components/ui/dialog';
 import { truncate } from '@/lib/utils';
 import { PageLoader } from '../Loader';
+import AdminTable from './AdminTable';
+import { Card, CardContent } from '../ui/card';
 
 const BookManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [editing, setEditing] = useState<Book | null>(null);
 
   // Dialog state
@@ -51,9 +53,8 @@ const BookManagement = () => {
       toast({ variant: 'destructive', title: 'Update failed', description: error.message });
     },
   });
-  const pageSize = 10;
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-books', page],
+    queryKey: ['admin-books', page, pageSize],
     queryFn: async () => {
       const res = await getBooks(page, pageSize);
       return res;
@@ -88,58 +89,61 @@ const BookManagement = () => {
     return <PageLoader />;
   }
 
+  // Custom columns for books
+  const bookColumns = [
+    {
+      label: 'Cover',
+      render: (book: Book) => (
+        <img
+          src={book.coverImage}
+          alt={book.title}
+          className="w-12 h-16 object-cover rounded"
+        />
+      ),
+    },
+    { label: 'Title', render: (book: Book) => <span className="font-semibold">{truncate(book.title, 18)}</span> },
+    { label: 'Author', render: (book: Book) => book.author },
+    { label: 'Category', render: (book: Book) => book.category?.name || '-' },
+  ];
+
+  const renderActions = (book: Book) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 p-0"><MoreVertical className="h-5 w-5" /></Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setEditing(book)}>
+          <Edit className="h-4 w-4 mr-2" /> Edit
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => {
+            setDialogOpen(true);
+            setDialogAction('delete');
+            setSelectedBook({ id: book.id as number, title: book.title });
+          }}
+          className="text-red-600 focus:bg-red-100"
+        >
+          <Trash2 className="h-4 w-4 mr-2" /> Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
-    <div className="overflow-x-auto w-full">
-      <table className="min-w-full bg-white rounded shadow text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-2 text-left font-semibold">Cover</th>
-            <th className="px-4 py-2 text-left font-semibold">Title</th>
-            <th className="px-4 py-2 text-left font-semibold">Author</th>
-            <th className="px-4 py-2 text-left font-semibold">Category</th>
-            <th className="px-4 py-2 text-left font-semibold">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {books.map((book: Book) => (
-            <tr key={book.id} className="border-b">
-              <td className="px-4 py-2">
-                <img
-                  src={book.coverImage}
-                  alt={book.title}
-                  className="w-12 h-16 object-cover rounded"
-                />
-              </td>
-              <td className="px-4 py-2 font-semibold">{truncate(book.title, 18)}</td>
-              <td className="px-4 py-2">{book.author}</td>
-              <td className="px-4 py-2">{book.category?.name || '-'}</td>
-              <td className="px-4 py-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0"><MoreVertical className="h-5 w-5" /></Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setEditing(book)}>
-                      <Edit className="h-4 w-4 mr-2" /> Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setDialogOpen(true);
-                        setDialogAction('delete');
-                        setSelectedBook({ id: book.id as number, title: book.title });
-                      }}
-                      className="text-red-600 focus:bg-red-100"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" /> Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <Card className="rounded">
+      <CardContent className="px-0">
+        <AdminTable
+          admins={books}
+          loading={isLoading}
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          columns={bookColumns}
+          renderActions={(row) => renderActions(row as unknown as Book)}
+        />
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -218,28 +222,8 @@ const BookManagement = () => {
           </div>
         </div>
       )}
-      {total > pageSize ? (
-        <div className="flex justify-center mt-4 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-          >
-            Previous
-          </Button>
-          <span className="px-2 py-1 text-sm">Page {page} of {Math.ceil(total / pageSize)}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page * pageSize >= total}
-            onClick={() => setPage(page + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      ) : null}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
