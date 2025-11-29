@@ -93,7 +93,12 @@ const PricingManagement = () => {
 
   // Build columns for AdminTable
   const columns = [
-    { label: 'Book', render: (book: Book) => book.title },
+    { 
+      label: 'Book', 
+      render: (book: Book) => (
+        <span className="block min-w-[200px] whitespace-nowrap font-bold">{book.title}</span>
+      )
+    },
     ...countryCurrencies.map((c) => ({
       label: <span>{c.country} {c.currency ? <span className="text-xs text-gray-500">({c.currency})</span> : null}</span>,
       render: (book: Book) => (

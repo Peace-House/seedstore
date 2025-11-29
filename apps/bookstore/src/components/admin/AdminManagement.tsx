@@ -126,13 +126,13 @@ const AdminManagement = () => {
                                     placeholder="Admin email(s), comma separated"
                                     value={inviteEmails}
                                     onChange={e => setInviteEmails(e.target.value)}
-                                    className="md:max-w-lg"
+                                    className="md:max-w-lg placeholder:text-xs text-xs"
                                     required
                                 />
                                 <select
                                     value={inviteRole}
                                     onChange={e => setInviteRole(e.target.value)}
-                                    className="border rounded px-3 py-2 bg-background"
+                                    className="border rounded px-3 py-2 bg-background text-xs"
                                     required
                                     disabled={loadingRoles}
                                 >
@@ -143,6 +143,8 @@ const AdminManagement = () => {
                                 </select>
                                 <Button
                                     type="submit"
+                                    liquidGlass={false}
+                                    className='text-xs'
                                     disabled={!inviteEmails || !inviteRole || inviteMutation.status === 'pending'}
                                 >
                                     Invite Admin
@@ -164,6 +166,7 @@ const AdminManagement = () => {
                                                     <Button
                                                         size="sm"
                                                         variant="destructive"
+                                                        className='text-xs px-2 py-1 h-max'
                                                         onClick={() => {
                                                             setDialogOpen(true);
                                                             setDialogAction('suspend');
@@ -181,6 +184,7 @@ const AdminManagement = () => {
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
+                                                        className='text-xs px-2 py-1 h-max'
                                                         onClick={() => {
                                                             setDialogOpen(true);
                                                             setDialogAction('unsuspend');

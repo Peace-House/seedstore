@@ -24,8 +24,8 @@ const Admin = () => {
   const navItems = [
     { value: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
     { value: 'upload', label: 'Upload Book', icon: <Upload className="w-5 h-5" /> },
-    { value: 'manage', label: 'Manage Books', icon: <BookOpen className="w-5 h-5" /> },
-    { value: 'pricing', label: 'Pricing Management', icon: <CopyCheck className="w-5 h-5" /> },
+    { value: 'manage', label: 'Books', icon: <BookOpen className="w-5 h-5" /> },
+    { value: 'pricing', label: 'Pricing', icon: <CopyCheck className="w-5 h-5" /> },
     { value: 'orders', label: 'Orders', icon: <ClipboardList className="w-5 h-5" /> },
     { value: 'converter', label: 'Converter', icon: <RotateCcw className="w-5 h-5" /> },
     { value: 'admins', label: 'Users', icon: <Users className="w-5 h-5" /> },
