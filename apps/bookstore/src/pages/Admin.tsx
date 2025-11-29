@@ -13,6 +13,7 @@ import { PageLoader } from '@/components/Loader';
 import Logo from '@/components/Logo';
 import EPUBConverter from '@/components/admin/Converter';
 import LiquidGlassWrapper from '@/components/LiquidGlassWrapper';
+import PricingManagement from '@/components/admin/PricingManagement';
 
 const Admin = () => {
   const { user, loading } = useAuth();
@@ -24,6 +25,7 @@ const Admin = () => {
     { value: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
     { value: 'upload', label: 'Upload Book', icon: <Upload className="w-5 h-5" /> },
     { value: 'manage', label: 'Manage Books', icon: <BookOpen className="w-5 h-5" /> },
+    { value: 'pricing', label: 'Pricing Management', icon: <CopyCheck className="w-5 h-5" /> },
     { value: 'orders', label: 'Orders', icon: <ClipboardList className="w-5 h-5" /> },
     { value: 'converter', label: 'Converter', icon: <RotateCcw className="w-5 h-5" /> },
     { value: 'admins', label: 'Users', icon: <Users className="w-5 h-5" /> },
@@ -105,6 +107,7 @@ const Admin = () => {
           {tab === 'overview' && <AdminOverview />}
           {tab === 'upload' && <BookUpload />}
           {tab === 'manage' && <BookManagement />}
+          {tab === 'pricing' && <PricingManagement />}
           {tab === 'orders' && <OrderManagement />}
           {tab === 'converter' && <EPUBConverter />}
           {tab === 'admins' && <AdminManagement />}

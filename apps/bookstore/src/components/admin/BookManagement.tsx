@@ -97,7 +97,6 @@ const BookManagement = () => {
             <th className="px-4 py-2 text-left font-semibold">Title</th>
             <th className="px-4 py-2 text-left font-semibold">Author</th>
             <th className="px-4 py-2 text-left font-semibold">Category</th>
-            <th className="px-4 py-2 text-left font-semibold">Price</th>
             <th className="px-4 py-2 text-left font-semibold">Actions</th>
           </tr>
         </thead>
@@ -114,7 +113,6 @@ const BookManagement = () => {
               <td className="px-4 py-2 font-semibold">{truncate(book.title, 18)}</td>
               <td className="px-4 py-2">{book.author}</td>
               <td className="px-4 py-2">{book.category?.name || '-'}</td>
-              <td className="px-4 py-2 font-bold text-primary">₦{Number(book.price).toLocaleString()}</td>
               <td className="px-4 py-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -184,11 +182,11 @@ const BookManagement = () => {
               initialValues={{
                 title: editing.title,
                 author: editing.author,
-                price: String(editing.price),
+                // price: String(editing.price),
                 description: editing.description,
                 category: editing.category?.id ? String(editing.category.id) : '',
                 isbn: editing.ISBN || editing.ISBN || '',
-                pages: editing.pages ? String(editing.pages) : '',
+                // pages: editing.pages ? String(editing.pages) : '',
                 publishedDate: editing.publishedDate || '',
                 isFeatured: !!editing.featured,
               }}
@@ -200,11 +198,11 @@ const BookManagement = () => {
                   formData.append('title', data.title);
                   formData.append('author', data.author);
                   formData.append('description', data.description || '');
-                  formData.append('price', data.price);
+                  // formData.append('price', data.price);
                   formData.append('categoryId', data.category || '4');
                   formData.append('genre', 'N/A');
                   formData.append('ISBN', data.isbn || '');
-                  formData.append('pages', data.pages || '');
+                  // formData.append('pages', data.pages || '');
                   formData.append('publishedDate', data.publishedDate || '');
                   formData.append('featured', data.isFeatured ? 'true' : 'false');
                   if (coverFile) formData.append('coverImage', coverFile);

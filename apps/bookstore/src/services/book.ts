@@ -71,3 +71,15 @@ export const deleteBook = async (id: string|number): Promise<{ message: string }
     throw err;
   }
 };
+
+// Bulk update prices for all books
+export const updateBooksPrices = async (books: { bookId: number|string, prices: { currency: string; country: string; soft_copy_price: number; hard_copy_price: number }[] }[]): Promise<{ message: string }> => {
+  const res = await api.put('/pricing', { books });
+  return res.data;
+}
+
+// Update prices for a specific book
+export const updateBookPrices = async (bookId: number|string, prices: { country: string; soft_copy_price: number; hard_copy_price: number; currency: string }[]): Promise<{ message: string }> => {
+  const res = await api.put(`/pricing/${bookId}`, { prices });
+  return res.data;
+}

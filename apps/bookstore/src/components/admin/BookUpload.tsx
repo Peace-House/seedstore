@@ -19,10 +19,8 @@ const bookSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   author: z.string().min(1, 'Author is required').max(100),
   description: z.string().max(2000).optional(),
-  price: z.string().min(1, 'Price is required'),
   category: z.string().max(50).optional(),
   isbn: z.string().max(20).optional(),
-  pages: z.string().optional(),
   publishedDate: z.string().optional(),
   isFeatured: z.boolean().default(false),
 });
@@ -80,41 +78,21 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
     setUploading(true);
     try {
       // Frontend validation
-      if (!data.title || !data.author || !data.price) {
-        toast({
-          variant: 'destructive',
-          title: 'Missing required fields',
-          description: 'Title, author, price, and category are required.',
-        });
-        setUploading(false);
-        return;
-      }
-      if (isNaN(Number(data.price))) {
-        toast({
-          variant: 'destructive',
-          title: 'Invalid price',
-          description: 'Price must be a valid number.',
-        });
-        setUploading(false);
-        return;
-      }
       // Prepare FormData for backend upload
       const formData = new FormData();
-  formData.append('title', data.title);
-  formData.append('author', data.author);
-  formData.append('description', data.description || '');
-  formData.append('price', data.price);
-  // Use categoryId as required by backend
-  if (data.category) formData.append('categoryId', data.category);
-  if (data.isbn) formData.append('ISBN', data.isbn);
-  if (data.pages) formData.append('pages', data.pages);
-  if (data.publishedDate) formData.append('publishedDate', data.publishedDate);
-  // Optional: genre (if you want to add a field for it)
-  formData.append('genre', 'N/A');
-  formData.append('featured', data.isFeatured ? 'true' : 'false');
-  // File uploads: backend expects 'coverImage' and 'file'
-  formData.append('coverImage', coverFile as Blob);
-  formData.append('file', bookFile as Blob);
+      formData.append('title', data.title);
+      formData.append('author', data.author);
+      formData.append('description', data.description || '');
+      // Use categoryId as required by backend
+      if (data.category) formData.append('categoryId', data.category);
+      if (data.isbn) formData.append('ISBN', data.isbn);
+      if (data.publishedDate) formData.append('publishedDate', data.publishedDate);
+      // Optional: genre (if you want to add a field for it)
+      formData.append('genre', 'N/A');
+      formData.append('featured', data.isFeatured ? 'true' : 'false');
+      // File uploads: backend expects 'coverImage' and 'file'
+      formData.append('coverImage', coverFile as Blob);
+      formData.append('file', bookFile as Blob);
       await createBook(formData);
       toast({
         title: 'Book uploaded',
@@ -145,7 +123,6 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
   const previewData = {
     title: form.watch('title'),
     author: form.watch('author'),
-    price: form.watch('price'),
     coverFile,
     coverImage: initialValues?.coverImage,
     category: categories?.find((cat) => cat.id === form.watch('category'))?.name,
@@ -193,19 +170,7 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price (₦) *</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Price field removed */}
 
                 <FormField
                   control={form.control}
@@ -245,19 +210,7 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="pages"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pages</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Pages field removed */}
 
                 <FormField
                   control={form.control}
@@ -343,7 +296,6 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                     uploading ||
                     !form.watch('title') ||
                     !form.watch('author') ||
-                    !form.watch('price') ||
                     (!isUpdate && !coverFile) ||
                     (!isUpdate && !bookFile)
                   }
