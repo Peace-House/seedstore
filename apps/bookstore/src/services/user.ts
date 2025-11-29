@@ -45,8 +45,8 @@ export const login = async (email_phcode: string, password: string, platform: st
   return res.data;
 };
 
-export const register = async ({ email, firstName, lastName, password, phoneNumber }: { email: string, firstName: string, lastName: string, password: string, phoneNumber?: string }): Promise<AuthResponse> => {
-  const res = await api.post<AuthResponse>('/users/signup', { email, firstName, lastName, password, phoneNumber });
+export const register = async ({ email, firstName, lastName, password, phoneNumber, countryOfResidence, stateOfResidence }: { email: string, firstName: string, lastName: string, password: string, phoneNumber?: string, countryOfResidence: string, stateOfResidence?: string }): Promise<AuthResponse> => {
+  const res = await api.post<AuthResponse>('/users/signup', { email, firstName, lastName, password, phoneNumber, countryOfResidence, stateOfResidence });
   return res.data;
 };
 

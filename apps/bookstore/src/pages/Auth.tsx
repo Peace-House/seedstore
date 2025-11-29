@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { useEffect, useState } from 'react';
+import { getCountries, getStates } from '@/services/location';
 import { useToast } from '@/hooks/use-toast';
 import { ChevronLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -29,6 +30,23 @@ const Auth = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [countries, setCountries] = useState<{ Id: string; CountryName: string }[]>([]);
+  const [states, setStates] = useState<{ Id: string; StateName: string }[]>([]);
+  const [countryOfResidence, setCountryOfResidence] = useState('162'); // Default Nigeria
+  const [stateOfResidence, setStateOfResidence] = useState('');
+  
+  // Fetch countries and states for signup
+  useEffect(() => {
+    if (!isLogin) {
+      getCountries().then(setCountries).catch(() => setCountries([]));
+      getStates().then(setStates).catch(() => setStates([]));
+    }
+  }, [isLogin]);
+
+  // Reset state if country changes
+  useEffect(() => {
+    if (countryOfResidence !== '162') setStateOfResidence('');
+  }, [countryOfResidence]);
 
   const { login, register, user, loading, token: authToken } = useAuth();
   const navigate = useNavigate();
@@ -107,7 +125,15 @@ const Auth = () => {
           return;
         }
         // Regular user registration
-        await register({ email, firstName, lastName, phoneNumber, password });
+        await register({
+          email,
+          firstName,
+          lastName,
+          phoneNumber,
+          password,
+          countryOfResidence,
+          stateOfResidence: countryOfResidence === '162' ? stateOfResidence : undefined,
+        });
         toast({
           title: 'Account Created!',
           description: 'You can now log in to your account.',
@@ -116,8 +142,17 @@ const Auth = () => {
       }
     } catch (error: unknown) {
       console.error('Authentication error:', error);
+      const errorCode = (error as { response?: { data?: { code?: string } } })?.response?.data?.code;
       const errorMessage =
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message || (error instanceof Error ? error.message : 'An unexpected error occurred.');
+      if (errorCode === 'DEVICE_LIMIT_EXCEEDED') {
+        toast({
+          variant: 'destructive',
+          title: 'Device Limit Reached',
+          description: 'You can only be logged in on 3 devices. Please log out from another device to continue.',
+        });
+        return;
+      }
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -195,9 +230,9 @@ const Auth = () => {
               />
             </div>}
             {!isLogin &&
+            <>
               <div className="flex flex-col md:flex-row md:items-center md:gap-2">
-
-                <div className="space-y-1 w-full md:w-3/5">
+                <div className="space-y-1 w-full md:w-2/3">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
@@ -208,7 +243,7 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="space-y-1 w-full md:w-2/5">
+                <div className="space-y-1 w-full md:w-1/2">
                   <Label htmlFor="phoneNumber">Phone Number</Label>
                   <Input
                     id="phoneNumber"
@@ -219,6 +254,41 @@ const Auth = () => {
                   />
                 </div>
               </div>
+              <div className="flex flex-col md:flex-row md:items-center md:gap-2 mt-2">
+                <div className={`space-y-1 w-full ${countryOfResidence === '162' ? 'md:w-1/2' : 'md:w-full'}`}>
+                  <Label htmlFor="countryOfResidence">Country</Label>
+                  <select
+                    id="countryOfResidence"
+                    value={countryOfResidence}
+                    onChange={e => setCountryOfResidence(e.target.value)}
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    required
+                  >
+                    {countries.map(c => (
+                      <option key={c.Id} value={c.Id}>{c.CountryName}</option>
+                    ))}
+                  </select>
+                </div>
+                {countryOfResidence === '162' && (
+                  <div className="space-y-1 w-full md:w-1/2">
+                    <Label htmlFor="stateOfResidence">State</Label>
+                    <select
+                      id="stateOfResidence"
+                      value={stateOfResidence}
+                      onChange={e => setStateOfResidence(e.target.value)}
+                      className="w-full border rounded px-3 py-2 text-sm"
+                      required={countryOfResidence === '162'}
+                      
+                    >
+                      <option value="">Select state</option>
+                      {states.map(s => (
+                        <option key={s.Id} value={s.Id}>{s.StateName}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </>
             }
             <div className={`grid  ${isLogin ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 md:gap-2'}`}>
               <div className="relative">

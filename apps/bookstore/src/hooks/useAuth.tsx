@@ -50,7 +50,7 @@ export const useAuth = () => {
 
   // Register mutation
   const registerMutation = useMutation({
-    mutationFn: async (payload: { email: string; firstName: string; lastName: string; password: string; phoneNumber?: string }) => {
+    mutationFn: async (payload: { email: string; firstName: string; lastName: string; password: string; phoneNumber?: string, countryOfResidence: string, stateOfResidence?: string }) => {
       return await userApi.register({ ...payload });
     },
     onSuccess: (data) => {
