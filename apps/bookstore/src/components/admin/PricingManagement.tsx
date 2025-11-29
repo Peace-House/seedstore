@@ -6,10 +6,17 @@ import { Input } from '@/components/ui/input';
 import AdminTable from './AdminTable';
 
 const PricingManagement = () => {
+  interface BookPrice {
+    id?: number;
+    currency: string;
+    soft_copy_price: number;
+    hard_copy_price: number;
+    country: string | null;
+  }
   interface Book {
     id: string;
     title: string;
-    // Add other fields as needed
+    prices?: BookPrice[];
   }
   interface CountryCurrency {
     country: string;
@@ -30,6 +37,20 @@ const PricingManagement = () => {
       setBooks(books);
       setCountryCurrencies(countryCurrencies);
       setTotal(total || books.length);
+      
+      // Prefill prices from existing book prices
+      const initialPrices: Record<string, Record<string, string>> = {};
+      books.forEach((book: Book) => {
+        if (book.prices && book.prices.length > 0) {
+          initialPrices[book.id] = {};
+          book.prices.forEach((price: BookPrice) => {
+            if (price.country && price.soft_copy_price != null && price.soft_copy_price !== 0) {
+              initialPrices[book.id][price.country] = String(price.soft_copy_price);
+            }
+          });
+        }
+      });
+      setPrices(initialPrices);
     }).finally(() => setLoading(false));
   }, [page, pageSize]);
 

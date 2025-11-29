@@ -9,6 +9,8 @@ import BooksFilterSidebar from './BooksFilterSidebar';
 import BooksGridView from './BooksGridView';
 import BooksListView from './BooksListView';
 import LiquidGlassWrapper from './LiquidGlassWrapper';
+import { useCountry } from '@/hooks/useCountry';
+import { getBookPriceForCountry } from '@/utils/pricing';
 
 const AllBooks = () => {
   const [activeTab, setActiveTab] = useState<'categories' | 'authors'>('categories');
@@ -20,6 +22,7 @@ const AllBooks = () => {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const pageSize = 30;
+  const { selectedCountry, countryCurrencies } = useCountry();
 
   const { data, isLoading } = useQuery({
     queryKey: ['all-books', page],
@@ -42,7 +45,9 @@ const AllBooks = () => {
       book.author.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter.length === 0 || (book.category && categoryFilter.includes(book.category.id));
     const matchesAuthor = authorFilter.length === 0 || authorFilter.includes(book.author);
-    const price = Number(book.price);
+    // Get price for selected country
+    const priceData = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+    const price = priceData?.price ?? book.price ?? 0;
     const min = minPrice ? Number(minPrice) : null;
     const max = maxPrice ? Number(maxPrice) : null;
     const matchesPrice =

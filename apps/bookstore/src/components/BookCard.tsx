@@ -7,6 +7,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/hooks/useCart';
 import { useLibrary } from '@/hooks/useLibrary';
+import { useCountry } from '@/hooks/useCountry';
+import { getBookPriceForCountry } from '@/utils/pricing';
 import { Book } from '@/services';
 import LiquidGlassWrapper from './LiquidGlassWrapper';
 
@@ -29,6 +31,13 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
   const { toast } = useToast();
   const { addToCart, isAddingToCart, cartItems } = useCart();
   const { library: purchasedBooks } = useLibrary();
+  const { selectedCountry, countryCurrencies } = useCountry();
+
+  // Get price for selected country
+  const priceData = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+  const displayPrice = priceData?.price ?? book.price ?? 0;
+  const displaySymbol = priceData?.symbol ?? '₦';
+
   const isPurchased = Array.isArray(purchasedBooks)
     ? purchasedBooks.some((b) => b.id === book.id)
     : false;
@@ -119,7 +128,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
             </div>
           </div>
           <div className="flex items-end justify-between w-full">
-            <span className="text-primary font-bold">₦{Number(book.price).toLocaleString()}</span>
+            <span className="text-primary font-bold">{displaySymbol}{Number(displayPrice).toLocaleString()}</span>
 
             {isPurchased ? (
               <Button
@@ -132,7 +141,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
                 <BookOpen className="h-4 w-4" />
                 {/* Read Now */}
               </Button>
-            ) : book?.price === 0 ? (
+            ) : displayPrice === 0 ? (
               <Button
                 size="sm"
                 variant="outline"
@@ -215,7 +224,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
         <CardFooter className="p-2 bg-none pt-0 flex items-center justify-between">
           <span className="text-sm font-bold text-primary">
             {
-              book.price === 0 ? 'Free' : `₦${Number(book.price).toLocaleString()}`
+              displayPrice === 0 ? 'Free' : `${displaySymbol}${Number(displayPrice).toLocaleString()}`
             }
           </span>
           {
@@ -233,7 +242,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
                   <BookOpen className="mr-1 h-4 w-4 hidden md:block" />
                   Read Now
                 </Button>
-              ) : book?.price === 0 ? (
+              ) : displayPrice === 0 ? (
                 <Button
                   size="sm"
                   variant="outline"

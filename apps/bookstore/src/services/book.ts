@@ -1,12 +1,21 @@
 import api from './apiService';
 
+export interface BookPrice {
+  id?: number;
+  currency: string;
+  country?: string | null;
+  soft_copy_price: number;
+  hard_copy_price: number;
+}
+
 export interface Book {
   id: number|string;
   orderId?: string;
   format?: string;
   title: string;
   author: string;
-  price: number;
+  price: number; // Deprecated: use prices array instead
+  prices?: BookPrice[];
   coverImage?: string;
   category?: {
     id: number;
@@ -63,6 +72,7 @@ export const deleteBook = async (id: string|number): Promise<{ message: string }
   try {
     const res = await api.delete(`/books/${id}`);
     return res.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     // If backend returns an error, surface the backend error message
     if (err.response && err.response.data && err.response.data.error) {

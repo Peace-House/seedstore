@@ -214,6 +214,7 @@ const BookManagement = () => {
                   updateMutation.mutate({ id: editing.id as number, data: formData });
                 } else {
                   // No files, send JSON
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const updateData: any = { ...data };
                   updateMutation.mutate({ id: editing.id as number, data: updateData });
                 }

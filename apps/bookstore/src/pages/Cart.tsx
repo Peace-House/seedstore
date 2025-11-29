@@ -1,6 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useCountry } from '@/hooks/useCountry';
+import { getBookPriceForCountry } from '@/utils/pricing';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
@@ -11,9 +13,11 @@ import { initiatePaystackPayment } from '@/services/payment';
 import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect } from 'react';
 import { PageLoader } from '@/components/Loader';
+import LiquidGlassWrapper from '@/components/LiquidGlassWrapper';
 
 const Cart = () => {
   const { user, loading: authLoading } = useAuth();
+  const { selectedCountry, selectedSymbol, countryCurrencies } = useCountry();
 
   const [searchParams] = useSearchParams();
     const isCheckout = searchParams.get('action');
@@ -36,7 +40,11 @@ const Cart = () => {
       if (!user) throw new Error('Login Required');
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
       const total = cartItems.reduce(
-        (sum, item) => sum + Number(item.book?.price ?? item.price ?? 0),
+        (sum, item) => {
+          const book = item.book || item;
+          const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+          return sum + Number(priceInfo.price);
+        },
         0
       );
       return await initiatePaystackPayment(
@@ -94,7 +102,11 @@ const Cart = () => {
  
 
   const total = cartItems.reduce(
-    (sum, item) => sum + Number(item.book?.price ?? item.price ?? 0),
+    (sum, item) => {
+      const book = item.book || item;
+      const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+      return sum + Number(priceInfo.price);
+    },
     0
   );
 
@@ -115,7 +127,7 @@ const Cart = () => {
           </Card>
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4 shadow-md border-[1.5px] rounded-md md:bg-white md:min-h-[50vh]">
+            <LiquidGlassWrapper className="lg:col-span-2 space-y-4 shadow-md border-[1.5px] rounded-md md:bg-white md:min-h-[50vh]">
               {cartItems.map((item, idx) => {
                 const book = item.book || item;
                 return (
@@ -140,9 +152,14 @@ const Cart = () => {
                       <div className="flex-1">
                         <h3 className="font-semibold text-xs md:text-lg">{book.title}</h3>
                         <p className="text-muted-foreground text-xs md:text-sm">{book.author}</p>
-                        <p className="text-xs md:text-2xl font-bold text-primary mt-2">
-                          ₦{Number(book.price ?? 0).toLocaleString()}
-                        </p>
+                        {(() => {
+                          const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+                          return (
+                            <p className="text-xs md:text-2xl font-bold text-primary mt-2">
+                              {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
+                            </p>
+                          );
+                        })()}
                       </div>
                       <Button
                         variant="ghost"
@@ -160,28 +177,29 @@ const Cart = () => {
                   </div>
                 );
               })}
-            </div>
+            </LiquidGlassWrapper>
             <div>
-              <Card className="sticky top-20 rounded shadow-none border-none">
+              <LiquidGlassWrapper className="sticky top-20 rounded shadow-none border-none">
                 <CardContent className="p-6 space-y-4">
                   <h2 className="text-2xl font-bold">Order Summary</h2>
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Items ({cartItems.length})</span>
                       <span className="font-semibold">
-                        ₦{total.toLocaleString()}
+                        {selectedSymbol}{total.toLocaleString()}
                       </span>
                     </div>
                     <div className="border-t pt-2 flex justify-between text-lg font-bold">
                       <span>Total</span>
                       <span className="text-primary">
-                        ₦{total.toLocaleString()}
+                        {selectedSymbol}{total.toLocaleString()}
                       </span>
                     </div>
                   </div>
                   <Button
                     className="w-full"
                     size="lg"
+                    liquidGlass={false}
                     onClick={handleCheckout}
                     disabled={checkoutMutation.isPending || cartItems.length === 0}
                   >
@@ -189,7 +207,7 @@ const Cart = () => {
                     Proceed to Checkout
                   </Button>
                 </CardContent>
-              </Card>
+              </LiquidGlassWrapper>
             </div>
           </div>
         )}

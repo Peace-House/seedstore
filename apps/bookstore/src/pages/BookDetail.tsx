@@ -4,6 +4,8 @@ import { getBookById } from '@/services/book';
 import api from '@/services/apiService';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useCountry } from '@/hooks/useCountry';
+import { getBookPriceForCountry } from '@/utils/pricing';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import RelatedBooks from '@/components/RelatedBooks';
 import Breadcrumb from '@/components/Breadcrumb';
 import { PageLoader } from '@/components/Loader';
+import LiquidGlassWrapper from '@/components/LiquidGlassWrapper';
 
 const BookDetail = () => {
   const { id: slugId } = useParams();
@@ -22,6 +25,7 @@ const BookDetail = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { addToCart, isAddingToCart } = useCart();
+  const { selectedCountry, countryCurrencies } = useCountry();
 
   const { data: book, isLoading } = useQuery({
     queryKey: ['book', id],
@@ -141,13 +145,18 @@ const BookDetail = () => {
               )}
             </div>
 
-            <div className="flex items-baseline gap-4">
-              <span className="text-4xl font-bold text-primary">
-                ₦{Number(book.price).toLocaleString()}
-              </span>
-            </div>
+            {(() => {
+              const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies)
+              return (
+                <div className="flex items-baseline gap-4">
+                  <span className="text-4xl font-bold text-primary">
+                    {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
+                  </span>
+                </div>
+              )
+            })()}
 
-            {hasPurchased || book.price === 0 ? (
+            {hasPurchased || getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies).price === 0 ? (
               <div className='flex flex-col md:flex-row md:items-center gap-4'>
                 <Button
                   size="lg"
@@ -171,6 +180,7 @@ const BookDetail = () => {
             ) : (
               <Button
                 size="lg"
+                liquidGlass={false}
                 className="w-full"
                 onClick={handleAddToCart}
                 disabled={isAddingToCart}
@@ -185,17 +195,17 @@ const BookDetail = () => {
             )}
 
             {book.description && (
-              <Card>
+              <LiquidGlassWrapper>
                 <CardContent className="p-6">
                   <h2 className="text-2xl font-bold mb-4">About this book</h2>
                   <p className="text-muted-foreground leading-relaxed">
                     {book.description}
                   </p>
                 </CardContent>
-              </Card>
+              </LiquidGlassWrapper>
             )}
 
-            <Card>
+            <LiquidGlassWrapper>
               <CardContent className="p-6 space-y-3">
                 <h2 className="text-2xl font-bold mb-4">Details</h2>
                 {book.ISBN ? (
@@ -230,7 +240,7 @@ const BookDetail = () => {
                   </div>
                 )}
               </CardContent>
-            </Card>
+            </LiquidGlassWrapper>
           </div>
         </div>
       {/* related books */}

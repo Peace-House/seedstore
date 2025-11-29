@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
-import { BookOpen, ShoppingCart, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { BookOpen, ShoppingCart, User, LogOut, LayoutDashboard, Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useCountry } from '@/hooks/useCountry';
 import { Badge } from './ui/badge';
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { cartCount } = useCart();
+  const { selectedCountry, selectedCurrency, countryCurrencies, setSelectedCountry } = useCountry();
 
   const isAdmin = user && (user.role === 'admin' || user.isAdmin);
 
@@ -38,7 +40,7 @@ const Navbar = () => {
 
         {/* Search Bar (Desktop Only) */}
         <form
-          className="hidden lg:flex items-center gap-2 bg-transparent shadow-none rounded-sm w-1/2 justify-between px-3 py-1 border-none border-gray-400"
+          className="hidden lg:flex items-center gap-2 bg-transparent shadow-none rounded-sm w-2/5 justify-between px-3 py-1 border-none border-gray-400"
           onSubmit={e => {
             e.preventDefault();
             if (search.trim()) {
@@ -61,14 +63,14 @@ const Navbar = () => {
         >
           <Input
             type="text"
-            className="bg-transparent flex-1 outline-none !shadow px-2 py-1 text-gray-900 placeholder:text-gray-600 w-40 rounded-full"
+            className="bg-transparent flex-1 outline-none !shadow px-2 py-1 text-gray-900 placeholder:text-gray-600 placeholder:text-[11px] indent-2 w-40 rounded-full"
             placeholder="Search books by title, author, category, or price (e.g. 10-50)"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
           <button
             type="submit"
-            className="ml-0.5 px-4 py-2  bg-primary text-white hover:bg-primary/90 text-sm font-semibold rounded-full"
+            className="ml-0.5 px-4 py-2  bg-primary text-white hover:bg-primary/90 text-xs font-semibold rounded-full"
           >
             Search
           </button>
@@ -84,16 +86,17 @@ const Navbar = () => {
           </button>}
         </form>
 
-        <div className="flex items-center gap-4 space-x-3">
+        <div className="flex items-center gap-2 space-x-2">
+         
           {user&&<Link to="/library" className='relative flex gap-3 items-center'>
               <BookOpen className="h-5 w-5" />
-              <span className='hidden md:block'>
+              <span className='hidden md:block w-max text-xs'>
               My Library
               </span>
           </Link>}
           <Link to="/cart" className='relative flex gap-3 items-center'>
               <ShoppingCart className="h-5 w-5" />
-              <span className='hidden md:block'>
+              <span className='hidden md:block w-max text-xs'>
               Cart
               </span>
               {cartCount > 0 && (
@@ -108,7 +111,7 @@ const Navbar = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className='hover:bg-transparent px-2 rounded-full hover:text-black w-max' size="icon">
                   <User className="h-5 w-5" />
-                  <span className='hidden md:block'>Account</span>
+                  <span className='hidden md:block w-max text-xs'>Account</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent  align="end" className='rounded'>
@@ -135,7 +138,32 @@ const Navbar = () => {
           ) : (
             <Button onClick={() => navigate('/auth')}>Sign In</Button>
           )}
+            {/* separator */}
+            <div className="border-l border-gray-300 h-6"></div>
+           {/* Country Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-1 text-xs px-2 hover:bg-transparent hover:text-black rounded-full w-max">
+                <Globe className="h-4 w-4" />
+                <span className="text-xs">{selectedCountry}</span>
+                <span className="text-xs text-muted-foreground">({selectedCurrency})</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="max-h-60 overflow-y-auto rounded">
+              {countryCurrencies.map((cc) => (
+                <DropdownMenuItem
+                  key={cc.id}
+                  onClick={() => setSelectedCountry(cc.country)}
+                  className={selectedCountry === cc.country ? 'bg-primary/10 font-medium' : ''}
+                >
+                  {cc.country} ({cc.currency})
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
         </div>
+
       </div>
     </nav>
   );
