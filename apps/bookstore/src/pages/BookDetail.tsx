@@ -9,13 +9,14 @@ import { getBookPriceForCountry } from '@/utils/pricing';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShoppingCart, BookOpen, Loader2, Calendar, FileText, Hash, Download, ChevronLeft } from 'lucide-react';
+import { ShoppingCart, BookOpen, Loader2, Calendar, FileText, Hash, Download, ChevronLeft, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import RelatedBooks from '@/components/RelatedBooks';
 import Breadcrumb from '@/components/Breadcrumb';
 import { PageLoader } from '@/components/Loader';
 import LiquidGlassWrapper from '@/components/LiquidGlassWrapper';
+import { useLibrary } from '@/hooks/useLibrary';
 
 const BookDetail = () => {
   const { id: slugId } = useParams();
@@ -26,6 +27,7 @@ const BookDetail = () => {
   const { toast } = useToast();
   const { addToCart, isAddingToCart } = useCart();
   const { selectedCountry, countryCurrencies } = useCountry();
+  const { addFreeBook, isAddingFreeBook } = useLibrary();
 
   const { data: book, isLoading } = useQuery({
     queryKey: ['book', id],
@@ -62,6 +64,28 @@ const BookDetail = () => {
           description: error.message?.includes('duplicate')
             ? 'This book is already in your cart'
             : 'Failed to add to cart',
+        });
+      },
+    });
+  };
+
+  const handleAddFreeBook = () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    addFreeBook(book.id as number, {
+      onSuccess: () => {
+        toast({
+          title: 'Added to Library',
+          description: 'Book has been added to your library.',
+        });
+      },
+      onError: (error: Error) => {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'Failed to add book to library',
         });
       },
     });
@@ -156,11 +180,12 @@ const BookDetail = () => {
               )
             })()}
 
-            {hasPurchased || getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies).price === 0 ? (
+            {hasPurchased ? (
               <div className='flex flex-col md:flex-row md:items-center gap-4'>
                 <Button
                   size="lg"
                   className="w-full"
+                  liquidGlass={false}
                   onClick={() => navigate(`/reader/${book.orderId}/${book.id}`)}
                 >
                   <BookOpen className="mr-2 h-5 w-5" />
@@ -169,14 +194,29 @@ const BookDetail = () => {
                 <Button
                   size="sm"
                   variant='outline'
+                  liquidGlass={false}
                   onClick={handleDownload}
                   disabled={isAddingToCart}
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Download
                 </Button>
-
               </div>
+            ) : getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies).price === 0 ? (
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={handleAddFreeBook}
+                  liquidGlass={false}
+                disabled={isAddingFreeBook}
+              >
+                {isAddingFreeBook ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <Plus className="mr-2 h-5 w-5" />
+                )}
+                Add to Library
+              </Button>
             ) : (
               <Button
                 size="lg"
