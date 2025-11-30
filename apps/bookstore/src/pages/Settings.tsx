@@ -366,7 +366,7 @@ const Settings = () => {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="font-medium capitalize">{session.platform || 'Unknown Device'}</h3>
+                              <h3 className="font-medium">{session.deviceName || session.platform || 'Unknown Device'}</h3>
                               {session.isCurrent && (
                                 <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full">
                                   Current
@@ -374,6 +374,9 @@ const Settings = () => {
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground">
+                              {session.location && session.location !== 'Unknown Location' && (
+                                <span>{session.location} • </span>
+                              )}
                               Logged in {formatDate(session.createdAt)}
                             </p>
                           </div>

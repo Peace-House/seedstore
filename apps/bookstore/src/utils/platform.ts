@@ -67,7 +67,7 @@ const generateSecureDeviceId = (): string => {
         : generateFallbackUUID();
 
     const platform = detectPlatform();
-    const deviceName = getDeviceName();
+    const deviceName = _getDeviceName();
     const browserFingerprint = getBrowserFingerprint();
 
     return `${uuid}-${platform}-${deviceName}-${browserFingerprint}`;
@@ -89,7 +89,87 @@ const generateFallbackUUID = (): string => {
  * Detects the device name from user agent
  * @returns string - device name (e.g., 'iPhone', 'iPad', 'Samsung', 'Windows', 'Mac', etc.)
  */
-const getDeviceName = (): string => {
+export const getDeviceName = (): string => {
+    if (typeof window === 'undefined') {
+        return 'unknown';
+    }
+
+    const userAgent = navigator.userAgent.toLowerCase();
+    const platform = navigator.platform?.toLowerCase() || '';
+
+    // iOS devices
+    if (/iphone/i.test(userAgent)) return 'iPhone';
+    if (/ipad/i.test(userAgent)) return 'iPad';
+    if (/ipod/i.test(userAgent)) return 'iPod';
+
+    // Android devices - try to extract manufacturer/model
+    if (/android/i.test(userAgent)) {
+        // Try to extract device model
+        const androidMatch = userAgent.match(/android.*;\s*([^)]+)\s*build/i);
+        if (androidMatch && androidMatch[1]) {
+            const deviceModel = androidMatch[1].trim();
+            // Extract brand name (usually first word)
+            const brand = deviceModel.split(/[\s_-]/)[0];
+            return brand.charAt(0).toUpperCase() + brand.slice(1);
+        }
+        return 'Android';
+    }
+
+    // Desktop platforms
+    if (/win/i.test(platform)) return 'Windows PC';
+    if (/mac/i.test(platform)) return 'Mac';
+    if (/linux/i.test(platform)) return 'Linux PC';
+
+    // Other mobile devices
+    if (/blackberry/i.test(userAgent)) return 'BlackBerry';
+    if (/windows phone/i.test(userAgent)) return 'Windows Phone';
+
+    // Tablets
+    if (/kindle/i.test(userAgent)) return 'Kindle';
+
+    return 'Unknown Device';
+};
+
+/**
+ * Gets the device location using IP geolocation API
+ * @returns Promise<string> - location string (e.g., "Lagos, Nigeria")
+ */
+export const getDeviceLocation = async (): Promise<string> => {
+    try {
+        // Use a free IP geolocation service
+        const response = await fetch('https://ipapi.co/json/', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
+        
+        if (!response.ok) {
+            return 'Unknown Location';
+        }
+        
+        const data = await response.json();
+        const city = data.city || '';
+        const country = data.country_name || '';
+        
+        if (city && country) {
+            return `${city}, ${country}`;
+        } else if (country) {
+            return country;
+        }
+        
+        return 'Unknown Location';
+    } catch (error) {
+        console.error('Failed to get device location:', error);
+        return 'Unknown Location';
+    }
+};
+
+/**
+ * Internal function - Detects the device name from user agent (used for deviceId generation)
+ * @returns string - device name
+ */
+const _getDeviceName = (): string => {
     if (typeof window === 'undefined') {
         return 'unknown';
     }

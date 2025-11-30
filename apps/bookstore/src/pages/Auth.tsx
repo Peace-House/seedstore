@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { acceptAdminInvite } from '@/services';
 import { Button } from '@/components/ui/button';
-import { detectPlatform, getDeviceId } from '@/utils/platform';
+import { detectPlatform, getDeviceId, getDeviceName, getDeviceLocation } from '@/utils/platform';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Auth = () => {
@@ -34,7 +34,7 @@ const Auth = () => {
   const [states, setStates] = useState<{ Id: string; StateName: string }[]>([]);
   const [countryOfResidence, setCountryOfResidence] = useState('162'); // Default Nigeria
   const [stateOfResidence, setStateOfResidence] = useState('');
-  
+
   // Fetch countries and states for signup
   useEffect(() => {
     if (!isLogin) {
@@ -100,7 +100,11 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        await login({ email, password, platform: detectPlatform(), deviceId: getDeviceId() });
+        // Get device info for session tracking
+        const deviceName = getDeviceName();
+        const location = await getDeviceLocation();
+        
+        await login({ email, password, platform: detectPlatform(), deviceId: getDeviceId(), deviceName, location });
         toast({
           title: 'Welcome back!',
           description: 'Successfully logged in.',

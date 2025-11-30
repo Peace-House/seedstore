@@ -35,8 +35,8 @@ export const useAuth = () => {
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (payload: { email: string; password: string; platform?: string; deviceId: string }) => {
-      return await userApi.login(payload.email, payload.password, payload.platform || 'web', payload.deviceId);
+    mutationFn: async (payload: { email: string; password: string; platform?: string; deviceId: string; deviceName?: string; location?: string }) => {
+      return await userApi.login(payload.email, payload.password, payload.platform || 'web', payload.deviceId, payload.deviceName, payload.location);
     },
     onSuccess: (data) => {
       setToken(data.token);

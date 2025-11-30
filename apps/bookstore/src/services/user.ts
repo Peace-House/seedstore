@@ -39,9 +39,9 @@ export interface AuthResponse {
 
 
 // Auth APIs
-export const login = async (email_phcode: string, password: string, platform: string = 'web', deviceId: string): Promise<AuthResponse> => {
+export const login = async (email_phcode: string, password: string, platform: string = 'web', deviceId: string, deviceName?: string, location?: string): Promise<AuthResponse> => {
   const isEmail = email_phcode?.search('@')
-  const res = await api.post<AuthResponse>('/users/login', isEmail === 11 ? { email: email_phcode, password, platform, deviceId } : { phcode: email_phcode, password, platform, deviceId });
+  const res = await api.post<AuthResponse>('/users/login', isEmail === 11 ? { email: email_phcode, password, platform, deviceId, deviceName, location } : { phcode: email_phcode, password, platform, deviceId, deviceName, location });
   return res.data;
 };
 
@@ -112,6 +112,8 @@ export interface Session {
   id: string;
   platform: string;
   deviceId: string;
+  deviceName: string;
+  location: string;
   createdAt: string;
   isCurrent: boolean;
 }
