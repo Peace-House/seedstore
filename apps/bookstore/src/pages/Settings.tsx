@@ -313,16 +313,16 @@ const Settings = () => {
         {tab === 'devices' && (
           <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-6">
             <div className="space-y-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
+              <div className="mb-1">
                   <p className="text-muted-foreground">
                     Manage your logged-in devices. You can be logged in on up to 3 devices at a time.
                   </p>
-                </div>
-                <div className="text-sm font-medium text-primary">
+              </div>
+
+              <div>
+                <div className="text-sm font-medium text-primary mb-2 flex items-center justify-end">
                   {sessionsData?.total || 0}/3 devices
                 </div>
-              </div>
 
               {sessionsLoading ? (
                 <div className="flex items-center justify-center py-8">
@@ -399,6 +399,7 @@ const Settings = () => {
                   No active sessions found.
                 </div>
               )}
+              </div>
 
               <p className="text-xs text-muted-foreground mt-4">
                 Note: Removing a device will log it out immediately. That device will need to log in again to access your account.
