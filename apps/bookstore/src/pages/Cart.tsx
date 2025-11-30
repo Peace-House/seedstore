@@ -1,15 +1,12 @@
-import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useCountry } from '@/hooks/useCountry';
 import { getBookPriceForCountry } from '@/utils/pricing';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, Loader2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { initiatePaystackPayment } from '@/services/payment';
 import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect } from 'react';
 import { PageLoader } from '@/components/Loader';
@@ -34,42 +31,6 @@ const Cart = () => {
   // Backend returns cart object with items array
   const cartItems = Array.isArray(rawCartItems) ? rawCartItems : [];
 
-  // Checkout mutation
-  const checkoutMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('Login Required');
-      if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
-      const total = cartItems.reduce(
-        (sum, item) => {
-          const book = item.book || item;
-          const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
-          return sum + Number(priceInfo.price);
-        },
-        0
-      );
-      return await initiatePaystackPayment(
-        {
-          amount: total,
-          email: user.email,
-          callback_url: `${window.location.origin}/payment-callback`
-        }
-      );
-    },
-    onSuccess: (data) => {
-      if (data?.data?.authorization_url) {
-        window.location.href = data.data.authorization_url;
-      }
-    },
-    onError: (error: unknown) => {
-      const errMsg = (error instanceof Error) ? error.message : 'Failed to initiate payment';
-      toast({
-        variant: 'destructive',
-        title: 'Checkout Failed',
-        description: errMsg,
-      });
-    },
-  });
-
   const handleCheckout = () => {
     if (!user) {
       toast({
@@ -79,15 +40,15 @@ const Cart = () => {
       navigate('/auth?redirect=cart');
       return;
     }
-    checkoutMutation.mutate();
+    // Navigate to checkout page for payment method selection
+    navigate('/checkout');
   };
 
   useEffect(() => {
-    if(user&&isCheckout&&cartItems?.length>0){
-      navigate('/cart')
-    checkoutMutation.mutate();
+    if(user && isCheckout && cartItems?.length > 0){
+      navigate('/checkout');
     }
-  }, [user, isCheckout, cartItems.length])
+  }, [user, isCheckout, cartItems.length, navigate])
 
   if (isLoading) {
     return (
@@ -201,9 +162,8 @@ const Cart = () => {
                     size="lg"
                     liquidGlass={false}
                     onClick={handleCheckout}
-                    disabled={checkoutMutation.isPending || cartItems.length === 0}
+                    disabled={cartItems.length === 0}
                   >
-                    {checkoutMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Proceed to Checkout
                   </Button>
                 </CardContent>

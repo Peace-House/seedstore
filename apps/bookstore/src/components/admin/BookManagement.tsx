@@ -101,7 +101,7 @@ const BookManagement = () => {
         />
       ),
     },
-    { label: 'Title', render: (book: Book) => <span className="font-semibold">{truncate(book.title, 18)}</span> },
+    { label: 'Title', render: (book: Book) => <span className="font-semibold line-clamp-2 max-w-[200px]">{book.title}</span> },
     { label: 'Author', render: (book: Book) => book.author },
     { label: 'Category', render: (book: Book) => book.category?.name || '-' },
   ];
