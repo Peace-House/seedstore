@@ -67,13 +67,13 @@ const PriceRangeBar: React.FC<PriceRangeBarProps> = ({
       </div>
       
       {/* Dual Range Slider */}
-      <div className="relative h-6 flex items-center">
+      <div className="relative h-4 flex items-center">
         {/* Track background */}
         <div className="absolute w-full h-1.5 bg-gray-200 rounded-full" />
         
         {/* Active track */}
         <div 
-          className="absolute h-1.5 bg-primary rounded-full"
+          className="absolute h-1.5 text-xs bg-primary rounded-full"
           style={{
             left: `${minPercent}%`,
             width: `${maxPercent - minPercent}%`
@@ -145,12 +145,12 @@ const PriceRangeBar: React.FC<PriceRangeBarProps> = ({
 
       {/* Price labels under slider */}
       <div className="flex justify-between text-xs text-gray-400">
-        <span>{selectedSymbol}{sliderMin.toLocaleString()}</span>
-        <span>{selectedSymbol}{sliderMax.toLocaleString()}</span>
+        <span className='text-xs'>{selectedSymbol}{sliderMin.toLocaleString()}</span>
+        <span className='text-xs'>{selectedSymbol}{sliderMax.toLocaleString()}</span>
       </div>
 
       {/* Input fields */}
-      <div className="flex gap-2 items-center justify-between">
+      <div className="flex gap-1 items-center justify-between">
         <Input
           type="number"
           min={0}

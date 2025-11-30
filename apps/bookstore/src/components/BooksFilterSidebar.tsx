@@ -38,7 +38,7 @@ const BooksFilterSidebar: React.FC<BooksFilterSidebarProps> = ({
     setAuthorFilter,
     uniqueAuthors,
 }) => (
-    <LiquidGlassWrapper className="hidden md:flex flex-row md:flex-col gap-4 md:w-1/5 p-4 max-h-[max-content] sticky top-20">
+    <LiquidGlassWrapper className="hidden md:flex flex-row md:flex-col gap-4 md:w-1/5 p-2 max-h-[max-content] sticky top-20">
 
         <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
@@ -53,14 +53,14 @@ const BooksFilterSidebar: React.FC<BooksFilterSidebarProps> = ({
 
         <PriceRangeBar minPrice={minPrice} maxPrice={maxPrice} setMinPrice={setMinPrice} setMaxPrice={setMaxPrice} />
         <hr className="md:my-0 my-2 border-gray-100 " />
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-between w-full">
             {[
                 { key: 'categories', label: 'Categories' },
                 { key: 'authors', label: 'Authors' }
             ].map(tab => (
                 <button
                     key={tab.key}
-                    className={` text-xs uppercase font-medium py-0.5 transition-all ease-in-out ${activeTab === tab.key ? 'border-b text-primary border-primary' : 'text-gray-500'}`}
+                    className={`w-1/2 text-xs uppercase font-medium py-0.5 transition-all ease-in-out ${activeTab === tab.key ? 'border-b text-primary border-primary' : 'text-gray-500'}`}
                     onClick={() => setActiveTab(tab.key as 'categories' | 'authors')}
                 >
                     {tab.label}
@@ -85,7 +85,7 @@ const BooksFilterSidebar: React.FC<BooksFilterSidebarProps> = ({
                                         : [...categoryFilter, catId]
                                 );
                             }}
-                            className={`py-1 px-2 text-sm rounded-sm cursor-pointer hover:bg-muted-foreground/10 transition-colors ${isSelected ? 'font-semibold bg-[#8FB51C15]' : 'font-light'}`}
+                            className={`py-1 px-2 text-xs rounded-sm cursor-pointer hover:bg-muted-foreground/10 transition-colors ${isSelected ? 'font-semibold bg-[#8FB51C15]' : 'font-light'}`}
                         >
                             {cat.name || 'Uncategorized'} {isSelected && <Check className='inline-block w-5 h-5 text-black float-right' />}
                         </li>
@@ -107,7 +107,7 @@ const BooksFilterSidebar: React.FC<BooksFilterSidebarProps> = ({
                                         : [...authorFilter, author]
                                 );
                             }}
-                            className={`py-1 px-2 text-sm cursor-pointer rounded-sm hover:bg-muted-foreground/10 transition-colors ${isSelected ? 'font-semibold bg-[#8FB51C15]' : 'font-light'}`}
+                            className={`py-1 px-2 text-xs cursor-pointer rounded-sm hover:bg-muted-foreground/10 transition-colors ${isSelected ? 'font-semibold bg-[#8FB51C15]' : 'font-light'}`}
                         >
                             {capitalizeWords(author)} {isSelected && <Check className='inline-block w-5 h-5 text-black float-right' />}
                         </li>
