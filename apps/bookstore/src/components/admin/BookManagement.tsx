@@ -191,7 +191,7 @@ const BookManagement = () => {
                 category: editing.category?.id ? String(editing.category.id) : '',
                 isbn: editing.ISBN || editing.ISBN || '',
                 // pages: editing.pages ? String(editing.pages) : '',
-                publishedDate: editing.publishedDate || '',
+                publishedDate: editing.publishedDate ? new Date(editing.publishedDate).toISOString().split('T')[0] : '',
                 isFeatured: !!editing.featured,
               }}
               submitLabel="Save Changes"
