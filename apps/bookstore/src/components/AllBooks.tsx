@@ -33,7 +33,20 @@ const AllBooks = () => {
   });
   const books = data?.books || [];
   const total = data?.total || 0;
-  const uniqueAuthors = Array.from(new Set(books.map(book => book.author).filter(Boolean)));
+  // Deduplicate authors by normalizing to lowercase, then return original casing
+  const uniqueAuthors = Array.from(
+    books
+      .map(book => book.author)
+      .filter(Boolean)
+      .reduce((map, author) => {
+        const key = author.toLowerCase().trim();
+        if (!map.has(key)) {
+          map.set(key, author.trim());
+        }
+        return map;
+      }, new Map<string, string>())
+      .values()
+  );
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -44,7 +57,7 @@ const AllBooks = () => {
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.author.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter.length === 0 || (book.category && categoryFilter.includes(book.category.id));
-    const matchesAuthor = authorFilter.length === 0 || authorFilter.includes(book.author);
+    const matchesAuthor = authorFilter.length === 0 || authorFilter.some(a => a.toLowerCase().trim() === book.author.toLowerCase().trim());
     // Get price for selected country
     const priceData = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
     const price = priceData?.price ?? book.price ?? 0;

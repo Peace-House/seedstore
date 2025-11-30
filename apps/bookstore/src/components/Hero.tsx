@@ -48,7 +48,7 @@ const Hero = () => {
               :
               (
                 <div className="flex flex-wrap gap-4">
-                  <Button size="lg" className="group" onClick={() => navigate('/auth')}>
+                  <Button size="lg" liquidGlass={false} className="group" onClick={() => navigate('/auth')}>
                     Get Started
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>

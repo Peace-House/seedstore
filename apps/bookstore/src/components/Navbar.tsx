@@ -145,8 +145,8 @@ const Navbar = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-1 text-xs px-2 hover:bg-transparent hover:text-black rounded-full w-max">
                 <Globe className="h-4 w-4" />
-                <span className="text-xs">{selectedCountry}</span>
-                <span className="text-xs text-muted-foreground">({selectedCurrency})</span>
+                <span className="text-[10px]">{selectedCountry}</span>
+                <span className="text-[10px] text-muted-foreground">({selectedCurrency})</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="max-h-60 overflow-y-auto rounded">
