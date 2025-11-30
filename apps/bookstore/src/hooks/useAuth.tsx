@@ -10,6 +10,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
+  phcode?: string;
   isAdmin: boolean;
   role: string;
   createdAt: string;

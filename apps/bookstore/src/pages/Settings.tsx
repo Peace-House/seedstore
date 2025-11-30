@@ -284,6 +284,14 @@ const Settings = () => {
                 <p className="text-xs text-muted-foreground">Email cannot be changed</p>
               </div>
 
+              {user.phcode && (
+                <div className="space-y-2">
+                  <Label htmlFor="phcode">PH Code</Label>
+                  <Input id="phcode" value={user.phcode} disabled className="bg-muted cursor-not-allowed" />
+                  <p className="text-xs text-muted-foreground">Your unique Peace House code</p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber">Phone Number</Label>
                 <Input
