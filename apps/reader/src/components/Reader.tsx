@@ -25,6 +25,7 @@ import {
   useColorScheme,
   useDisablePinchZooming,
   useMobile,
+  useSourceColor,
   useSync,
   useTranslation,
   useTypography,
@@ -212,6 +213,7 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
   const typography = useTypography(tab)
   const { dark } = useColorScheme()
   const [background] = useBackground()
+  const { sourceColor } = useSourceColor()
 
   const { iframe, rendition, rendered, container, book } = useSnapshot(tab)
 
@@ -247,8 +249,8 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
 
   const applyCustomStyle = useCallback(() => {
     const contents = rendition?.getContents()[0]
-    updateCustomStyle(contents, typography)
-  }, [rendition, typography])
+    updateCustomStyle(contents, typography, sourceColor)
+  }, [rendition, typography, sourceColor])
 
   useEffect(() => {
     tab.onRender = applyCustomStyle
