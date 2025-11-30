@@ -41,6 +41,8 @@ export default {
 
   'theme.title': 'Theme',
   'theme.source_color': 'Source Color',
+  'theme.theme_color': 'Theme Color',
+  'theme.custom_color': 'Custom Color',
   'theme.background_color': 'Background Color',
 
   'settings.title': 'Settings',

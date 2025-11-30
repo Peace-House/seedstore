@@ -7,7 +7,7 @@ export type ColorScheme = 'light' | 'dark' | 'system'
 export function useColorScheme() {
   const [scheme, setScheme] = useLocalStorageState<ColorScheme>(
     'literal-color-scheme',
-    { defaultValue: 'system' },
+    { defaultValue: 'light' },
   )
 
   const prefersDark = useMediaQuery('(prefers-color-scheme: dark)')
