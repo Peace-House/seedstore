@@ -44,7 +44,7 @@ const PricingManagement = () => {
         if (book.prices && book.prices.length > 0) {
           initialPrices[book.id] = {};
           book.prices.forEach((price: BookPrice) => {
-            if (price.country && price.soft_copy_price != null && price.soft_copy_price !== 0) {
+            if (price.country && price.soft_copy_price != null && price.soft_copy_price !== null) {
               initialPrices[book.id][price.country] = String(price.soft_copy_price);
             }
           });

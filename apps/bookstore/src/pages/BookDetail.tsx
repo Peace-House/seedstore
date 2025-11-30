@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getBookById } from '@/services/book';
-import api from '@/services/apiService';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useCountry } from '@/hooks/useCountry';
@@ -25,9 +24,9 @@ const BookDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { addToCart, isAddingToCart } = useCart();
+  const { addToCart, isAddingToCart, cartItems } = useCart();
   const { selectedCountry, countryCurrencies } = useCountry();
-  const { addFreeBook, isAddingFreeBook } = useLibrary();
+  const { addFreeBookAsync, isAddingFreeBook, library } = useLibrary();
 
   const { data: book, isLoading } = useQuery({
     queryKey: ['book', id],
@@ -37,16 +36,10 @@ const BookDetail = () => {
     },
   });
 
-  const { data: hasPurchased } = useQuery({
-    queryKey: ['has-purchased', user?.id, id],
-    queryFn: async () => {
-      if (!user || !id) return false;
-      // Replace with backend API call for purchase status
-      const res = await api.get(`/library/has-purchased/${id}`);
-      return !!res.data?.purchased;
-    },
-    enabled: !!user && !!id,
-  });
+  // Check if book is in user's library (purchased or added as free)
+  const isPurchased = book && Array.isArray(library)
+    ? library?.some((b) => b.id == book.id)
+    : false;
 
   const handleAddToCart = () => {
     addToCart(book, {
@@ -69,26 +62,25 @@ const BookDetail = () => {
     });
   };
 
-  const handleAddFreeBook = () => {
+  const handleAddFreeBook = async () => {
     if (!user) {
       navigate('/auth');
       return;
     }
-    addFreeBook(book.id as number, {
-      onSuccess: () => {
-        toast({
-          title: 'Added to Library',
-          description: 'Book has been added to your library.',
-        });
-      },
-      onError: (error: Error) => {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: error.message || 'Failed to add book to library',
-        });
-      },
-    });
+    try {
+      await addFreeBookAsync(Number(book.id));
+      toast({
+        title: 'Added to Library',
+        description: 'Book has been added to your library.',
+      });
+    } catch (error: unknown) {
+      const errMsg = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to add book to library';
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: errMsg,
+      });
+    }
   };
 
   if (isLoading) {
@@ -138,6 +130,13 @@ const BookDetail = () => {
   };
 
   console.log('Book Detail:', book);
+
+  // Check if book is already in cart
+  const isInCart = cartItems.some((item: { book?: { id: string }; bookId?: string; id: string }) => {
+    const itemBookId = item.book?.id || item.bookId || item.id;
+    return itemBookId == book.id;
+  });
+
   return (
     <>
       {/* <Navbar /> */}
@@ -180,7 +179,7 @@ const BookDetail = () => {
               )
             })()}
 
-            {hasPurchased ? (
+            {isPurchased ? (
               <div className='flex flex-col md:flex-row md:items-center gap-4'>
                 <Button
                   size="lg"
@@ -191,16 +190,7 @@ const BookDetail = () => {
                   <BookOpen className="mr-2 h-5 w-5" />
                   Read Now
                 </Button>
-                <Button
-                  size="sm"
-                  variant='outline'
-                  liquidGlass={false}
-                  onClick={handleDownload}
-                  disabled={isAddingToCart}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
+
               </div>
             ) : getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies).price === 0 ? (
               <Button
@@ -216,6 +206,16 @@ const BookDetail = () => {
                   <Plus className="mr-2 h-5 w-5" />
                 )}
                 Add to Library
+              </Button>
+            ) : isInCart ? (
+              <Button
+                size="lg"
+                liquidGlass={false}
+                className="w-full"
+                disabled
+              >
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                Added to Cart
               </Button>
             ) : (
               <Button
@@ -237,7 +237,7 @@ const BookDetail = () => {
             {book.description && (
               <LiquidGlassWrapper>
                 <CardContent className="p-6">
-                  <h2 className="text-2xl font-bold mb-4">About this book</h2>
+                  <h2 className="text-lg font-bold mb-4">About this book</h2>
                   <p className="text-muted-foreground leading-relaxed">
                     {book.description}
                   </p>
@@ -247,7 +247,7 @@ const BookDetail = () => {
 
             <LiquidGlassWrapper>
               <CardContent className="p-6 space-y-3">
-                <h2 className="text-2xl font-bold mb-4">Details</h2>
+                <h2 className="text-lg font-bold mb-4">Details</h2>
                 {book.ISBN ? (
                   <div className="flex items-center gap-3">
                     <Hash className="h-5 w-5 text-muted-foreground" />

@@ -28,8 +28,9 @@ export const useLibrary = () => {
   const addFreeBookMutation = useMutation({
     mutationFn: (bookId: number) => addFreeBookToLibrary(bookId),
     onSuccess: () => {
-      // Invalidate library to refresh the list
+      // Invalidate library and has-purchased to refresh the list
       queryClient.invalidateQueries({ queryKey: ['library'] });
+      queryClient.invalidateQueries({ queryKey: ['has-purchased'] });
     },
   });
 
