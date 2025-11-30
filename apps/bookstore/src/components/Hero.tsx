@@ -4,12 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useBooks } from '@/hooks/useBooks';
+import { useCountry } from '@/hooks/useCountry';
+import { getBookPriceForCountry } from '@/utils/pricing';
 import { truncate } from '@/lib/utils';
 import { Book } from '@/services';
 
 const Hero = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { selectedCountry, countryCurrencies } = useCountry();
 
   const books = useBooks();
 
@@ -90,21 +93,26 @@ const Hero = () => {
           {/* with auth */}
           {user && books?.data && books?.data?.books && books?.data?.books?.length > 0 && (
             <div className="h-full grid grid-cols-2 px-6 items-center justify-center gap-6 z-10 relative bg-transparent lg:h-[500px] rounded-2xl overflow-hidden shadow-none">
-              {books.data.books.slice(0, 2).map((book: Book) => (
-                <div key={book.id} className="bg-white/90 h-[89%] w-full rounded-xl shadow-md border overflow-hidden flex flex-col items-center relative">
-                  <div className="absolute top-1 right-1 rounded-lg bg-red-600 italic text-white px-2 py-1 text-xs font-semibold">
-                    New
+              {books.data.books.slice(0, 2).map((book: Book) => {
+                const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+                return (
+                  <div key={book.id} className="bg-white/90 h-[89%] w-full rounded-xl shadow-md border overflow-hidden flex flex-col items-center relative">
+                    <div className="absolute top-1 right-1 rounded-lg bg-red-600 italic text-white px-2 py-1 text-xs font-semibold">
+                      New
+                    </div>
+                    <img
+                      src={book.coverImage}
+                      alt={book.title}
+                      className="h-[90%] w-full object-cover mb-3 shadow"
+                    />
+                    {/* <div className="font-semibold text-lg text-gray-900 text-center line-clamp-2">{truncate(book.title, 18)}</div> */}
+                    {/* <div className="text-sm text-gray-600 text-center line-clamp-1">{book.author}</div> */}
+                    <div className="text-sm font-bold text-gray-600 text-left line-clamp-1 w-full px-4">
+                      {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
+                    </div>
                   </div>
-                  <img
-                    src={book.coverImage}
-                    alt={book.title}
-                    className="h-[80%] w-full object-cover mb-3 shadow"
-                  />
-                  <div className="font-semibold text-lg text-gray-900 text-center line-clamp-2">{truncate(book.title, 18)}</div>
-                  <div className="text-sm text-gray-600 text-center line-clamp-1">{book.author}</div>
-                  <div className="text-sm font-bold text-gray-600 text-center line-clamp-1">₦{book.price}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardFooter } from './ui/card';
 import { Button } from './ui/button';
-import { ShoppingCart, Eye, Download } from 'lucide-react';
+import { ShoppingCart, Eye, Download, Plus } from 'lucide-react';
 import { BookOpen } from 'lucide-react';
 import { capitalizeWords, slugify, truncate } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/hooks/useCart';
 import { useLibrary } from '@/hooks/useLibrary';
 import { useCountry } from '@/hooks/useCountry';
+import { useAuth } from '@/hooks/useAuth';
 import { getBookPriceForCountry } from '@/utils/pricing';
 import { Book } from '@/services';
 import LiquidGlassWrapper from './LiquidGlassWrapper';
@@ -29,8 +30,9 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
   };
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { addToCart, isAddingToCart, cartItems } = useCart();
-  const { library: purchasedBooks } = useLibrary();
+  const { library: purchasedBooks, addFreeBookAsync, isAddingFreeBook } = useLibrary();
   const { selectedCountry, countryCurrencies } = useCountry();
 
   // Get price for selected country
@@ -63,6 +65,32 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
         });
       },
     });
+  };
+
+  const handleAddFreeBook = async () => {
+    if (!user) {
+      toast({
+        title: 'Login Required',
+        description: 'Please log in to add this book to your library.',
+      });
+      navigate('/auth?redirect=' + encodeURIComponent(window.location.pathname));
+      return;
+    }
+    
+    try {
+      await addFreeBookAsync(book.id as number);
+      toast({
+        title: 'Added to Library',
+        description: `${book.title} has been added to your library.`,
+      });
+    } catch (error: unknown) {
+      const errMsg = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to add book to library';
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: errMsg,
+      });
+    }
   };
 
   const handleDownload = () => {
@@ -115,7 +143,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
           {/* Book Info */}
           <div className="flex-1 min-w-0 w-full">
             <Link to={`/book/${book.id}`}>
-              <h3 className="font-semibold text-xs truncate hover:underline">{truncate(book.title, 20)}</h3>
+              <h3 className="font-semibold text-xs truncate hover:underline">{truncate(book.title, 30)}</h3>
             </Link>
             <p className="text-muted-foreground text-xs truncate">{capitalizeWords(book.author)}</p>
             <div className="flex items-center gap-2 mt-2">
@@ -128,7 +156,9 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
             </div>
           </div>
           <div className="flex items-end justify-between w-full">
-            <span className="text-primary font-bold">{displaySymbol}{Number(displayPrice).toLocaleString()}</span>
+            <span className="text-primary font-bold">
+              {displayPrice === 0 ? 'Free' : `${displaySymbol}${Number(displayPrice).toLocaleString()}`}
+            </span>
 
             {isPurchased ? (
               <Button
@@ -145,12 +175,11 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
               <Button
                 size="sm"
                 variant="outline"
-                onClick={handleDownload}
-                disabled={isAddingToCart}
+                onClick={handleAddFreeBook}
+                disabled={isAddingFreeBook}
                 className='border-none'
-
               >
-                <Download className=" h-4 w-4" />
+                <Plus className=" h-4 w-4" />
                 {/* Download */}
               </Button>
             ) : isInCart ? (
@@ -213,13 +242,13 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
           </LiquidGlassWrapper>
         )}
       </div>
-      <div className='h-max-[150px] flex flex-col justify-between'>
-        <CardContent className="p-2 bg-none">
-          {/* <h3 className="text-xs font-semibold line-clamp-2 mb-1">{truncate(book.title, 21)}</h3> */}
+      <div className='h-max-[80px] border pt-2 flex flex-col justify-between'>
+        {/* <CardContent className="p-2 bg-none">
+          <h3 className="text-xs font-semibold line-clamp-2 mb-1">{truncate(book.title, 21)}</h3>
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground capitalize">{capitalizeWords(book.author)}</p>
           </div>
-        </CardContent>
+        </CardContent> */}
 
         <CardFooter className="p-2 bg-none pt-0 flex items-center justify-between">
           <span className="text-sm font-bold text-primary">
@@ -246,17 +275,13 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleDownload}
-                  disabled={isAddingToCart}
+                  onClick={handleAddFreeBook}
+                  disabled={isAddingFreeBook}
                   style={{ inset: '10px 20px 30px 40px' }}
                   className='text-xs gap-0 max-[768px]:h-max py-1 px-1.5 rounded-full'
                 >
-                  {/* <Download className="mr-2 h-4 w-4" />
-                  <span className='hidden md:block'>
-                    Download
-                  </span> */}
-                  <BookOpen className="mr-1 h-4 w-4 hidden md:block" />
-                  Read Now
+                  <Plus className="mr-1 h-4 w-4 hidden md:block" />
+                  Add to Library
                 </Button>
               ) : isInCart ? (
                 <Button

@@ -30,4 +30,10 @@ export const getProgress = async (bookId: string) => {
   return res.data;
 };
 
+// Add a free book to user's library
+export const addFreeBookToLibrary = async (bookId: number) => {
+  const res = await api.post('/library/add-free', { bookId });
+  return res.data;
+};
+
 // Add more library-related API functions as needed
