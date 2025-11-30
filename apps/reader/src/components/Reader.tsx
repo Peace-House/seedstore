@@ -29,6 +29,7 @@ import {
   useTranslation,
   useTypography,
 } from '../hooks'
+import { useAnnotationSync } from '../hooks/useAnnotationSync'
 import { BookTab, reader, useReaderSnapshot } from '../models'
 import { isTouchScreen } from '../platform'
 import { updateCustomStyle } from '../styles'
@@ -212,7 +213,10 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
   const { dark } = useColorScheme()
   const [background] = useBackground()
 
-  const { iframe, rendition, rendered, container } = useSnapshot(tab)
+  const { iframe, rendition, rendered, container, book } = useSnapshot(tab)
+
+  // Sync annotations with server
+  useAnnotationSync(book?.id)
 
   useTilg()
 
