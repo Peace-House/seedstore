@@ -106,3 +106,22 @@ export const changePassword = async (currentPassword: string, newPassword: strin
   const res = await api.post('/users/change-password', { currentPassword, newPassword });
   return res.data;
 };
+
+// Session/Device management
+export interface Session {
+  id: string;
+  platform: string;
+  deviceId: string;
+  createdAt: string;
+  isCurrent: boolean;
+}
+
+export const getUserSessions = async (): Promise<{ sessions: Session[]; total: number }> => {
+  const res = await api.get<{ sessions: Session[]; total: number }>('/users/sessions');
+  return res.data;
+};
+
+export const removeSession = async (sessionId: string): Promise<{ message: string }> => {
+  const res = await api.delete('/users/sessions/remove', { data: { sessionId } });
+  return res.data;
+};

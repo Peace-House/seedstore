@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { User, Bell, Lock, LogOut, Sidebar, ArrowLeft } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { User, Bell, Lock, LogOut, Sidebar, ArrowLeft, Smartphone, Monitor, Laptop, Trash2 } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -45,9 +45,32 @@ const Settings = () => {
 
   const navItems = [
     { value: 'profile', label: 'Profile', icon: <User className="w-5 h-5" /> },
+    { value: 'devices', label: 'Devices', icon: <Smartphone className="w-5 h-5" /> },
     { value: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
     { value: 'password', label: 'Change Password', icon: <Lock className="w-5 h-5" /> },
   ];
+
+  // Fetch user sessions/devices
+  const {
+    data: sessionsData,
+    isLoading: sessionsLoading,
+    refetch: refetchSessions,
+  } = useQuery({
+    queryKey: ['userSessions'],
+    queryFn: userApi.getUserSessions,
+  });
+
+  // Remove session mutation
+  const removeSessionMutation = useMutation({
+    mutationFn: (sessionId: string) => userApi.removeSession(sessionId),
+    onSuccess: () => {
+      toast.success('Device removed successfully');
+      refetchSessions();
+    },
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
+      toast.error(error?.response?.data?.error || 'Failed to remove device');
+    },
+  });
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
@@ -275,6 +298,104 @@ const Settings = () => {
                 {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </form>
+          </LiquidGlassWrapper>
+        )}
+
+        {/* Devices Section */}
+        {tab === 'devices' && (
+          <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-6">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-muted-foreground">
+                    Manage your logged-in devices. You can be logged in on up to 3 devices at a time.
+                  </p>
+                </div>
+                <div className="text-sm font-medium text-primary">
+                  {sessionsData?.total || 0}/3 devices
+                </div>
+              </div>
+
+              {sessionsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : sessionsData?.sessions && sessionsData.sessions.length > 0 ? (
+                <div className="space-y-3">
+                  {sessionsData.sessions.map((session) => {
+                    const getPlatformIcon = (platform: string) => {
+                      const p = platform.toLowerCase();
+                      if (p.includes('mobile') || p.includes('android') || p.includes('ios')) {
+                        return <Smartphone className="w-5 h-5" />;
+                      }
+                      if (p.includes('desktop') || p.includes('windows') || p.includes('mac')) {
+                        return <Monitor className="w-5 h-5" />;
+                      }
+                      return <Laptop className="w-5 h-5" />;
+                    };
+
+                    const formatDate = (dateString: string) => {
+                      const date = new Date(dateString);
+                      return date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+                    };
+
+                    return (
+                      <div
+                        key={session.id}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${
+                          session.isCurrent ? 'border-primary bg-primary/5' : 'border-border'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`p-2 rounded-full ${session.isCurrent ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
+                            {getPlatformIcon(session.platform)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium capitalize">{session.platform || 'Unknown Device'}</h3>
+                              {session.isCurrent && (
+                                <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full">
+                                  Current
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Logged in {formatDate(session.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                        {!session.isCurrent && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeSessionMutation.mutate(session.id)}
+                            disabled={removeSessionMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No active sessions found.
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground mt-4">
+                Note: Removing a device will log it out immediately. That device will need to log in again to access your account.
+              </p>
+            </div>
           </LiquidGlassWrapper>
         )}
 
