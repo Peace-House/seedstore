@@ -1,11 +1,14 @@
 import { useRouter } from 'next/router'
-import { MdCheckCircle } from 'react-icons/md'
+import { useEffect } from 'react'
+import { MdCheckCircle, MdLogout } from 'react-icons/md'
 
 import { db } from '../db'
 import { addBook } from '../file'
 import { useMobile, useSetAction } from '../hooks'
 import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
+import { useLibrarySync } from '../hooks/useLibrarySync'
 import { reader } from '../models'
+import { logout } from '../services/librarySyncService'
 
 const placeholder = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="gray" fill-opacity="0" width="1" height="1"/></svg>`
 
@@ -16,6 +19,13 @@ export default function LibraryPage() {
   const setAction = useSetAction()
   const books = useBookstoreLibrary()
 
+  // Sync local library with remote - removes books not in remote library
+  useLibrarySync(books)
+
+  // Hide sidebar when on library page
+  useEffect(() => {
+    setAction('library')
+  }, [setAction])
 
   if (!books) return null
 
@@ -46,12 +56,18 @@ export default function LibraryPage() {
           type: 'application/epub+zip',
         });
         const newBook = await addBook(epubFile);
-        reader.addTab(newBook);
+        openBookInReader(newBook);
         return;
       }
     } else {
-      reader.addTab(book);
+      openBookInReader(book);
     }
+  }
+
+  // Helper function to navigate to reader after adding tab
+  function openBookInReader(book: any) {
+    reader.addTab(book)
+    router.push('/')
   }
 
   // Minimal EPUB packaging from HTML using JSZip
@@ -95,9 +111,24 @@ export default function LibraryPage() {
     return await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
   }
 
+  const handleLogout = async () => {
+    const bookstoreUrl = process.env.NEXT_PUBLIC_BOOKSTORE_URL || 'http://localhost:7117'
+    await logout(bookstoreUrl)
+  }
+
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Library</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Library</h1>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-surface-variant hover:bg-outline/20 transition-colors"
+          title="Logout"
+        >
+          <MdLogout size={18} />
+          <span>Logout</span>
+        </button>
+      </div>
       <ul className="grid" style={{
         gridTemplateColumns: `repeat(auto-fill, minmax(calc(80px + 3vw), 1fr))`,
         columnGap: 16,
@@ -125,10 +156,6 @@ function LibraryBookCard({ book, onClick }: { book: any, onClick: () => void }) 
         className="mx-auto aspect-[9/12] object-cover"
         draggable={false}
       />
-      <div className="line-clamp-2 text-on-surface-variant typescale-body-small lg:typescale-body-medium mt-2 w-full" title={book.name}>
-        <MdCheckCircle className="mr-1 mb-0.5 inline text-surface-variant" size={16} />
-        {book.name}
-      </div>
     </div>
   )
 }

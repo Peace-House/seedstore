@@ -4,7 +4,6 @@ import { useColorScheme, useMobile, useSetAction, useAction } from '../../hooks'
 import { SplitView } from '../base'
 
 import ActivityBar from './ActivityBar'
-import LibraryView from './LibraryView'
 import NavigationBar from './NavigationBar'
 import Reader from './Reader'
 import SideBar from './SideBar'
@@ -27,8 +26,8 @@ export const Layout = ({ children }: PropsWithChildren) => {
       <SplitView>
         {mobile === false && <ActivityBar />}
         {mobile === true && <NavigationBar />}
-        {ready && (action === 'library' ? null : <SideBar />)}
-        {ready && (action === 'library' ? <LibraryView /> : <Reader>{children}</Reader>)}
+        {ready && action !== 'library' && <SideBar />}
+        {ready && <Reader>{children}</Reader>}
       </SplitView>
     </div>
   )

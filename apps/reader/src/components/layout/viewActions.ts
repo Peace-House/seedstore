@@ -68,20 +68,6 @@ export const viewActions: IViewAction[] = [
     env: Env.Desktop | Env.Mobile,
   },
   {
-    name: 'image',
-    title: 'image',
-    Icon: MdOutlineImage,
-    View: ImageView,
-    env: Env.Desktop,
-  },
-  {
-    name: 'timeline',
-    title: 'timeline',
-    Icon: MdTimeline,
-    View: TimelineView,
-    env: Env.Desktop,
-  },
-  {
     name: 'typography',
     title: 'typography',
     Icon: RiFontSize,

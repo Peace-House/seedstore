@@ -7,9 +7,7 @@ import { useMemo } from 'react'
 import { IconType } from 'react-icons'
 import {
   MdFormatUnderlined,
-  MdOutlineImage,
   MdSearch,
-  MdTimeline,
   MdOutlineLightMode,
   MdChevronLeft,
   MdExitToApp,
@@ -36,10 +34,8 @@ import { activeClass } from '../styles'
 import { SplitView, useSplitViewItem } from './base'
 import { Settings } from './pages'
 import { AnnotationView } from './viewlets/AnnotationView'
-import { ImageView } from './viewlets/ImageView'
 import { SearchView } from './viewlets/SearchView'
 import { ThemeView } from './viewlets/ThemeView'
-import { TimelineView } from './viewlets/TimelineView'
 import { TocView } from './viewlets/TocView'
 import { TypographyView } from './viewlets/TypographyView'
 
@@ -53,7 +49,9 @@ export const Layout = ({ children }: PropsWithChildren<Record<string, any>>) => 
 
   useEffect(() => {
     if (mobile === undefined) return
-    setAction(mobile ? undefined : 'toc')
+    // setAction(mobile ? undefined : 'toc')
+    setAction(mobile ? undefined : 'library')
+
     setReady(true)
   }, [mobile, setAction])
 
@@ -96,13 +94,13 @@ const viewActions: IViewAction[] = [
     View: TocView,
     env: Env.Desktop | Env.Mobile,
   },
-  {
-    name: 'toc',
-    title: 'toc',
-    Icon: MdMenuBook,
-    View: TocView,
-    env: Env.Desktop | Env.Mobile,
-  },
+  // {
+  //   name: 'toc',
+  //   title: 'toc',
+  //   Icon: MdMenuBook,
+  //   View: TocView,
+  //   env: Env.Desktop | Env.Mobile,
+  // },
   {
     name: 'library',
     title: 'library',
@@ -123,20 +121,6 @@ const viewActions: IViewAction[] = [
     Icon: MdFormatUnderlined,
     View: AnnotationView,
     env: Env.Desktop | Env.Mobile,
-  },
-  {
-    name: 'image',
-    title: 'image',
-    Icon: MdOutlineImage,
-    View: ImageView,
-    env: Env.Desktop,
-  },
-  {
-    name: 'timeline',
-    title: 'timeline',
-    Icon: MdTimeline,
-    View: TimelineView,
-    env: Env.Desktop,
   },
   {
     name: 'typography',
