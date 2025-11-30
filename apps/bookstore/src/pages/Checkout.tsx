@@ -52,8 +52,14 @@ const Checkout = () => {
       });
     },
     onSuccess: (data) => {
-      if (data?.data?.authorization_url) {
-        window.location.href = data.data.authorization_url;
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else if (data?.status === 'error') {
+        toast({
+          variant: 'destructive',
+          title: 'Payment Failed',
+          description: data.message || 'Failed to initiate payment',
+        });
       }
     },
     onError: (error: unknown) => {

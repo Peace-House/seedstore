@@ -63,13 +63,20 @@ const PaymentCallback = () => {
         } else {
           // Paystack verification
           const res = await verifyPaystackPayment(reference);
-          if (res.data && res.data.status === 'success') {
+          if (res.status === 'success') {
             setStatus('success');
             toast({
               title: 'Payment Successful',
               description: 'Your order has been processed.'
             });
             setTimeout(() => navigate('/library'), 2000);
+          } else if (res.status === 'error') {
+            setStatus('failed');
+            toast({
+              variant: 'destructive',
+              title: 'Payment Failed',
+              description: res.message || 'Verification failed. Please contact support.'
+            });
           } else {
             setStatus('failed');
             toast({
