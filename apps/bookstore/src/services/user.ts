@@ -127,3 +127,21 @@ export const removeSession = async (sessionId: string): Promise<{ message: strin
   const res = await api.delete('/users/sessions/remove', { data: { sessionId } });
   return res.data;
 };
+
+// Notification preferences
+export interface NotificationPreferences {
+  emailNotifications: boolean;
+  orderUpdates: boolean;
+  promotions: boolean;
+  newBooks: boolean;
+}
+
+export const getNotificationPreferences = async (): Promise<{ preferences: NotificationPreferences }> => {
+  const res = await api.get<{ preferences: NotificationPreferences }>('/users/notifications');
+  return res.data;
+};
+
+export const updateNotificationPreferences = async (preferences: Partial<NotificationPreferences>): Promise<{ preferences: NotificationPreferences; message: string }> => {
+  const res = await api.put<{ preferences: NotificationPreferences; message: string }>('/users/notifications', preferences);
+  return res.data;
+};

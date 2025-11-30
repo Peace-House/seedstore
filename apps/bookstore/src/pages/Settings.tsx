@@ -60,6 +60,27 @@ const Settings = () => {
     queryFn: userApi.getUserSessions,
   });
 
+  // Fetch notification preferences
+  const {
+    data: notificationData,
+    isLoading: notificationsLoading,
+  } = useQuery({
+    queryKey: ['notificationPreferences'],
+    queryFn: userApi.getNotificationPreferences,
+  });
+
+  // Update notifications state when data is fetched
+  useEffect(() => {
+    if (notificationData?.preferences) {
+      setNotifications({
+        emailNotifications: notificationData.preferences.emailNotifications,
+        orderUpdates: notificationData.preferences.orderUpdates,
+        promotions: notificationData.preferences.promotions,
+        newBooks: notificationData.preferences.newBooks,
+      });
+    }
+  }, [notificationData]);
+
   // Remove session mutation
   const removeSessionMutation = useMutation({
     mutationFn: (sessionId: string) => userApi.removeSession(sessionId),
@@ -69,6 +90,17 @@ const Settings = () => {
     },
     onError: (error: Error & { response?: { data?: { error?: string } } }) => {
       toast.error(error?.response?.data?.error || 'Failed to remove device');
+    },
+  });
+
+  // Update notification preferences mutation
+  const updateNotificationsMutation = useMutation({
+    mutationFn: (prefs: userApi.NotificationPreferences) => userApi.updateNotificationPreferences(prefs),
+    onSuccess: () => {
+      toast.success('Notification preferences saved');
+    },
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
+      toast.error(error?.response?.data?.error || 'Failed to save notification preferences');
     },
   });
 
@@ -417,6 +449,11 @@ const Settings = () => {
             <div className="space-y-6">
               <p className="text-muted-foreground mb-6">Manage how you receive notifications and updates.</p>
 
+              {notificationsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between py-3 border-b">
                   <div>
@@ -425,7 +462,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notifications.emailNotifications}
-                    onCheckedChange={(checked) => setNotifications((prev) => ({ ...prev, emailNotifications: checked }))}
+                    onCheckedChange={(checked) => {
+                      const newNotifications = { ...notifications, emailNotifications: checked };
+                      setNotifications(newNotifications);
+                      updateNotificationsMutation.mutate(newNotifications);
+                    }}
+                    disabled={updateNotificationsMutation.isPending}
                   />
                 </div>
 
@@ -436,7 +478,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notifications.orderUpdates}
-                    onCheckedChange={(checked) => setNotifications((prev) => ({ ...prev, orderUpdates: checked }))}
+                    onCheckedChange={(checked) => {
+                      const newNotifications = { ...notifications, orderUpdates: checked };
+                      setNotifications(newNotifications);
+                      updateNotificationsMutation.mutate(newNotifications);
+                    }}
+                    disabled={updateNotificationsMutation.isPending}
                   />
                 </div>
 
@@ -447,7 +494,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notifications.promotions}
-                    onCheckedChange={(checked) => setNotifications((prev) => ({ ...prev, promotions: checked }))}
+                    onCheckedChange={(checked) => {
+                      const newNotifications = { ...notifications, promotions: checked };
+                      setNotifications(newNotifications);
+                      updateNotificationsMutation.mutate(newNotifications);
+                    }}
+                    disabled={updateNotificationsMutation.isPending}
                   />
                 </div>
 
@@ -458,13 +510,19 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notifications.newBooks}
-                    onCheckedChange={(checked) => setNotifications((prev) => ({ ...prev, newBooks: checked }))}
+                    onCheckedChange={(checked) => {
+                      const newNotifications = { ...notifications, newBooks: checked };
+                      setNotifications(newNotifications);
+                      updateNotificationsMutation.mutate(newNotifications);
+                    }}
+                    disabled={updateNotificationsMutation.isPending}
                   />
                 </div>
               </div>
+              )}
 
               <p className="text-xs text-muted-foreground mt-4">
-                Note: Notification preferences will be saved automatically when backend support is available.
+                Your notification preferences are saved automatically.
               </p>
             </div>
           </LiquidGlassWrapper>
