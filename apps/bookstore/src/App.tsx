@@ -13,6 +13,7 @@ import Reader from "./pages/Reader";
 import NotFound from "./pages/NotFound";
 import BookSearchPage from "./pages/BookSearchPage";
 import PaymentCallback from "./pages/PaymentCallback";
+import Settings from "./pages/Settings";
 import Navigation from "./components/Navigation";
 import { CountryProvider } from "./contexts/CountryContext";
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/cart" element={<Navigation><Cart /></Navigation>} />
             <Route path="/book/:id" element={<Navigation><BookDetail /></Navigation>} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/library" element={<Navigation><Library /></Navigation>} />
             <Route path="/reader/:orderId/:bookId" element={<Reader />} />
             <Route path="/payment-callback" element={<PaymentCallback />} />

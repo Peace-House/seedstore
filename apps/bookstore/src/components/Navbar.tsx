@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
-import { BookOpen, ShoppingCart, User, LogOut, LayoutDashboard, Globe } from 'lucide-react';
+import { BookOpen, ShoppingCart, User, LogOut, LayoutDashboard, Globe, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useCountry } from '@/hooks/useCountry';
@@ -115,9 +115,9 @@ const Navbar = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent  align="end" className='rounded'>
-                <DropdownMenuItem onClick={() => navigate('/library')}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  My Library
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
                 </DropdownMenuItem>
                 {user.role !== 'user' && (
                   <>

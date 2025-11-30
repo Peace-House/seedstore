@@ -88,3 +88,21 @@ export const getUsers = async (page = 1, pageSize = 10): Promise<UserPage> => {
   const res = await api.get('/admin/users', { params: { page, pageSize } });
   return res.data;
 };
+
+// Update user profile
+export interface UpdateProfileData {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+}
+
+export const updateProfile = async (data: UpdateProfileData): Promise<User> => {
+  const res = await api.put<{ user: User }>('/users/profile', data);
+  return res.data.user;
+};
+
+// Change password
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
+  const res = await api.post('/users/change-password', { currentPassword, newPassword });
+  return res.data;
+};
