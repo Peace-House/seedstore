@@ -104,6 +104,16 @@ const BookManagement = () => {
     { label: 'Title', render: (book: Book) => <span className="font-semibold line-clamp-2 max-w-[200px]">{book.title}</span> },
     { label: 'Author', render: (book: Book) => book.author },
     { label: 'Category', render: (book: Book) => book.category?.name || '-' },
+    { 
+      label: 'Group', 
+      render: (book: Book) => (
+        <span className="text-sm">
+          {book.groupBookId ? (
+            <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{book.groupBookId}</span>
+          ) : '-'}
+        </span>
+      )
+    },
   ];
 
   const renderActions = (book: Book) => (
@@ -189,6 +199,7 @@ const BookManagement = () => {
                 // price: String(editing.price),
                 description: editing.description,
                 category: editing.category?.id ? String(editing.category.id) : '',
+                groupId: editing.group?.id ? String(editing.group.id) : '',
                 isbn: editing.ISBN || editing.ISBN || '',
                 // pages: editing.pages ? String(editing.pages) : '',
                 publishedDate: editing.publishedDate ? new Date(editing.publishedDate).toISOString().split('T')[0] : '',
@@ -204,6 +215,7 @@ const BookManagement = () => {
                   formData.append('description', data.description || '');
                   // formData.append('price', data.price);
                   formData.append('categoryId', data.category || '4');
+                  if (data.groupId) formData.append('groupId', data.groupId);
                   formData.append('genre', 'N/A');
                   formData.append('ISBN', data.isbn || '');
                   // formData.append('pages', data.pages || '');

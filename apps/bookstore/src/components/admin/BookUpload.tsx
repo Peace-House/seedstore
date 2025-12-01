@@ -3,7 +3,7 @@ import BookPreviewCard from './BookPreviewCard';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createBook } from '@/services/book';
+import { createBook, getBookGroups, BookGroup } from '@/services/book';
 import { getCategories } from '@/services/category';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,7 @@ const bookSchema = z.object({
   author: z.string().min(1, 'Author is required').max(100),
   description: z.string().max(2000).optional(),
   category: z.string().max(50).optional(),
+  groupId: z.string().optional(),
   isbn: z.string().max(20).optional(),
   publishedDate: z.string().optional(),
   isFeatured: z.boolean().default(false),
@@ -54,6 +55,12 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
     queryFn: getCategories,
   });
 
+  // Fetch book groups from backend
+  const { data: bookGroups, isLoading: loadingGroups } = useQuery<BookGroup[]>({
+    queryKey: ['book-groups'],
+    queryFn: getBookGroups,
+  });
+
   const onSubmit = async (data: BookFormData) => {
     if (onSubmitOverride) {
       setUploading(true);
@@ -85,6 +92,7 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
       formData.append('description', data.description || '');
       // Use categoryId as required by backend
       if (data.category) formData.append('categoryId', data.category);
+      if (data.groupId) formData.append('groupId', data.groupId);
       if (data.isbn) formData.append('ISBN', data.isbn);
       if (data.publishedDate) formData.append('publishedDate', data.publishedDate);
       // Optional: genre (if you want to add a field for it)
@@ -188,6 +196,32 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                           <option value="">Select category</option>
                           {categories?.map((cat: { id: string; name: string }) => (
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          ))}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="groupId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Book Group *</FormLabel>
+                      <FormControl>
+                        <select
+                          value={field.value}
+                          onChange={field.onChange}
+                          className="block w-full border rounded px-3 py-2 bg-background"
+                          disabled={loadingGroups}
+                        >
+                          <option value="">Select book group</option>
+                          {bookGroups?.map((group) => (
+                            <option key={group.id} value={group.id}>
+                              {group.name} ({group.shortcode})
+                            </option>
                           ))}
                         </select>
                       </FormControl>

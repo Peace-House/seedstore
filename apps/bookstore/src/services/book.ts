@@ -8,6 +8,16 @@ export interface BookPrice {
   hard_copy_price: number;
 }
 
+export interface BookGroup {
+  id: number;
+  name: string;
+  shortcode: string;
+  nextNumber?: number;
+  _count?: {
+    books: number;
+  };
+}
+
 export interface Book {
   id: number|string;
   orderId?: string;
@@ -21,6 +31,8 @@ export interface Book {
     id: number;
     name: string;
   };
+  group?: BookGroup;
+  groupBookId?: string; // e.g., "MBA-001"
   description?: string;
   fileUrl?: string;
   publishedDate?: string;
@@ -93,3 +105,43 @@ export const updateBookPrices = async (bookId: number|string, prices: { country:
   const res = await api.put(`/pricing/${bookId}`, { prices });
   return res.data;
 }
+
+// ============================================
+// BOOK GROUPS
+// ============================================
+
+// Get all book groups
+export const getBookGroups = async (): Promise<BookGroup[]> => {
+  const res = await api.get('/book-groups');
+  return res.data;
+};
+
+// Get a single book group by ID
+export const getBookGroupById = async (id: number | string): Promise<BookGroup & { books: Book[] }> => {
+  const res = await api.get(`/book-groups/${id}`);
+  return res.data;
+};
+
+// Create a new book group (admin only)
+export const createBookGroup = async (data: { name: string; shortcode: string }): Promise<BookGroup> => {
+  const res = await api.post('/book-groups', data);
+  return res.data;
+};
+
+// Update a book group (admin only)
+export const updateBookGroup = async (id: number | string, data: { name?: string; shortcode?: string }): Promise<BookGroup> => {
+  const res = await api.put(`/book-groups/${id}`, data);
+  return res.data;
+};
+
+// Delete a book group (admin only)
+export const deleteBookGroup = async (id: number | string): Promise<{ message: string }> => {
+  const res = await api.delete(`/book-groups/${id}`);
+  return res.data;
+};
+
+// Seed default book groups (admin only)
+export const seedBookGroups = async (): Promise<{ message: string; groups: BookGroup[] }> => {
+  const res = await api.post('/book-groups/seed');
+  return res.data;
+};
