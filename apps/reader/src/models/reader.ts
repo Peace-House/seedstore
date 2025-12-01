@@ -384,6 +384,7 @@ export class BookTab extends BaseTab {
     this.rendition.themes.default(defaultStyle)
     this.rendition.hooks.render.register((view: any) => {
       console.log('hooks.render', view)
+      this.applyContentProtection(view)
       this.onRender?.()
     })
 
@@ -436,6 +437,88 @@ export class BookTab extends BaseTab {
     this.rendition.on('removed', (...args: any[]) => {
       console.log('removed', args)
     })
+  }
+
+  private applyContentProtection(view: any) {
+    try {
+      const doc = view.document
+      const win = view.window
+      
+      if (!doc || !win) return
+
+      // Add CSS to make content read-only but allow selection for highlights
+      const style = doc.createElement('style')
+      style.textContent = `
+        * {
+          -webkit-user-select: text !important;
+          -moz-user-select: text !important;
+          -ms-user-select: text !important;
+          user-select: text !important;
+        }
+        body::after {
+          content: "© Protected Content";
+          position: fixed;
+          bottom: 10px;
+          right: 10px;
+          font-size: 10px;
+          color: rgba(0, 0, 0, 0.1);
+          pointer-events: none;
+          z-index: 9999;
+        }
+      `
+      doc.head.appendChild(style)
+
+      // Prevent copy, cut operations
+      const preventCopy = (e: ClipboardEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+
+      doc.addEventListener('copy', preventCopy, true)
+      doc.addEventListener('cut', preventCopy, true)
+
+      // Prevent context menu
+      doc.addEventListener('contextmenu', (e: MouseEvent) => {
+        e.preventDefault()
+        return false
+      }, true)
+
+      // Prevent screenshot keyboard shortcuts
+      const preventScreenshot = (e: KeyboardEvent) => {
+        // Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5 (Mac)
+        // PrtScn, Alt+PrtScn, Win+PrtScn (Windows)
+        if (
+          (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) ||
+          e.key === 'PrintScreen' ||
+          (e.altKey && e.key === 'PrintScreen') ||
+          (e.metaKey && e.key === 'PrintScreen')
+        ) {
+          e.preventDefault()
+          e.stopPropagation()
+          return false
+        }
+
+        // Prevent Ctrl+C, Ctrl+X, Cmd+C, Cmd+X
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'x' || e.key === 'C' || e.key === 'X')) {
+          e.preventDefault()
+          e.stopPropagation()
+          return false
+        }
+      }
+
+      doc.addEventListener('keydown', preventScreenshot, true)
+      win.addEventListener('keydown', preventScreenshot, true)
+
+      // Prevent drag selection to copy
+      doc.addEventListener('dragstart', (e: DragEvent) => {
+        e.preventDefault()
+        return false
+      }, true)
+
+    } catch (error) {
+      console.error('Failed to apply content protection:', error)
+    }
   }
 
   constructor(public book: BookRecord) {
