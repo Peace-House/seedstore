@@ -464,6 +464,7 @@ interface FooterProps {
 }
 const ReaderPaneFooter: React.FC<FooterProps> = ({ tab }) => {
   const { locationToReturn, location, book } = useSnapshot(tab)
+  const setNavbar = useSetRecoilState(navbarState)
 
   return (
     <Bar>
@@ -490,6 +491,12 @@ const ReaderPaneFooter: React.FC<FooterProps> = ({ tab }) => {
         <>
           <div>{location?.start.href}</div>
           <div>{((book.percentage ?? 0) * 100).toFixed()}%</div>
+          <button 
+            className="md:hidden text-primary70 font-medium"
+            onClick={() => setNavbar(true)}
+          >
+            Menu
+          </button>
         </>
       )}
     </Bar>

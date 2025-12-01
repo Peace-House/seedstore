@@ -17,6 +17,8 @@ import { PageLoader } from '@/components/Loader';
 import LiquidGlassWrapper from '@/components/LiquidGlassWrapper';
 import { useLibrary } from '@/hooks/useLibrary';
 
+const reader_route = import.meta.env.VITE_BOOKREADER_URL!;
+
 const BookDetail = () => {
   const { id: slugId } = useParams();
   // Extract id from slug-id
@@ -40,6 +42,19 @@ const BookDetail = () => {
   const isPurchased = book && Array.isArray(library)
     ? library?.some((b) => b.id == book.id)
     : false;
+
+  // Helper to get orderId for purchased book
+  const getOrderId = () => {
+    if (book?.orderId) return book.orderId;
+    const purchased = library?.find((b) => b.id == book?.id);
+    return purchased?.orderId || '';
+  };
+
+  const handleReadNow = (bookId: string) => {
+    const token = localStorage.getItem('auth_token');
+    const url = `${reader_route}?bookId=${bookId}&orderId=${getOrderId()}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`;
+    window.location.href = url;
+  };
 
   const handleAddToCart = () => {
     addToCart(book, {
@@ -185,7 +200,7 @@ const BookDetail = () => {
                   size="lg"
                   className="w-full"
                   liquidGlass={false}
-                  onClick={() => navigate(`/reader/${book.orderId}/${book.id}`)}
+                  onClick={() => handleReadNow(String(book.id))}
                 >
                   <BookOpen className="mr-2 h-5 w-5" />
                   Read Now

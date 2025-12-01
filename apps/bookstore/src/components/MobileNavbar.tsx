@@ -1,8 +1,9 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { BookOpen, ShoppingCart, User, LogOut, LayoutDashboard, Home, ChevronLeft } from 'lucide-react';
+import { BookOpen, ShoppingCart, User, LogOut, LayoutDashboard, Home, ChevronLeft, Settings, Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useCountry } from '@/hooks/useCountry';
 import { Badge } from './ui/badge';
 // ...existing code...
 import {
@@ -18,8 +19,7 @@ const MobileNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { cartCount } = useCart();
-
-  const isAdmin = user && (user.role === 'admin' || user.isAdmin);
+  const { selectedCountry, setSelectedCountry, selectedCurrency, countryCurrencies } = useCountry();
 
   const handleSignOut = async () => {
     await signOut();
@@ -48,19 +48,24 @@ const MobileNavbar = () => {
           </Link>
 
           {user ? (
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className='hover:bg-transparent hover:text-black w-max' size="icon">
+                <Button variant="ghost" liquidGlass={false} className='!bg-none hover:bg-transparent hover:text-black px-2 rounded-full w-max' size="icon">
                   <User className="h-5 w-5" />
-                  <span className='hidden md:block'>Account</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent  align="end">
-                <DropdownMenuItem onClick={() => navigate('/library')}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  My Library
+              <DropdownMenuContent 
+                align="end" 
+                side="top" 
+                sideOffset={8}
+                className='rounded min-w-[160px]'
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
                 </DropdownMenuItem>
-                {/* {isAdmin && (
+                {user.role !== 'user' && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/admin')}>
@@ -68,7 +73,7 @@ const MobileNavbar = () => {
                       Admin Dashboard
                     </DropdownMenuItem>
                   </>
-                )} */}
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className='text-red-500'>
                   <LogOut className="mr-2 h-4 w-4" />
@@ -79,6 +84,33 @@ const MobileNavbar = () => {
           ) : (
             <Button onClick={() => navigate('/auth')}>Sign In</Button>
           )}
+
+          {/* Country Selector */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" liquidGlass={false} className="!bg-none flex items-center gap-1 text-xs px-2 hover:bg-transparent hover:text-black rounded-full w-max">
+                <Globe className="h-4 w-4" />
+                <span className="text-[10px]">{selectedCurrency}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              side="top" 
+              sideOffset={8}
+              className="max-h-60 overflow-y-auto rounded min-w-[160px]"
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+              {countryCurrencies.map((cc) => (
+                <DropdownMenuItem
+                  key={cc.id}
+                  onClick={() => setSelectedCountry(cc.country)}
+                  className={selectedCountry === cc.country ? 'bg-primary/10 font-medium' : ''}
+                >
+                  {cc.country} ({cc.currency})
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </nav>

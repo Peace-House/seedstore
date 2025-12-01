@@ -18,10 +18,10 @@ const Hero = () => {
 
   return (
     <section className="relative overflow-hidden from-transparent via-transparent to-primary/20 bg-gradient-to-b">
-      <div className="container py-6 md:py-12 lg:py-12">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8 h-4/5 mt-auto">
-            <h1 className="hidden md:block text-5xl lg:text-6xl font-bold leading-tight">
+      <div className="md:container px-2 md:py-12 lg:py-12">
+        <div className="grid lg:grid-cols-2 md:gap-12 items-center">
+          <div className="md:space-y-8 md:h-4/5 md:mt-auto">
+            <h1 className=" md:block text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
               Discover Your Next
               <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Favorite Read
@@ -32,20 +32,19 @@ const Hero = () => {
               Access thousands of Christian eBooks. Read anytime. Start your reading journey today.
             </p>}
             {user ?
-              <div className='w-full h-1/2'>
+              <div className='w-full max-w-[calc(100vw-1rem)] md:max-w-full h-auto mt-8 md:mt-0 overflow-hidden'>
                 <p className='font-medium mb-1'>Most read</p>
-                <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 w-full h-full px-1'>
+                <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 pb-2 -mx-2 px-2' style={{ WebkitOverflowScrolling: 'touch' }}>
                   {books?.data?.books?.map((book: Book) => (
-                    <li key={book.id} className="bg-white/90 h-full min-w-[150px] max-w-[250px] border border-gray-200 rounded-none shadow-lg flex flex-col items-center">
+                    <li key={book.id} className="bg-white/90 flex-shrink-0 w-[120px] md:w-[150px] border border-gray-200 rounded-none shadow-lg flex flex-col items-center">
                       <img
                         src={book.coverImage}
                         alt={book.title}
-                        className="h-full w-[150px] object-full mb-3"
+                        className="h-[160px] md:h-[200px] w-full object-cover"
                       />
                       {/* <div className="text-[10px] mb-1 text-gray-600 font-semibold text-center line-clamp-1">{book.author}</div> */}
                     </li>
                   ))}
-
                 </ul>
               </div>
               :
@@ -92,7 +91,7 @@ const Hero = () => {
           </div>}
           {/* with auth */}
           {user && books?.data && books?.data?.books && books?.data?.books?.length > 0 && (
-            <div className="h-full grid grid-cols-2 px-6 items-center justify-center gap-6 z-10 relative bg-transparent lg:h-[500px] rounded-2xl overflow-hidden shadow-none">
+            <div className="hidden h-full md:grid grid-cols-1 md:grid-cols-2 px-6 items-center justify-center gap-6 z-10 relative bg-transparent lg:h-[500px] rounded-2xl overflow-hidden shadow-none">
               {books.data.books.slice(0, 2).map((book: Book) => {
                 const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
                 return (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { User, Bell, Lock, LogOut, Sidebar, ArrowLeft, Smartphone, Monitor, Laptop, Trash2 } from 'lucide-react';
+import { User, Bell, Lock, LogOut, Sidebar, ArrowLeft, Smartphone, Monitor, Laptop, Trash2, Menu, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -19,6 +19,7 @@ const Settings = () => {
   const queryClient = useQueryClient();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [tab, setTab] = useState(localStorage.getItem('settings_tab') || 'profile');
 
   // Profile form state
@@ -195,10 +196,89 @@ const Settings = () => {
 
   return (
     <div className="flex max-h-screen overflow-hidden bg-transparent">
-      {/* Sidebar */}
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-md border-b px-4 py-3 flex items-center justify-between">
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="p-2 rounded-lg hover:bg-muted"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <span className="font-semibold">{navItems.find((item) => item.value === tab)?.label}</span>
+        <div className="w-9" /> {/* Spacer for centering */}
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <div
+        className={`md:hidden fixed top-0 left-0 bottom-0 w-64 bg-white z-50 transform transition-transform duration-300 ease-in-out ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between p-4 border-b">
+          <div>
+            <span className="font-bold text-base">Settings</span>
+            <p className="font-bold text-xs text-gray-400 truncate max-w-[180px]">{user.email}</p>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-2 rounded-lg hover:bg-muted"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 flex flex-col gap-1 py-4">
+          {navItems.map((item) => (
+            <button
+              key={item.value}
+              className={`flex items-center gap-3 px-4 py-3 transition-all hover:bg-primary/10 text-left ${
+                tab === item.value ? 'bg-primary/10 text-primary font-semibold' : 'text-muted-foreground'
+              }`}
+              onClick={() => {
+                setTab(item.value);
+                localStorage.setItem('settings_tab', item.value);
+                setMobileMenuOpen(false);
+              }}
+            >
+              {item.icon}
+              <span className="text-sm">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="border-t py-4">
+          <button
+            className="flex items-center gap-3 px-4 py-3 hover:bg-black/5 transition-all w-full text-left text-muted-foreground"
+            onClick={() => {
+              navigate('/');
+              setMobileMenuOpen(false);
+            }}
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm">Back</span>
+          </button>
+          <button
+            className="flex items-center gap-3 px-4 py-3 hover:bg-black/5 transition-all w-full hover:text-red-600 text-left text-muted-foreground"
+            onClick={handleLogout}
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-sm">Logout</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Sidebar */}
       <LiquidGlassWrapper
         liquidGlass={true}
-        className={`transition-all !shadow-md duration-200 h-[98vh] sticky top-0 z-20 flex flex-col ${sidebarOpen ? 'w-56' : 'w-16'} m-2`}
+        className={`hidden md:flex transition-all !shadow-md duration-200 h-[98vh] sticky top-0 z-20 flex-col ${sidebarOpen ? 'w-56' : 'w-16'} m-2`}
       >
         <div className="flex items-center justify-between p-4 border-b relative">
           <div>
@@ -270,12 +350,12 @@ const Settings = () => {
       </LiquidGlassWrapper>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 custom-scrollbar overflow-y-auto">
-        <h1 className="text-3xl font-bold mb-8">{navItems.find((item) => item.value === tab)?.label}</h1>
+      <main className="flex-1 p-4 md:p-8 custom-scrollbar overflow-y-auto pt-20 md:pt-8">
+        <h1 className="hidden md:block text-3xl font-bold mb-8">{navItems.find((item) => item.value === tab)?.label}</h1>
 
         {/* Profile Section */}
         {tab === 'profile' && (
-          <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-6">
+          <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-4 md:p-6">
             <form onSubmit={handleProfileSubmit} className="space-y-6">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
@@ -289,7 +369,7 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
                   <Input
@@ -343,7 +423,7 @@ const Settings = () => {
 
         {/* Devices Section */}
         {tab === 'devices' && (
-          <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-6">
+          <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-4 md:p-6">
             <div className="space-y-6">
               <div className="mb-1">
                   <p className="text-muted-foreground">
@@ -392,20 +472,20 @@ const Settings = () => {
                           session.isCurrent ? 'border-primary bg-primary/5' : 'border-border'
                         }`}
                       >
-                        <div className="flex items-center gap-4">
-                          <div className={`p-2 rounded-full ${session.isCurrent ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={`p-2 rounded-full shrink-0 ${session.isCurrent ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
                             {getPlatformIcon(session.platform)}
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium">{session.deviceName || session.platform || 'Unknown Device'}</h3>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-medium truncate">{session.deviceName || session.platform || 'Unknown Device'}</h3>
                               {session.isCurrent && (
-                                <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full">
+                                <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full shrink-0">
                                   Current
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
                               {session.location && session.location !== 'Unknown Location' && (
                                 <span>{session.location} • </span>
                               )}
@@ -417,12 +497,12 @@ const Settings = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0"
                             onClick={() => removeSessionMutation.mutate(session.id)}
                             disabled={removeSessionMutation.isPending}
                           >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Remove
+                            <Trash2 className="w-4 h-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Remove</span>
                           </Button>
                         )}
                       </div>
@@ -445,7 +525,7 @@ const Settings = () => {
 
         {/* Notifications Section */}
         {tab === 'notifications' && (
-          <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-6">
+          <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-4 md:p-6">
             <div className="space-y-6">
               <p className="text-muted-foreground mb-6">Manage how you receive notifications and updates.</p>
 
@@ -530,7 +610,7 @@ const Settings = () => {
 
         {/* Change Password Section */}
         {tab === 'password' && (
-          <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-6">
+          <LiquidGlassWrapper liquidGlass={true} className="max-w-2xl p-4 md:p-6">
             <form onSubmit={handlePasswordSubmit} className="space-y-6">
               <p className="text-muted-foreground mb-6">
                 Update your password to keep your account secure. Make sure to use a strong password.

@@ -228,7 +228,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
         )}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <Button
-            variant="secondary"
+            variant="ghost"
             size="sm"
             onClick={() => navigate(`/book/${slugify(book.title)}-${book.id}`)}
           >
