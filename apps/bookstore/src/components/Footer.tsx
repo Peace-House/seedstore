@@ -52,7 +52,9 @@ const Footer: React.FC = () => {
           <div>
           <h3 className="text-lg font-bold mb-2">Contact</h3>
           <p className="text-sm mb-1">19, Gyado Hospital Road, Box 971, Gboko, Benue State, Nigeria</p>
-          <p className="text-sm mb-1">Email: webmaster@livingseed.org</p>
+          <p className="text-sm mb-1">
+            Email: <a href="mailto:webmaster@livingseed.org" className="hover:underline">webmaster@livingseed.org</a>
+          </p>
         </div>
         {/* Newsletter */}
         <div>
