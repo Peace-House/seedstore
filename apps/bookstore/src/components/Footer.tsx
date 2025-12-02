@@ -51,8 +51,19 @@ const Footer: React.FC = () => {
           {/* Contact Info */}
           <div>
           <h3 className="text-lg font-bold mb-2">Contact</h3>
-          <p className="text-sm mb-1">19, Gyado Hospital Road, Box 971, Gboko, Benue State, Nigeria</p>
-          <p className="text-sm mb-1">
+          <a 
+            href="https://www.google.com/maps/search/?api=1&query=19+Gyado+Hospital+Road+Gboko+Benue+State+Nigeria"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm mb-1 hover:underline flex items-start gap-1 group"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mt-0.5 flex-shrink-0 group-hover:text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span>19, Gyado Hospital Road, Box 971, Gboko, Benue State, Nigeria</span>
+          </a>
+          <p className="text-sm mb-1 mt-2">
             Email: <a href="mailto:webmaster@livingseed.org" className="hover:underline">webmaster@livingseed.org</a>
           </p>
         </div>
