@@ -50,9 +50,9 @@ const Footer: React.FC = () => {
         </div>
           {/* Contact Info */}
           <div>
-          <h3 className="text-lg font-bold mb-2">Contact Info</h3>
-          <p className="text-sm mb-1">123 Faith Avenue, Hope City, Country</p>
-          <p className="text-sm mb-1">Email: contact@livingseed.org</p>
+          <h3 className="text-lg font-bold mb-2">Contact</h3>
+          <p className="text-sm mb-1">19, Gyado Hospital Road, Box 971, Gboko, Benue State, Nigeria</p>
+          <p className="text-sm mb-1">Email: webmaster@livingseed.org</p>
         </div>
         {/* Newsletter */}
         <div>
