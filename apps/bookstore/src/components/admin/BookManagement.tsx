@@ -45,12 +45,27 @@ const BookManagement = () => {
       return await updateBook(id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-books'] });
-      queryClient.invalidateQueries({ queryKey: ['all-books'] });
-      queryClient.invalidateQueries({ queryKey: ['featured-books'] });
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      toast({ title: 'Book updated', description: 'Book details updated.' });
+      // Book update is processed via job queue, so we need to delay the refresh
+      toast({ 
+        title: 'Book update queued', 
+        description: 'Your changes are being processed. The list will refresh shortly.' 
+      });
       setEditing(null);
+      
+      // Refetch after delays to allow job to complete
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['admin-books'] });
+        queryClient.invalidateQueries({ queryKey: ['all-books'] });
+        queryClient.invalidateQueries({ queryKey: ['featured-books'] });
+        queryClient.invalidateQueries({ queryKey: ['books'] });
+      }, 2000); // First refresh after 2 seconds
+      
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['admin-books'] });
+        queryClient.invalidateQueries({ queryKey: ['all-books'] });
+        queryClient.invalidateQueries({ queryKey: ['featured-books'] });
+        queryClient.invalidateQueries({ queryKey: ['books'] });
+      }, 5000); // Second refresh after 5 seconds (in case job took longer)
     },
     onError: (error: Error) => {
       toast({ variant: 'destructive', title: 'Update failed', description: error.message });
