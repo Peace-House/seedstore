@@ -49,7 +49,7 @@ const Hero = () => {
               </div>
               :
               (
-                <div className="flex flex-wrap gap-4">
+                <div className="grid grid-cols-1 my-8 md:flex flex-wrap gap-4">
                   <Button size="lg" liquidGlass={false} className="group" onClick={() => navigate('/auth')}>
                     Get Started
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -57,6 +57,7 @@ const Hero = () => {
                   <Button
                     size="lg"
                     variant="outline"
+                    className='hidden md:block'
                     onClick={() => {
                       const el = document.getElementById('all-books');
                       if (el) {
