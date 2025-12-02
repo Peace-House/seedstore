@@ -39,7 +39,7 @@ const Footer: React.FC = () => {
           </p>
         </div>
         {/* Quicklinks */}
-        <div className='text-center'>
+        <div className='md:text-center'>
           <h3 className="text-lg font-bold mb-2">Quicklinks</h3>
           <ul className="text-sm space-y-1">
             <li><a href="https://livingseed.org/about-us/" className="hover:underline">About us</a></li>
