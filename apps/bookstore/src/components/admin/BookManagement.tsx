@@ -46,6 +46,9 @@ const BookManagement = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-books'] });
+      queryClient.invalidateQueries({ queryKey: ['all-books'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-books'] });
+      queryClient.invalidateQueries({ queryKey: ['books'] });
       toast({ title: 'Book updated', description: 'Book details updated.' });
       setEditing(null);
     },
@@ -103,7 +106,16 @@ const BookManagement = () => {
     },
     { label: 'Title', render: (book: Book) => <span className="font-semibold line-clamp-2 max-w-[200px]">{book.title}</span> },
     { label: 'Author', render: (book: Book) => book.author },
-    { label: 'Category', render: (book: Book) => book.category?.name || '-' },
+    { 
+      label: 'Categories', 
+      render: (book: Book) => {
+        // Show multiple categories if available, fallback to single category
+        const categories = book.categoryList || (book.category ? [book.category] : []);
+        return categories.length > 0 
+          ? categories.map(c => c.name).join(', ') 
+          : '-';
+      }
+    },
     { 
       label: 'Group', 
       render: (book: Book) => (
@@ -196,14 +208,16 @@ const BookManagement = () => {
               initialValues={{
                 title: editing.title,
                 author: editing.author,
-                // price: String(editing.price),
                 description: editing.description,
-                category: editing.category?.id ? String(editing.category.id) : '',
+                // Support multiple categories - use categoryList if available, fallback to single category
+                categoryIds: editing.categoryList?.map(cat => String(cat.id)) || 
+                  (editing.category?.id ? [String(editing.category.id)] : []),
                 groupId: editing.group?.id ? String(editing.group.id) : '',
-                isbn: editing.ISBN || editing.ISBN || '',
-                // pages: editing.pages ? String(editing.pages) : '',
+                isbn: editing.ISBN || '',
                 publishedDate: editing.publishedDate ? new Date(editing.publishedDate).toISOString().split('T')[0] : '',
                 isFeatured: !!editing.featured,
+                isNewRelease: !!editing.isNewRelease,
+                coverImage: editing.coverImage,
               }}
               submitLabel="Save Changes"
               onSubmitOverride={async (data, coverFile, bookFile) => {
@@ -213,22 +227,35 @@ const BookManagement = () => {
                   formData.append('title', data.title);
                   formData.append('author', data.author);
                   formData.append('description', data.description || '');
-                  // formData.append('price', data.price);
-                  formData.append('categoryId', data.category || '4');
+                  // Send multiple category IDs
+                  if (data.categoryIds && data.categoryIds.length > 0) {
+                    formData.append('categoryIds', data.categoryIds.join(','));
+                  }
                   if (data.groupId) formData.append('groupId', data.groupId);
                   formData.append('genre', 'N/A');
                   formData.append('ISBN', data.isbn || '');
-                  // formData.append('pages', data.pages || '');
                   formData.append('publishedDate', data.publishedDate || '');
                   formData.append('featured', data.isFeatured ? 'true' : 'false');
+                  formData.append('isNewRelease', data.isNewRelease ? 'true' : 'false');
                   if (coverFile) formData.append('coverImage', coverFile);
                   if (bookFile) formData.append('file', bookFile);
                   updateMutation.mutate({ id: editing.id as number, data: formData });
                 } else {
-                  // No files, send JSON
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const updateData: any = { ...data };
-                  updateMutation.mutate({ id: editing.id as number, data: updateData });
+                  // No files, send JSON with categoryIds
+                  const formData = new FormData();
+                  formData.append('title', data.title);
+                  formData.append('author', data.author);
+                  formData.append('description', data.description || '');
+                  if (data.categoryIds && data.categoryIds.length > 0) {
+                    formData.append('categoryIds', data.categoryIds.join(','));
+                  }
+                  if (data.groupId) formData.append('groupId', data.groupId);
+                  formData.append('genre', 'N/A');
+                  formData.append('ISBN', data.isbn || '');
+                  formData.append('publishedDate', data.publishedDate || '');
+                  formData.append('featured', data.isFeatured ? 'true' : 'false');
+                  formData.append('isNewRelease', data.isNewRelease ? 'true' : 'false');
+                  updateMutation.mutate({ id: editing.id as number, data: formData });
                 }
               }}
             />

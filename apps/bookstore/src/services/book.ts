@@ -31,6 +31,10 @@ export interface Book {
     id: number;
     name: string;
   };
+  categoryList?: {
+    id: number;
+    name: string;
+  }[]; // Multiple categories
   group?: BookGroup;
   groupBookId?: string; // e.g., "MBA-001"
   description?: string;
@@ -39,6 +43,7 @@ export interface Book {
   pages?: number;
   ISBN?: string;
   featured?: boolean;
+  isNewRelease?: boolean;
 }
 
 export interface PaginatedBooks {
