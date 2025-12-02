@@ -16,6 +16,16 @@ const Hero = () => {
 
   const books = useBooks();
 
+  // Get the two most recent new release books, sorted by publishedDate (most recent first)
+  const newReleaseBooks = books?.data?.books
+    ?.filter((book: Book) => book.isNewRelease)
+    ?.sort((a: Book, b: Book) => {
+      const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
+      const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
+      return dateB - dateA; // Most recent first
+    })
+    ?.slice(0, 2) || [];
+
   return (
     <section className="relative overflow-hidden from-transparent via-transparent to-primary/20 bg-gradient-to-b">
       <div className="md:container px-2 md:py-12 lg:py-12">
@@ -90,10 +100,10 @@ const Hero = () => {
               </div>
             </div>
           </div>}
-          {/* with auth */}
-          {user && books?.data && books?.data?.books && books?.data?.books?.length > 0 && (
+          {/* with auth - show two most recent new releases */}
+          {user && newReleaseBooks.length > 0 && (
             <div className="hidden h-full md:grid grid-cols-1 md:grid-cols-2 px-6 items-center justify-center gap-6 z-10 relative bg-transparent lg:h-[500px] rounded-2xl overflow-hidden shadow-none">
-              {books.data.books.slice(0, 2).map((book: Book) => {
+              {newReleaseBooks.map((book: Book) => {
                 const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
                 return (
                   <div key={book.id} className="bg-white/90 h-[89%] w-full rounded-xl shadow-md border overflow-hidden flex flex-col items-center relative">
