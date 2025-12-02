@@ -24,6 +24,7 @@ const bookSchema = z.object({
   isbn: z.string().max(20).optional(),
   publishedDate: z.string().optional(),
   isFeatured: z.boolean().default(false),
+  isNewRelease: z.boolean().default(false),
 });
 
 type BookFormData = z.infer<typeof bookSchema>;
@@ -46,7 +47,7 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
 
   const form = useForm<BookFormData>({
     resolver: zodResolver(bookSchema),
-    defaultValues: initialValues || { isFeatured: false },
+    defaultValues: initialValues || { isFeatured: false, isNewRelease: false },
   });
 
   // Fetch categories from backend
@@ -98,6 +99,7 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
       // Optional: genre (if you want to add a field for it)
       formData.append('genre', 'N/A');
       formData.append('featured', data.isFeatured ? 'true' : 'false');
+      formData.append('isNewRelease', data.isNewRelease ? 'true' : 'false');
       // File uploads: backend expects 'coverImage' and 'file'
       formData.append('coverImage', coverFile as Blob);
       formData.append('file', bookFile as Blob);
@@ -320,6 +322,19 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                       <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                     <FormLabel className="!mt-0">Featured Book</FormLabel>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="isNewRelease"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel className="!mt-0">New Release (notify users who opted in for new releases)</FormLabel>
                   </FormItem>
                 )}
               />

@@ -42,6 +42,8 @@ const Settings = () => {
     orderUpdates: true,
     promotions: false,
     newBooks: true,
+    newBooksUpload: true,
+    loginAlerts: true,
   });
 
   const navItems = [
@@ -78,6 +80,8 @@ const Settings = () => {
         orderUpdates: notificationData.preferences.orderUpdates,
         promotions: notificationData.preferences.promotions,
         newBooks: notificationData.preferences.newBooks,
+        newBooksUpload: notificationData.preferences.newBooksUpload ?? true,
+        loginAlerts: notificationData.preferences.loginAlerts ?? true,
       });
     }
   }, [notificationData]);
@@ -583,15 +587,47 @@ const Settings = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between py-3">
+                <div className="flex items-center justify-between py-3 border-b">
                   <div>
                     <h3 className="font-medium">New Book Releases</h3>
-                    <p className="text-sm text-muted-foreground">Be notified when new books are available</p>
+                    <p className="text-sm text-muted-foreground">Be notified when new releases are available</p>
                   </div>
                   <Switch
                     checked={notifications.newBooks}
                     onCheckedChange={(checked) => {
                       const newNotifications = { ...notifications, newBooks: checked };
+                      setNotifications(newNotifications);
+                      updateNotificationsMutation.mutate(newNotifications);
+                    }}
+                    disabled={updateNotificationsMutation.isPending}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between py-3 border-b">
+                  <div>
+                    <h3 className="font-medium">New Book Uploads</h3>
+                    <p className="text-sm text-muted-foreground">Be notified when any new book is added to the store</p>
+                  </div>
+                  <Switch
+                    checked={notifications.newBooksUpload}
+                    onCheckedChange={(checked) => {
+                      const newNotifications = { ...notifications, newBooksUpload: checked };
+                      setNotifications(newNotifications);
+                      updateNotificationsMutation.mutate(newNotifications);
+                    }}
+                    disabled={updateNotificationsMutation.isPending}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between py-3">
+                  <div>
+                    <h3 className="font-medium">Login Alerts</h3>
+                    <p className="text-sm text-muted-foreground">Receive alerts when someone logs into your account</p>
+                  </div>
+                  <Switch
+                    checked={notifications.loginAlerts}
+                    onCheckedChange={(checked) => {
+                      const newNotifications = { ...notifications, loginAlerts: checked };
                       setNotifications(newNotifications);
                       updateNotificationsMutation.mutate(newNotifications);
                     }}

@@ -134,6 +134,8 @@ export interface NotificationPreferences {
   orderUpdates: boolean;
   promotions: boolean;
   newBooks: boolean;
+  newBooksUpload: boolean;
+  loginAlerts: boolean;
 }
 
 export const getNotificationPreferences = async (): Promise<{ preferences: NotificationPreferences }> => {
