@@ -606,7 +606,7 @@ const Settings = () => {
                 <div className="flex items-center justify-between py-3 border-b">
                   <div>
                     <h3 className="font-medium">New Book Uploads</h3>
-                    <p className="text-sm text-muted-foreground">Be notified when any new book is added to the store</p>
+                    <p className="text-sm text-muted-foreground">Be notified when any current book is added to the SeedStore"</p>
                   </div>
                   <Switch
                     checked={notifications.newBooksUpload}
