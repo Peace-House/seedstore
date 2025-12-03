@@ -1,6 +1,7 @@
 
-import { BookOpen } from 'lucide-react';
+import { BookOpen, GripVertical } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useLibrary } from '@/hooks/useLibrary';
@@ -9,11 +10,126 @@ import { Button } from '@/components/ui/button';
 import Breadcrumb from '@/components/Breadcrumb';
 import { PageLoader } from '@/components/Loader';
 
+const LIBRARY_ORDER_KEY = 'library_book_order';
+
 const Library = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   const { library: purchasedBooks, isLoading } = useLibrary();
+  
+  // State for ordered books and drag-and-drop
+  const [orderedBooks, setOrderedBooks] = useState<Book[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  // Load saved order from localStorage and apply to books
+  useEffect(() => {
+    if (purchasedBooks && purchasedBooks.length > 0) {
+      const savedOrder = localStorage.getItem(LIBRARY_ORDER_KEY);
+      if (savedOrder) {
+        try {
+          const orderIds: (number | string)[] = JSON.parse(savedOrder);
+          const sorted = [...purchasedBooks].sort((a, b) => {
+            const indexA = orderIds.indexOf(a.id);
+            const indexB = orderIds.indexOf(b.id);
+            if (indexA === -1 && indexB === -1) return 0;
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+          });
+          setOrderedBooks(sorted);
+        } catch {
+          setOrderedBooks([...purchasedBooks]);
+        }
+      } else {
+        setOrderedBooks([...purchasedBooks]);
+      }
+    }
+  }, [purchasedBooks]);
+
+  // Save order to localStorage
+  const saveOrder = useCallback((books: Book[]) => {
+    const orderIds = books.map(book => book.id);
+    localStorage.setItem(LIBRARY_ORDER_KEY, JSON.stringify(orderIds));
+  }, []);
+
+  // Move book within ordered list using array indexes - simple reorder
+  const moveBook = useCallback((fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    
+    setOrderedBooks(prevBooks => {
+      if (prevBooks.length === 0) return prevBooks;
+      if (fromIndex < 0 || fromIndex >= prevBooks.length) return prevBooks;
+      if (toIndex < 0 || toIndex >= prevBooks.length) return prevBooks;
+
+      // Create new array and reorder
+      const newBooks = Array.from(prevBooks);
+      const [removed] = newBooks.splice(fromIndex, 1);
+      newBooks.splice(toIndex, 0, removed);
+      
+      // Verify no duplicates
+      const ids = new Set(newBooks.map(b => b.id));
+      if (ids.size !== newBooks.length) {
+        console.error('Duplicate detected, reverting');
+        return prevBooks;
+      }
+      
+      saveOrder(newBooks);
+      return newBooks;
+    });
+  }, [saveOrder]);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    setHoverIndex(null);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+
+    const target = e.currentTarget as HTMLElement;
+    setTimeout(() => {
+      target.style.opacity = '0.4';
+    }, 0);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    target.style.opacity = '1';
+    setDraggedIndex(null);
+    setHoverIndex(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number | null) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+
+    if (index === null) {
+      if (hoverIndex !== null) setHoverIndex(null);
+      return;
+    }
+
+    if (hoverIndex !== index) {
+      setHoverIndex(index);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setHoverIndex(null);
+      return;
+    }
+
+    moveBook(draggedIndex, targetIndex);
+    setDraggedIndex(null);
+    setHoverIndex(null);
+  };
+
+  const getGlobalIndex = (shelfIndex: number, bookIndex: number) => shelfIndex * booksPerShelf + bookIndex;
 
   if (loading || isLoading) {
     return (
@@ -37,11 +153,12 @@ const Library = () => {
   // Using 8 as the max for grouping, CSS will handle responsive display
   const booksPerShelf = 8;
   const shelves: Book[][] = [];
-  if (purchasedBooks) {
-    for (let i = 0; i < purchasedBooks.length; i += booksPerShelf) {
-      shelves.push(purchasedBooks.slice(i, i + booksPerShelf));
+  if (orderedBooks && orderedBooks.length > 0) {
+    for (let i = 0; i < orderedBooks.length; i += booksPerShelf) {
+      shelves.push(orderedBooks.slice(i, i + booksPerShelf));
     }
   }
+
 
   return (
     <>
@@ -49,9 +166,17 @@ const Library = () => {
         <div className="container py-8">
           <Breadcrumb />
           <br />
-          <h1 className="text-4xl font-bold mb-8 text-primary">My Library</h1>
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-4xl font-bold text-primary">My Library</h1>
+            {orderedBooks && orderedBooks.length > 0 && (
+              <p className="text-sm text-muted-foreground hidden md:block">
+                <GripVertical className="inline w-4 h-4 mr-1" />
+                Drag books to rearrange
+              </p>
+            )}
+          </div>
 
-          {!purchasedBooks || purchasedBooks.length === 0 ? (
+          {!orderedBooks || orderedBooks.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground mb-4">You haven't purchased any books yet.</p>
               <Button onClick={() => navigate('/')}>Browse Books</Button>
@@ -61,26 +186,47 @@ const Library = () => {
               {shelves.map((shelfBooks, shelfIndex) => (
                 <div key={shelfIndex} className="relative">
                   {/* Books on the shelf */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3 px-2 md:px-6 pb-0 pt-4 min-h-[180px] md:min-h-[220px] items-end">
-                    {shelfBooks.map((book: Book, bookIndex: number) => (
-                      <div
-                        key={book.id}
-                        className="group cursor-pointer transform transition-all duration-300 hover:-translate-y-2 hover:z-10"
-                        onClick={() => handleReadNow(book.id, book.orderId!)}
-                        style={{
-                          // Slight random tilt for realism
-                          transform: `rotate(${(bookIndex % 3 - 1) * 1}deg)`,
-                        }}
-                      >
-                        {/* Book spine/cover */}
-                        <div 
-                          className="relative w-full h-[160px] md:h-[200px] rounded-r-sm shadow-md transition-all duration-300 group-hover:shadow-xl overflow-hidden mx-auto max-w-[120px] md:max-w-[150px]"
+                  <div
+                    className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3 px-2 md:px-6 pb-0 pt-4 min-h-[180px] md:min-h-[220px] items-end"
+                    onDragOver={(e) => { e.preventDefault(); }}
+                  >
+                    {shelfBooks.map((book: Book, bookIndex: number) => {
+                      const globalIndex = getGlobalIndex(shelfIndex, bookIndex);
+                      const isDragging = draggedIndex === globalIndex;
+                      const isDragOver = hoverIndex === globalIndex && !isDragging;
+
+                      return (
+                        <div
+                          key={`book-${book.id}`}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, globalIndex)}
+                          onDragEnd={handleDragEnd}
+                          onDragOver={(e) => handleDragOver(e, globalIndex)}
+                          onDrop={(e) => handleDrop(e, globalIndex)}
+                          className={`group cursor-grab active:cursor-grabbing transition-all duration-200 hover:-translate-y-2 hover:z-10 relative ${
+                            isDragging ? 'opacity-30 scale-90' : ''
+                          } ${isDragOver ? '-translate-y-4 z-20' : ''}`}
                           style={{
-                            // 3D book effect
-                            transformStyle: 'preserve-3d',
-                            perspective: '1000px',
+                            transform: `rotate(${(bookIndex % 3 - 1) * 1}deg)`,
                           }}
                         >
+                          {/* Drop indicator - shows where book will be placed */}
+                          {isDragOver && (
+                            <div className="absolute -left-2 top-0 bottom-0 w-1.5 bg-primary rounded-full shadow-lg shadow-primary/50" />
+                          )}
+                          
+                          {/* Book spine/cover */}
+                          <div 
+                            className={`relative w-full h-[160px] md:h-[200px] rounded-r-sm shadow-md transition-all duration-300 group-hover:shadow-xl overflow-hidden mx-auto max-w-[120px] md:max-w-[150px] ${
+                              isDragOver ? 'ring-2 ring-primary ring-offset-2' : ''
+                            }`}
+                            style={{
+                              // 3D book effect
+                              transformStyle: 'preserve-3d',
+                              perspective: '1000px',
+                            }}
+                            onClick={() => handleReadNow(book.id, book.orderId!)}
+                          >
                           {/* Book cover */}
                           {book.coverImage ? (
                             <img
@@ -122,7 +268,8 @@ const Library = () => {
                         {/* Book bottom shadow on shelf */}
                         <div className="h-[3px] bg-gradient-to-t from-black/30 to-transparent mx-[2px] rounded-b-sm" />
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   
                   {/* Wooden shelf */}
