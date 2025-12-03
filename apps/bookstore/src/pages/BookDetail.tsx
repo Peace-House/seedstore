@@ -8,7 +8,7 @@ import { getBookPriceForCountry } from '@/utils/pricing';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShoppingCart, BookOpen, Loader2, Calendar, FileText, Hash, Download, ChevronLeft, Plus } from 'lucide-react';
+import { ShoppingCart, BookOpen, Loader2, Calendar, FileText, Hash, ChevronLeft, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import RelatedBooks from '@/components/RelatedBooks';
@@ -120,29 +120,6 @@ const BookDetail = () => {
       </>
     );
   }
-
-  const handleDownload = () => {
-    const url = book.fileUrl;
-    if (!url) {
-      toast({
-        variant: 'destructive',
-        title: 'Download unavailable',
-        description: 'No file available for this book.',
-      });
-      return;
-    }
-    // Create a temporary link and trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = book.title + '.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast({
-      title: 'Download started',
-      description: `Downloading ${book.title}.`,
-    });
-  };
 
   console.log('Book Detail:', book);
 

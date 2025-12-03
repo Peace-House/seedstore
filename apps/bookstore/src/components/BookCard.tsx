@@ -1,6 +1,6 @@
 import { Card, CardContent, CardFooter } from './ui/card';
 import { Button } from './ui/button';
-import { ShoppingCart, Eye, Download, Plus } from 'lucide-react';
+import { ShoppingCart, Eye, Plus } from 'lucide-react';
 import { BookOpen } from 'lucide-react';
 import { capitalizeWords, slugify, truncate } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
@@ -91,29 +91,6 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
         description: errMsg,
       });
     }
-  };
-
-  const handleDownload = () => {
-    const url = book.fileUrl;
-    if (!url) {
-      toast({
-        variant: 'destructive',
-        title: 'Download unavailable',
-        description: 'No file available for this book.',
-      });
-      return;
-    }
-    // Create a temporary link and trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = book.title + '.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast({
-      title: 'Download started',
-      description: `Downloading ${book.title}.`,
-    });
   };
 
   const handleReadNow = (bookId: string) => {
