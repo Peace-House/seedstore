@@ -62,11 +62,44 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     document.addEventListener('keydown', preventScreenshot, true)
     document.addEventListener('contextmenu', preventContextMenu, true)
 
+    // Blur content when tab loses focus (potential screenshot attempt)
+    const handleVisibilityChange = () => {
+      const readerContent = document.querySelector('.Reader, iframe, .book-content')
+      if (readerContent) {
+        if (document.hidden) {
+          (readerContent as HTMLElement).style.filter = 'blur(10px)'
+        } else {
+          (readerContent as HTMLElement).style.filter = 'none'
+        }
+      }
+    }
+
+    // Detect screen capture API usage (modern browsers only)
+    const detectScreenCapture = async () => {
+      try {
+        if ('mediaDevices' in navigator && 'getDisplayMedia' in navigator.mediaDevices) {
+          // Monitor for display capture - this is just a detection, can't prevent
+          const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices)
+          navigator.mediaDevices.getDisplayMedia = async (constraints) => {
+            console.warn('[Security] Screen capture attempt detected')
+            // Could show a warning or log this
+            return originalGetDisplayMedia(constraints)
+          }
+        }
+      } catch (e) {
+        // Silent fail - some browsers don't support this
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    detectScreenCapture()
+
     return () => {
       document.removeEventListener('copy', preventCopy, true)
       document.removeEventListener('cut', preventCopy, true)
       document.removeEventListener('keydown', preventScreenshot, true)
       document.removeEventListener('contextmenu', preventContextMenu, true)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
