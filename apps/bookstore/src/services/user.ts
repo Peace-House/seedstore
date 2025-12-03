@@ -147,3 +147,14 @@ export const updateNotificationPreferences = async (preferences: Partial<Notific
   const res = await api.put<{ preferences: NotificationPreferences; message: string }>('/users/notifications', preferences);
   return res.data;
 };
+
+// Email verification
+export const verifyEmail = async (token: string): Promise<{ message: string; verified?: boolean; alreadyVerified?: boolean }> => {
+  const res = await api.post<{ message: string; verified?: boolean; alreadyVerified?: boolean }>('/users/verify-email', { token });
+  return res.data;
+};
+
+export const resendVerificationEmail = async (email: string): Promise<{ message: string }> => {
+  const res = await api.post<{ message: string }>('/users/resend-verification', { email });
+  return res.data;
+};

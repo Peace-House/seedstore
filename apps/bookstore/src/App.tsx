@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import BookSearchPage from "./pages/BookSearchPage";
 import PaymentCallback from "./pages/PaymentCallback";
 import Settings from "./pages/Settings";
+import VerifyEmail from "./pages/VerifyEmail";
 import Navigation from "./components/Navigation";
 import { CountryProvider } from "./contexts/CountryContext";
 
@@ -30,6 +31,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/cart" element={<Navigation><Cart /></Navigation>} />
             <Route path="/checkout" element={<Navigation><Checkout /></Navigation>} />
             <Route path="/book/:id" element={<Navigation><BookDetail /></Navigation>} />
