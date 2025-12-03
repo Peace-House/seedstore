@@ -134,7 +134,7 @@ export function useTextToSpeech(): [TTSState, TTSControls] {
   }, [])
 
   // Split text into chunks for better control and progress tracking
-  const splitTextIntoChunks = (text: string, maxLength: number = 200): string[] => {
+  const splitTextIntoChunks = (text: string, maxLength = 200): string[] => {
     const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text]
     const chunks: string[] = []
     let currentChunk = ''
