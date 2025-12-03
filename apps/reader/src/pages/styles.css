@@ -20,20 +20,7 @@
   }
 }
 
-/* Security: Prevent text selection in reader */
-.Reader,
-.Reader *,
-.book-content,
-.book-content *,
-iframe {
-  -webkit-user-select: none !important;
-  -moz-user-select: none !important;
-  -ms-user-select: none !important;
-  user-select: none !important;
-  -webkit-touch-callout: none !important;
-}
-
-/* Security: Prevent drag */
+/* Security: Prevent image drag (but allow text selection for annotations) */
 .Reader img,
 .book-content img,
 iframe img {
