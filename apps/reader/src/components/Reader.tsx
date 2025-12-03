@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
-import { MdChevronRight, MdWebAsset } from 'react-icons/md'
+import { MdChevronRight, MdHeadphones, MdWebAsset } from 'react-icons/md'
 import { RiBookLine } from 'react-icons/ri'
 import { PhotoSlider } from 'react-photo-view'
 import { useSetRecoilState } from 'recoil'
@@ -40,6 +40,7 @@ import {
   setClickedAnnotation,
   Annotations,
 } from './Annotation'
+import { AudioReader } from './AudioReader'
 import { Tab } from './Tab'
 import { TextSelectionMenu } from './TextSelectionMenu'
 import { DropZone, SplitView, useDndContext, useSplitViewItem } from './base'
@@ -214,6 +215,7 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
   const { dark } = useColorScheme()
   const [background] = useBackground()
   const { sourceColor } = useSourceColor()
+  const [showAudioReader, setShowAudioReader] = useState(false)
 
   const { iframe, rendition, rendered, container, book } = useSnapshot(tab)
 
@@ -246,6 +248,21 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
 
   const setNavbar = useSetRecoilState(navbarState)
   const mobile = useMobile()
+
+  // Get text content from current page for TTS
+  const getCurrentPageText = useCallback(() => {
+    try {
+      const contents = rendition?.getContents()?.[0]
+      if (contents?.document?.body) {
+        // Get the visible text content from the current page
+        const body = contents.document.body
+        return body.innerText || body.textContent || ''
+      }
+    } catch (err) {
+      console.error('Error getting page text:', err)
+    }
+    return ''
+  }, [rendition])
 
   const applyCustomStyle = useCallback(() => {
     const contents = rendition?.getContents()[0]
@@ -421,7 +438,19 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
         <TextSelectionMenu tab={tab} />
         <Annotations tab={tab} />
       </div>
-      <ReaderPaneFooter tab={tab} />
+      {showAudioReader && (
+        <AudioReader
+          getText={getCurrentPageText}
+          onClose={() => setShowAudioReader(false)}
+          onNextPage={() => tab.next()}
+          onPrevPage={() => tab.prev()}
+        />
+      )}
+      <ReaderPaneFooter 
+        tab={tab} 
+        showAudioReader={showAudioReader}
+        onToggleAudioReader={() => setShowAudioReader((prev) => !prev)}
+      />
     </div>
   )
 }
@@ -461,8 +490,14 @@ const ReaderPaneHeader: React.FC<ReaderPaneHeaderProps> = ({ tab }) => {
 
 interface FooterProps {
   tab: BookTab
+  showAudioReader?: boolean
+  onToggleAudioReader?: () => void
 }
-const ReaderPaneFooter: React.FC<FooterProps> = ({ tab }) => {
+const ReaderPaneFooter: React.FC<FooterProps> = ({ 
+  tab, 
+  showAudioReader,
+  onToggleAudioReader,
+}) => {
   const { locationToReturn, location, book } = useSnapshot(tab)
   const setNavbar = useSetRecoilState(navbarState)
 
@@ -490,7 +525,21 @@ const ReaderPaneFooter: React.FC<FooterProps> = ({ tab }) => {
       ) : (
         <>
           <div>{location?.start.href}</div>
-          <div>{((book.percentage ?? 0) * 100).toFixed()}%</div>
+          <div className="flex items-center gap-2">
+            <span>{((book.percentage ?? 0) * 100).toFixed()}%</span>
+            <button
+              className={clsx(
+                'flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors',
+                showAudioReader 
+                  ? 'bg-primary70/20 text-primary70' 
+                  : 'hover:bg-surface-variant text-outline hover:text-on-surface'
+              )}
+              onClick={onToggleAudioReader}
+              title="Listen to this page"
+            >
+              <MdHeadphones size={16} />
+            </button>
+          </div>
           <button 
             className="md:hidden text-primary70 font-medium"
             onClick={() => setNavbar(true)}
