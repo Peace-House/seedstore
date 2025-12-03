@@ -40,8 +40,9 @@ export interface AuthResponse {
 
 // Auth APIs
 export const login = async (email_phcode: string, password: string, platform: string = 'web', deviceId: string, deviceName?: string, location?: string): Promise<AuthResponse> => {
-  const isEmail = email_phcode?.search('@')
-  const res = await api.post<AuthResponse>('/users/login', isEmail === 11 ? { email: email_phcode, password, platform, deviceId, deviceName, location } : { phcode: email_phcode, password, platform, deviceId, deviceName, location });
+  const isEmail = email_phcode?.includes('@') ? true : false;
+  console.log('isEmail', isEmail);
+  const res = await api.post<AuthResponse>('/users/login', isEmail ? { email: email_phcode, password, platform, deviceId, deviceName, location } : { phcode: email_phcode, password, platform, deviceId, deviceName, location });
   return res.data;
 };
 
