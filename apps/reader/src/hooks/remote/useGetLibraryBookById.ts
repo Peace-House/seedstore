@@ -41,7 +41,8 @@ export function useGetLibraryBookById(orderId?: string, bookId?: string | null) 
       createdAt: Number(data?.createdAt),
       updatedAt: data?.updatedAt ? Number(data.updatedAt) : undefined,
       cfi: data?.cfi,
-      percentage: data?.percentage,
+      // Server returns percentage as 0-100, reader internally uses 0-1 decimal
+      percentage: data?.percentage ? data.percentage / 100 : undefined,
       definitions: data?.description,
       annotations: data?.annotations,
       configuration: {

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import useSWR from 'swr/immutable'
+import useSWR from 'swr'
 
 // You may want to move this to an env variable or config
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
@@ -11,13 +11,20 @@ const api = axios.create({
 
 // Fetch all books from the bookstore server (replica of bookstore getLibrary)
 export function useBookstoreLibrary() {
-  const { data, error } = useSWR('bookstore/library', async () => {
+  const { data, error, mutate } = useSWR('bookstore/library', async () => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
     const res = await api.get('/library', {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
     console.log('Bookstore library response:', res.data);
     return res.data
+  }, {
+    // Revalidate when window regains focus (e.g., coming back from reader)
+    revalidateOnFocus: true,
+    // Revalidate when network reconnects
+    revalidateOnReconnect: true,
+    // Dedupe requests within 2 seconds
+    dedupingInterval: 2000,
   })
 
   console.log('useBookstoreLibrary data:', data, 'error:', error);
@@ -31,7 +38,8 @@ export function useBookstoreLibrary() {
     createdAt: Number(book?.createdAt),
     updatedAt: book?.updatedAt ? Number(book.updatedAt) : undefined,
     cfi: book?.cfi,
-    percentage: book?.percentage,
+    // Server returns percentage as 0-100, reader internally uses 0-1 decimal
+    percentage: book?.percentage ? book.percentage / 100 : undefined,
     definitions: book?.description,
     annotations: book?.annotations,
     configuration: {

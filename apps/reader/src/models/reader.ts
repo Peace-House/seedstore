@@ -127,7 +127,36 @@ export class BookTab extends BaseTab {
     }
     // don't wait promise resolve to make valtio batch updates
     this.book = { ...this.book, ...changes }
-    db?.books.update(this.book.id, changes)
+    
+    // Try to update existing record, or create if it doesn't exist
+    db?.books.get(this.book.id).then(async (existing) => {
+      if (existing) {
+        // Use snapshot to avoid DataCloneError with Valtio proxy objects
+        const plainChanges = JSON.parse(JSON.stringify(changes))
+        await db?.books.update(this.book.id, plainChanges)
+      } else {
+        // Book doesn't exist locally (e.g., from remote library)
+        // Create a minimal record with the current state
+        // Use JSON parse/stringify to convert proxy to plain object
+        const bookSnapshot = snapshot(this.book)
+        const newBook: BookRecord = {
+          id: String(bookSnapshot.id),
+          name: bookSnapshot.name || `book-${bookSnapshot.id}`,
+          size: bookSnapshot.size || 0,
+          metadata: bookSnapshot.metadata || {} as any,
+          createdAt: typeof bookSnapshot.createdAt === 'number' ? bookSnapshot.createdAt : Date.now(),
+          definitions: Array.isArray(bookSnapshot.definitions) ? [...bookSnapshot.definitions] : [],
+          annotations: Array.isArray(bookSnapshot.annotations) ? JSON.parse(JSON.stringify(bookSnapshot.annotations)) : [],
+          cfi: typeof changes.cfi === 'string' ? changes.cfi : undefined,
+          percentage: typeof changes.percentage === 'number' ? changes.percentage : undefined,
+          updatedAt: Date.now(),
+        }
+        await db?.books.put(newBook)
+        console.log(`[BookTab] Created local record for book ${this.book.id}`)
+      }
+    }).catch((error) => {
+      console.error('[BookTab] Error updating book:', error)
+    })
   }
 
   annotationRange?: Range

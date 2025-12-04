@@ -1,11 +1,12 @@
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
-import { MdCheckCircle, MdLogout } from 'react-icons/md'
+import { useEffect, useMemo } from 'react'
+import { MdCheckCircle, MdLogout, MdLibraryBooks, MdAutoStories } from 'react-icons/md'
 
 import { db } from '../db'
 import { addBook } from '../file'
-import { useMobile, useSetAction } from '../hooks'
+import { useSetAction } from '../hooks'
 import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
+import { useAllReadProgress } from '../hooks/useAllReadProgress'
 import { useLibrarySync } from '../hooks/useLibrarySync'
 import { reader } from '../models'
 import { logout } from '../services/librarySyncService'
@@ -15,9 +16,9 @@ const placeholder = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" 
 export default function LibraryPage() {
   //   const books = useLibrary()
   const router = useRouter()
-  const mobile = useMobile()
   const setAction = useSetAction()
   const books = useBookstoreLibrary()
+  const { getProgress, isReading, isCompleted, refetch: refetchProgress } = useAllReadProgress()
 
   // Sync local library with remote - removes books not in remote library
   useLibrarySync(books)
@@ -26,6 +27,32 @@ export default function LibraryPage() {
   useEffect(() => {
     setAction('library')
   }, [setAction])
+
+  // Refetch progress when navigating to library page
+  useEffect(() => {
+    refetchProgress()
+  }, [refetchProgress])
+
+  // Categorize books into sections
+  const { currentlyReading, completed, notStarted } = useMemo(() => {
+    if (!books) return { currentlyReading: [], completed: [], notStarted: [] }
+    
+    const currentlyReading: any[] = []
+    const completed: any[] = []
+    const notStarted: any[] = []
+    
+    for (const book of books) {
+      if (isCompleted(book.id)) {
+        completed.push(book)
+      } else if (isReading(book.id)) {
+        currentlyReading.push(book)
+      } else {
+        notStarted.push(book)
+      }
+    }
+    
+    return { currentlyReading, completed, notStarted }
+  }, [books, isReading, isCompleted])
 
   if (!books) return null
 
@@ -116,9 +143,27 @@ export default function LibraryPage() {
     await logout(bookstoreUrl)
   }
 
+  const gridStyle = {
+    gridTemplateColumns: `repeat(auto-fill, minmax(calc(80px + 3vw), 1fr))`,
+    columnGap: 16,
+    rowGap: 24,
+  }
+
+  const handleBookClick = async (book: any) => {
+    setAction('toc')
+    // Navigate to reader with book and order IDs - this triggers proper file download
+    // The index page will fetch the book with fileUrl and download it
+    if (book.orderId && book.id) {
+      router.push(`/?orderId=${book.orderId}&bookId=${book.id}`)
+    } else {
+      // Fallback for local books
+      convertIfNeeded(book)
+    }
+  }
+
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Library</h1>
         <button
           onClick={handleLogout}
@@ -129,33 +174,126 @@ export default function LibraryPage() {
           <span>Logout</span>
         </button>
       </div>
-      <ul className="grid" style={{
-        gridTemplateColumns: `repeat(auto-fill, minmax(calc(80px + 3vw), 1fr))`,
-        columnGap: 16,
-        rowGap: 24,
-      }}>
-        {books.map((book: any) => (
-          <li key={book.id}>
-            <LibraryBookCard book={book} onClick={async () => {
-              setAction('toc')
-              convertIfNeeded(book)
-            }} />
-          </li>
-        ))}
-      </ul>
+
+      {/* Currently Reading Section */}
+      {currentlyReading.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <MdAutoStories className="text-primary" size={22} />
+            <h2 className="text-lg font-semibold">Currently Reading</h2>
+            <span className="text-sm text-outline">({currentlyReading.length})</span>
+          </div>
+          <ul className="grid" style={gridStyle}>
+            {currentlyReading.map((book: any) => (
+              <li key={book.id}>
+                <LibraryBookCard 
+                  book={book} 
+                  onClick={() => handleBookClick(book)}
+                  progress={getProgress(book.id)?.percentage}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Not Started Section */}
+      {notStarted.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <MdLibraryBooks className="text-outline" size={22} />
+            <h2 className="text-lg font-semibold">Not Started</h2>
+            <span className="text-sm text-outline">({notStarted.length})</span>
+          </div>
+          <ul className="grid" style={gridStyle}>
+            {notStarted.map((book: any) => (
+              <li key={book.id}>
+                <LibraryBookCard 
+                  book={book} 
+                  onClick={() => handleBookClick(book)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Completed Section */}
+      {completed.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <MdCheckCircle className="text-green-500" size={22} />
+            <h2 className="text-lg font-semibold">Completed</h2>
+            <span className="text-sm text-outline">({completed.length})</span>
+          </div>
+          <ul className="grid" style={gridStyle}>
+            {completed.map((book: any) => (
+              <li key={book.id}>
+                <LibraryBookCard 
+                  book={book} 
+                  onClick={() => handleBookClick(book)}
+                  progress={100}
+                  completed
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Empty state */}
+      {books.length === 0 && (
+        <div className="text-center py-12 text-outline">
+          <MdLibraryBooks size={48} className="mx-auto mb-4 opacity-50" />
+          <p>Your library is empty</p>
+          <p className="text-sm">Purchase books from the store to start reading</p>
+        </div>
+      )}
     </div>
   )
 }
 
-function LibraryBookCard({ book, onClick }: { book: any, onClick: () => void }) {
+function LibraryBookCard({ 
+  book, 
+  onClick, 
+  progress,
+  completed 
+}: { 
+  book: any
+  onClick: () => void
+  progress?: number
+  completed?: boolean
+}) {
   return (
-    <div className="relative flex flex-col cursor-pointer" onClick={onClick}>
-      <img
-        src={book?.cover ?? placeholder}
-        alt="Cover"
-        className="mx-auto aspect-[9/12] object-cover"
-        draggable={false}
-      />
+    <div className="relative flex flex-col cursor-pointer group" onClick={onClick}>
+      <div className="relative">
+        <img
+          src={book?.cover ?? placeholder}
+          alt="Cover"
+          className="mx-auto aspect-[9/12] object-cover rounded-sm shadow-md"
+          draggable={false}
+        />
+        {/* Completed badge */}
+        {completed && (
+          <div className="absolute top-1 right-1 bg-green-500 text-white rounded-full p-0.5">
+            <MdCheckCircle size={16} />
+          </div>
+        )}
+      </div>
+      {/* Progress bar */}
+      {progress !== undefined && progress > 0 && progress < 100 && (
+        <div className="mt-2 w-full bg-outline/20 rounded-full h-1.5">
+          <div 
+            className="bg-primary h-1.5 rounded-full transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      )}
+      {progress !== undefined && progress > 0 && (
+        <span className="text-xs text-outline mt-1 text-center">
+          {Math.round(progress)}%
+        </span>
+      )}
     </div>
   )
 }
