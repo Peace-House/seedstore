@@ -133,7 +133,7 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
             </div>
           </div>
           <div className="flex items-end justify-between w-full">
-            <span className="text-primary font-bold">
+            <span className="text-primary text-xs font-bold">
               {displayPrice === 0 ? 'Free' : `${displaySymbol}${Number(displayPrice).toLocaleString()}`}
             </span>
 
@@ -213,22 +213,11 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
             View Details
           </Button>
         </div>
-        {/* {book.category && (
-          <LiquidGlassWrapper className="inline-block !shadow-lg text-xs px-2 py-1 bg-white/60 text-primary rounded-full !absolute right-1 top-1 z-10">
-            {book.category?.name}
-          </LiquidGlassWrapper>
-        )} */}
       </div>
       <div className='h-max-[80px] border pt-2 flex flex-col justify-between'>
-        {/* <CardContent className="p-2 bg-none">
-          <h3 className="text-xs font-semibold line-clamp-2 mb-1">{truncate(book.title, 21)}</h3>
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground capitalize">{capitalizeWords(book.author)}</p>
-          </div>
-        </CardContent> */}
 
         <CardFooter className="p-2 bg-none pt-0 flex items-center justify-between">
-          <span className="text-sm font-bold text-primary">
+          <span className="text-[13px] font-bold text-primary">
             {
               displayPrice === 0 ? 'Free' : `${displaySymbol}${Number(displayPrice).toLocaleString()}`
             }

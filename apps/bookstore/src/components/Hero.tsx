@@ -46,13 +46,12 @@ const Hero = () => {
                 <p className='font-medium mb-1'>Most read</p>
                 <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 pb-2 -mx-2 px-2' style={{ WebkitOverflowScrolling: 'touch' }}>
                   {books?.data?.books?.map((book: Book) => (
-                    <li key={book.id} className="bg-white/90 flex-shrink-0 w-[120px] md:w-[150px] border border-gray-200 rounded-none shadow-lg flex flex-col items-center">
+                    <li key={book.id} className="bg-transparent flex-shrink-0  h-[160px] md:h-[200px] w-[120px] md:w-[130px] border border-gray-200 rounded-none shadow-lg flex flex-col items-center">
                       <img
                         src={book.coverImage}
                         alt={book.title}
-                        className="h-[160px] md:h-[200px] w-full object-cover"
+                        className="h-full w-full object-fill bg-transparent"
                       />
-                      {/* <div className="text-[10px] mb-1 text-gray-600 font-semibold text-center line-clamp-1">{book.author}</div> */}
                     </li>
                   ))}
                 </ul>
