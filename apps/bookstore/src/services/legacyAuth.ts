@@ -66,3 +66,19 @@ export const resetPasswordLegacy = async (
   });
   return res.data;
 };
+
+/**
+ * Step 4: Sync password to local database after legacy reset
+ * This keeps the local database in sync with the legacy system
+ */
+export const syncPasswordToLocal = async (
+  phcode: string,
+  newPassword: string
+): Promise<{ message: string; synced: boolean }> => {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const res = await axios.post<{ message: string; synced: boolean }>(
+    `${API_URL}/users/sync-password`,
+    { phcode, newPassword }
+  );
+  return res.data;
+};

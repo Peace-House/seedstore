@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { generateOTP, validateOTP, resetPasswordLegacy } from '@/services/legacyAuth';
+import { generateOTP, validateOTP, resetPasswordLegacy, syncPasswordToLocal } from '@/services/legacyAuth';
 
 type Step = 'identity' | 'otp' | 'password' | 'success';
 
@@ -169,6 +169,14 @@ const ResetPassword = () => {
     try {
       const response = await resetPasswordLegacy(phcode, password, verificationToken);
       if (response.status) {
+        // Sync password to local database as well
+        try {
+          await syncPasswordToLocal(phcode, password);
+        } catch (syncError) {
+          // Don't fail the whole flow if local sync fails - legacy reset was successful
+          console.warn('Local password sync failed (non-critical):', syncError);
+        }
+        
         toast({
           title: 'Password Reset Successful!',
           description: 'You can now log in with your new password.',
