@@ -1,3 +1,4 @@
+import { useRouter } from 'next/router'
 import { ComponentProps } from 'react'
 
 import { ActionBar } from 'apps/reader/types'
@@ -13,6 +14,7 @@ interface EnvActionBarProps extends ComponentProps<'div'> {
 
 const ViewActionBar = ({ className, env }: EnvActionBarProps) => {
   const [action, setAction] = useAction()
+  const router = useRouter()
   const t = useTranslation()
 
   return (
@@ -28,8 +30,15 @@ const ViewActionBar = ({ className, env }: EnvActionBarProps) => {
               active={active}
               onClick={() => {
                 if (name === 'store') {
-                  const bookstore_url = process.env.NEXT_PUBLIC_BOOKSTORE_URL
-                  window.location.href = bookstore_url as string
+                  const bookstoreUrl = process.env.NEXT_PUBLIC_BOOKSTORE_URL
+                  if (bookstoreUrl) {
+                    window.location.href = bookstoreUrl
+                  }
+                  return
+                }
+
+                if (name === 'library') {
+                  router.push('/library')
                   return
                 }
 
