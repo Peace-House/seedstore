@@ -50,7 +50,7 @@ const Hero = () => {
                       <img
                         src={book.coverImage}
                         alt={book.title}
-                        className="h-full w-full object-fill bg-transparent"
+                        className="h-full w-full object-contain bg-transparent"
                       />
                     </li>
                   ))}
