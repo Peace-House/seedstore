@@ -82,6 +82,9 @@ const FeaturedBooks = () => {
 
   if (!books || books.length === 0) return null;
 
+  const featuredBooks = books.filter((book) => book.featured);
+  if (featuredBooks.length === 0) return null;
+
   return (
     <section className="container pt-12 relative px-2 md:px-12">
       <h2 className="text-3xl font-bold mb-2">Featured Books</h2>
@@ -101,7 +104,7 @@ const FeaturedBooks = () => {
           className="flex gap-6 py-6 px-4 shadow-sm rounded-md overflow-x-scroll scrollbar-hide scroll-smooth"
           style={{ scrollBehavior: 'smooth' }}
         >
-          {books.map((book) => (
+          {featuredBooks.map((book) => (
             <BookCard key={book.id} book={book} showActions={false} className='min-w-[180px]' />
           ))}
         </LiquidGlassWrapper>
