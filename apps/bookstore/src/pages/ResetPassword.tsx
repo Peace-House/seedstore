@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Loader2, Eye, EyeOff, Mail, Key, Lock, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Loader2, Eye, EyeOff, Mail, Lock, CheckCircle2, User } from 'lucide-react';
 
 import Logo from '@/components/Logo';
 import { useToast } from '@/hooks/use-toast';
@@ -301,7 +301,7 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <Label htmlFor="phcode">PHCode</Label>
                 <div className="relative">
-                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <User className="absolute left-3 z-10 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="phcode"
                     type="text"
@@ -317,7 +317,7 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute z-10 left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
@@ -401,7 +401,7 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute z-10 left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -424,7 +424,7 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute z-10 left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
