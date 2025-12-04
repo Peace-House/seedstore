@@ -30,6 +30,7 @@ const Auth = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [countries, setCountries] = useState<{ Id: string; CountryName: string }[]>([]);
   const [states, setStates] = useState<{ Id: string; StateName: string }[]>([]);
   const [countryOfResidence, setCountryOfResidence] = useState('162'); // Default Nigeria
@@ -61,6 +62,7 @@ const Auth = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     // Only validate confirmPassword for signup
     if (!isLogin) {
@@ -74,6 +76,7 @@ const Auth = () => {
 
       const validation = signupSchema.safeParse({ password, confirmPassword });
       if (!validation.success) {
+        setIsSubmitting(false);
         toast({
           variant: 'destructive',
           title: 'Validation Error',
@@ -89,6 +92,7 @@ const Auth = () => {
 
       const validation = loginSchema.safeParse({ password });
       if (!validation.success) {
+        setIsSubmitting(false);
         toast({
           variant: 'destructive',
           title: 'Validation Error',
@@ -162,6 +166,8 @@ const Auth = () => {
         title: 'Error',
         description: errorMessage,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -354,10 +360,10 @@ const Auth = () => {
 
             </div>
             <Button variant='outline' type="submit" className="w-full !mt-8 mb-3 shadow-lg !bg-primary !text-white"
-              disabled={loading || (!isLogin && password !== confirmPassword)
+              disabled={isSubmitting || loading || (!isLogin && password !== confirmPassword)
                 || (isLogin && (!email || !password))
               }>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {(isSubmitting || loading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLogin ? 'Sign In' : 'Sign Up'}
             </Button>
           </form>

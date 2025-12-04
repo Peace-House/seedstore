@@ -14,7 +14,6 @@ import {
 } from './ui/dropdown-menu';
 import Logo from './Logo';
 import { useState } from 'react';
-import { useBookSearchParams } from '@/hooks/useBookSearchParams';
 import { useNavigate } from 'react-router-dom';
 import { Input } from './ui/input';
 
@@ -136,7 +135,7 @@ const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button onClick={() => navigate('/auth')}>Sign In</Button>
+            <Button liquidGlass={false} className='text-xs' onClick={() => navigate('/auth')}>Sign In</Button>
           )}
             {/* separator */}
             <div className="border-l border-gray-300 h-6"></div>
