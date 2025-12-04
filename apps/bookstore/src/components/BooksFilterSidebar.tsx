@@ -53,14 +53,14 @@ const BooksFilterSidebar: React.FC<BooksFilterSidebarProps> = ({
 
         <PriceRangeBar minPrice={minPrice} maxPrice={maxPrice} setMinPrice={setMinPrice} setMaxPrice={setMaxPrice} />
         <hr className="md:my-0 my-2 border-gray-100 " />
-        <div className="flex gap-2 justify-between w-full">
+        <div className="flex justify-between w-full">
             {[
                 { key: 'categories', label: 'Categories' },
                 { key: 'authors', label: 'Authors' }
             ].map(tab => (
                 <button
                     key={tab.key}
-                    className={`w-1/2 text-xs uppercase font-medium py-0.5 transition-all ease-in-out ${activeTab === tab.key ? 'border-b text-primary border-primary' : 'text-gray-500'}`}
+                    className={`w-1/2 text-xs uppercase font-medium py-0.5 transition-all ease-in-out ${activeTab === tab.key ? 'border-b text-primary border-primary' : 'border-b border-gray-200 text-gray-500'}`}
                     onClick={() => setActiveTab(tab.key as 'categories' | 'authors')}
                 >
                     {tab.label}
