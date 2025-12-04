@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { BookOpen, Check, Grid, List, Search, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
+import { hasValidPricing } from '@/utils/pricing';
 
 const BookSearchPage = () => {
   const location = useLocation();
@@ -53,8 +54,11 @@ const BookSearchPage = () => {
     fetchBooksAndCategories();
   }, []);
 
-  // Filtering logic (client-side)
+  // Filtering logic (client-side) - only show books with valid pricing
   const filteredBooks = books.filter(book => {
+    // Filter out books without valid pricing
+    if (!hasValidPricing(book.prices)) return false;
+    
     const search = searchQuery.trim().toLowerCase();
     if (!search) return true;
     const inTitle = book.title && book.title.toLowerCase().includes(search);

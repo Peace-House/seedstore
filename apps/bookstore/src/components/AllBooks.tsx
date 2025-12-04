@@ -10,7 +10,7 @@ import BooksGridView from './BooksGridView';
 import BooksListView from './BooksListView';
 import LiquidGlassWrapper from './LiquidGlassWrapper';
 import { useCountry } from '@/hooks/useCountry';
-import { getBookPriceForCountry } from '@/utils/pricing';
+import { getBookPriceForCountry, hasValidPricing } from '@/utils/pricing';
 
 const AllBooks = () => {
   const [activeTab, setActiveTab] = useState<'categories' | 'authors'>('categories');
@@ -54,6 +54,9 @@ const AllBooks = () => {
   });
 
   const filteredBooks = books.filter(book => {
+    // Filter out books without valid pricing (for user view only)
+    if (!hasValidPricing(book.prices)) return false;
+    
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.author.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter.length === 0 || (book.category && categoryFilter.includes(book.category.id));

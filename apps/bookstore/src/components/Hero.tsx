@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useBooks } from '@/hooks/useBooks';
 import { useCountry } from '@/hooks/useCountry';
-import { getBookPriceForCountry } from '@/utils/pricing';
+import { getBookPriceForCountry, hasValidPricing } from '@/utils/pricing';
 import { truncate } from '@/lib/utils';
 import { Book } from '@/services';
 
@@ -17,14 +17,18 @@ const Hero = () => {
   const books = useBooks();
 
   // Get the two most recent new release books, sorted by publishedDate (most recent first)
+  // Only show books with valid pricing
   const newReleaseBooks = books?.data?.books
-    ?.filter((book: Book) => book.isNewRelease)
+    ?.filter((book: Book) => book.isNewRelease && hasValidPricing(book.prices))
     ?.sort((a: Book, b: Book) => {
       const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
       const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
       return dateB - dateA; // Most recent first
     })
     ?.slice(0, 2) || [];
+  
+  // Filter books with valid pricing for "Most read" section
+  const booksWithPricing = books?.data?.books?.filter((book: Book) => hasValidPricing(book.prices)) || [];
 
   return (
     <section className="relative overflow-hidden from-transparent via-transparent to-primary/20 bg-gradient-to-b">
@@ -45,7 +49,7 @@ const Hero = () => {
               <div className='w-full max-w-[calc(100vw-1rem)] md:max-w-full h-auto mt-8 md:mt-0 overflow-hidden'>
                 <p className='font-medium mb-1'>Most read</p>
                 <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 pb-2 -mx-2 px-2' style={{ WebkitOverflowScrolling: 'touch' }}>
-                  {books?.data?.books?.map((book: Book) => (
+                  {booksWithPricing.map((book: Book) => (
                     <li key={book.id} className="bg-transparent flex-shrink-0 h-[180px] max-w-[140px] rounded-none flex flex-col items-center">
                       <img
                       src={book.coverImage}

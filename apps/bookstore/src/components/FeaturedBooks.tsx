@@ -6,6 +6,7 @@ import BookCard from './BookCard';
 import { Skeleton } from './ui/skeleton';
 import { getBooks } from '@/services/book';
 import LiquidGlassWrapper from './LiquidGlassWrapper';
+import { hasValidPricing } from '@/utils/pricing';
 
 const FeaturedBooks = () => {
   const { data, isLoading } = useQuery({
@@ -82,7 +83,8 @@ const FeaturedBooks = () => {
 
   if (!books || books.length === 0) return null;
 
-  const featuredBooks = books.filter((book) => book.featured);
+  // Filter for featured books with valid pricing
+  const featuredBooks = books.filter((book) => book.featured && hasValidPricing(book.prices));
   if (featuredBooks.length === 0) return null;
 
   return (

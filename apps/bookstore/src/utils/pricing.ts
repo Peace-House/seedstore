@@ -81,3 +81,22 @@ const getFallbackSymbol = (currency: string): string => {
   }
   return symbols[currency] || currency
 }
+
+/**
+ * Check if a book has valid pricing set
+ * A book has valid pricing if it has at least one price entry with soft_copy_price or hard_copy_price defined (including 0 for free books)
+ * @param prices - The prices array from the book
+ * @returns boolean - true if the book has valid pricing
+ */
+export const hasValidPricing = (
+  prices: { soft_copy_price?: number | null; hard_copy_price?: number | null }[] | undefined | null
+): boolean => {
+  if (!prices || prices.length === 0) return false
+  
+  // Check if at least one price entry has a defined price (0 is valid for free books)
+  return prices.some(
+    (p) => 
+      (p.soft_copy_price !== null && p.soft_copy_price !== undefined) ||
+      (p.hard_copy_price !== null && p.hard_copy_price !== undefined)
+  )
+}
