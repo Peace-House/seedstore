@@ -31,6 +31,7 @@ import {
   useTypography,
 } from '../hooks'
 import { useAnnotationSync } from '../hooks/useAnnotationSync'
+import { useReadProgressSync } from '../hooks/useReadProgressSync'
 import { BookTab, reader, useReaderSnapshot } from '../models'
 import { isTouchScreen } from '../platform'
 import { updateCustomStyle } from '../styles'
@@ -221,6 +222,9 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
 
   // Sync annotations with server
   useAnnotationSync(book?.id)
+
+  // Sync reading progress with server
+  useReadProgressSync(book?.id)
 
   useTilg()
 
