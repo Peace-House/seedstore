@@ -94,7 +94,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email or PH-Code"
                     required
-                    className="block w-full pl-10 pr-3 py-3 bg-green-700 border border-green-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                    className="block w-full pl-10 pr-3 py-3 bg-gray-700 border border-green-900 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                   />
                 </div>
               </div>
@@ -116,7 +116,7 @@ export default function LoginPage() {
                     placeholder="Enter your password"
                     required
                     minLength={6}
-                    className="block w-full pl-10 pr-10 py-3 bg-green-700 border border-green-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="block w-full pl-10 pr-10 py-3 bg-gray-700 border border-green-900 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
                   />
                   <button
                     type="button"
