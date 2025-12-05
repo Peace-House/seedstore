@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-// Legacy API base URL for authentication
-const LEGACY_API_URL = import.meta.env.VITE_LEGACY_API_URL || 'https://phlib.peacehousefellowship.com';
+// Use our own server as a proxy to avoid CORS issues with legacy API
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const legacyApi = axios.create({
-  baseURL: LEGACY_API_URL,
+const api = axios.create({
+  baseURL: `${API_URL}/legacy-auth`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -26,17 +26,25 @@ export interface ResetPasswordResponse {
   message: string;
 }
 
+// Helper to normalize status from string "success" to boolean
+const isSuccess = (status: string | boolean): boolean => {
+  return status === true || status === 'success';
+};
+
 /**
  * Step 1: Generate OTP for password reset
  * Sends an OTP to the user's email
  */
 export const generateOTP = async (phcode: string, email: string): Promise<GenerateOTPResponse> => {
-  const res = await legacyApi.post<GenerateOTPResponse>('/auth/generateOTP.php', {
+  const res = await api.post('/generate-otp', {
     phcode,
-    contact: email,
-    contactType: 'email',
+    email,
   });
-  return res.data;
+  const data = res.data;
+  return {
+    status: isSuccess(data.status),
+    message: data.message,
+  };
 };
 
 /**
@@ -44,11 +52,17 @@ export const generateOTP = async (phcode: string, email: string): Promise<Genera
  * Returns a verification token if OTP is valid
  */
 export const validateOTP = async (phcode: string, otp: string): Promise<ValidateOTPResponse> => {
-  const res = await legacyApi.post<ValidateOTPResponse>('/auth/validateOTP.php', {
+  const res = await api.post('/validate-otp', {
     phcode,
     otp,
   });
-  return res.data;
+  const data = res.data;
+  return {
+    status: isSuccess(data.status),
+    message: data.message,
+    // Token can be in data.verificationToken or data.data.verificationToken
+    verificationToken: data.verificationToken || data.data?.verificationToken,
+  };
 };
 
 /**
@@ -59,12 +73,16 @@ export const resetPasswordLegacy = async (
   password: string,
   verificationToken: string
 ): Promise<ResetPasswordResponse> => {
-  const res = await legacyApi.post<ResetPasswordResponse>('/auth/resetPassword.php', {
+  const res = await api.post('/reset-password', {
     phcode,
     password,
     verificationToken,
   });
-  return res.data;
+  const data = res.data;
+  return {
+    status: isSuccess(data.status),
+    message: data.message,
+  };
 };
 
 /**
@@ -75,7 +93,6 @@ export const syncPasswordToLocal = async (
   phcode: string,
   newPassword: string
 ): Promise<{ message: string; synced: boolean }> => {
-  const API_URL = import.meta.env.VITE_API_URL!;
   const res = await axios.post<{ message: string; synced: boolean }>(
     `${API_URL}/users/sync-password`,
     { phcode, newPassword }
