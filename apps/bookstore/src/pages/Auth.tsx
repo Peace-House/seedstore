@@ -183,7 +183,7 @@ const Auth = () => {
     >
 
       <Card className="w-full max-w-md shadow-lg relative">
-        <button onClick={() => navigate(-1)} className='absolute top-3 left-3'>
+        <button onClick={() => navigate('/')} className='absolute top-3 left-3'>
           <ChevronLeft className='h-5 w-5' />
         </button>
         <CardHeader className="space-y-1 text-center">
