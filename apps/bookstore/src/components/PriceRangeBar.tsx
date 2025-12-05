@@ -19,8 +19,9 @@ const PriceRangeBar: React.FC<PriceRangeBarProps> = ({
   setMaxPrice, 
   label = 'PRICE RANGE',
   min = 0,
-  max = 100000
+  max = 5000
 }) => {
+  
   const { selectedSymbol } = useCountry();
   const [sliderMin, setSliderMin] = useState(minPrice ? Number(minPrice) : min);
   const [sliderMax, setSliderMax] = useState(maxPrice ? Number(maxPrice) : max);

@@ -35,15 +35,16 @@ const Hero = () => {
       <div className="md:container px-2 md:py-12 lg:py-12">
         <div className="grid lg:grid-cols-2 md:gap-12 items-center">
           <div className="md:space-y-8 md:h-4/5 md:mt-auto">
-            <h1 className=" md:block text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-              Discover Your Next
+            <h1 className=" md:block text-4xl md:text-5xl lg:text-[42px] font-bold leading-tight">
+              Strengthen Your walk with God 
               <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Favorite Read
+                With your next read.
               </span>
             </h1>
             {/* no auth */}
-            {!user && <p className="text-xl text-muted-foreground max-w-lg">
-              Access thousands of Christian eBooks. Read anytime. Start your reading journey today.
+            {!user && <p className="text-sm text-muted-foreground max-w-lg">
+              Access Inspired and edifying ebooks from the Livingseed Publishing Team. Read anytime online and offline. 
+              <br />Enhance your reading journey today.
             </p>}
             {user ?
               <div className='w-full max-w-[calc(100vw-1rem)] md:max-w-full h-auto mt-8 md:mt-0 overflow-hidden'>
@@ -98,7 +99,7 @@ const Hero = () => {
               }}
             >
               <div className="text-center text-white space-y-4 p-8">
-                <div className="text-6xl font-bold">10,000+</div>
+                <div className="text-6xl font-bold">{booksWithPricing?.length?.toLocaleString()}+</div>
                 <div className="text-xl">Christian eBooks Available</div>
               </div>
             </div>

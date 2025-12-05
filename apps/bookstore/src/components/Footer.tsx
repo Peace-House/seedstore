@@ -42,10 +42,10 @@ const Footer: React.FC = () => {
         <div className='md:text-center'>
           <h3 className="text-lg font-bold mb-2">Quicklinks</h3>
           <ul className="text-sm space-y-1">
-            <li><a href="https://livingseed.org/about-us/" className="hover:underline">About us</a></li>
-            <li><a href="http://registration.livingsseed.org/" className="hover:underline">Registration</a></li>
-            <li><a href="https://blog.livingseed.org/" className="hover:underline">Our Blog</a></li>
-            <li><a href="https://livingseed.org/event" className="hover:underline">Upcoming Programs</a></li>
+            <li><a target='_blank' rel="noopener noreferrer" href="https://livingseed.org/about-us/" className="hover:underline">About us</a></li>
+            <li><a target='_blank' rel="noopener noreferrer" href="http://registration.livingsseed.org/" className="hover:underline">Registration</a></li>
+            <li><a target='_blank' rel="noopener noreferrer" href="https://blog.livingseed.org/" className="hover:underline">Our Blog</a></li>
+            <li><a target='_blank' rel="noopener noreferrer" href="https://livingseed.org/event" className="hover:underline">Upcoming Programs</a></li>
           </ul>
         </div>
           {/* Contact Info */}
@@ -64,7 +64,7 @@ const Footer: React.FC = () => {
             <span>19, Gyado Hospital Road, Box 971, Gboko, Benue State, Nigeria</span>
           </a>
           <p className="text-sm mb-1 mt-2">
-            Email: <a href="mailto:webmaster@livingseed.org" className="hover:underline">webmaster@livingseed.org</a>
+            Email: <a href="mailto:info@livingseed.org" className="hover:underline">info@livingseed.org</a>
           </p>
         </div>
         {/* Newsletter */}
