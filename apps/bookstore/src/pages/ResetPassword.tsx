@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Loader2, Eye, EyeOff, Mail, Lock, CheckCircle2, User } from 'lucide-react';
@@ -13,6 +13,9 @@ import { generateOTP, validateOTP, resetPasswordLegacy, syncPasswordToLocal } fr
 
 type Step = 'identity' | 'otp' | 'password' | 'success';
 
+const OTP_LENGTH = 6;
+const OTP_EXPIRY_SECONDS = 15 * 60; // 15 minutes in seconds
+
 const ResetPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -26,14 +29,93 @@ const ResetPassword = () => {
   const [email, setEmail] = useState('');
 
   // Step 2: OTP verification
-  const [otp, setOtp] = useState('');
+  const [otpDigits, setOtpDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [verificationToken, setVerificationToken] = useState('');
+  const [otpTimeLeft, setOtpTimeLeft] = useState(OTP_EXPIRY_SECONDS);
+  const [canResendOtp, setCanResendOtp] = useState(false);
 
   // Step 3: New password
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Format seconds to MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Start/reset the OTP countdown timer
+  const startOtpTimer = useCallback(() => {
+    setOtpTimeLeft(OTP_EXPIRY_SECONDS);
+    setCanResendOtp(false);
+  }, []);
+
+  // OTP countdown timer effect
+  useEffect(() => {
+    if (step !== 'otp') return;
+
+    const timer = setInterval(() => {
+      setOtpTimeLeft((prev) => {
+        if (prev <= 1) {
+          setCanResendOtp(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [step]);
+
+  // OTP input handlers
+  const handleOtpChange = (index: number, value: string) => {
+    // Only allow digits
+    const digit = value.replace(/\D/g, '').slice(-1);
+    
+    const newOtpDigits = [...otpDigits];
+    newOtpDigits[index] = digit;
+    setOtpDigits(newOtpDigits);
+
+    // Auto-focus next input
+    if (digit && index < OTP_LENGTH - 1) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      // Move to previous input on backspace if current is empty
+      otpInputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+    
+    if (pastedData) {
+      const newOtpDigits = [...otpDigits];
+      for (let i = 0; i < pastedData.length; i++) {
+        newOtpDigits[i] = pastedData[i];
+      }
+      setOtpDigits(newOtpDigits);
+      
+      // Focus the next empty input or the last one
+      const nextEmptyIndex = newOtpDigits.findIndex((d) => !d);
+      const focusIndex = nextEmptyIndex === -1 ? OTP_LENGTH - 1 : nextEmptyIndex;
+      otpInputRefs.current[focusIndex]?.focus();
+    }
+  };
+
+  const getOtpValue = () => otpDigits.join('');
 
   // Step 1: Request OTP
   const handleGenerateOTP = async (e: React.FormEvent) => {
@@ -64,6 +146,8 @@ const ResetPassword = () => {
           title: 'OTP Sent!',
           description: 'Please check your email for the verification code.',
         });
+        setOtpDigits(Array(OTP_LENGTH).fill('')); // Reset OTP
+        startOtpTimer(); // Start countdown
         setStep('otp');
       } else {
         toast({
@@ -92,9 +176,11 @@ const ResetPassword = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const otp = getOtpValue();
+
     // Validate OTP
     const schema = z.object({
-      otp: z.string().min(4, 'Please enter the OTP'),
+      otp: z.string().length(OTP_LENGTH, `Please enter the ${OTP_LENGTH}-digit OTP`),
     });
 
     const validation = schema.safeParse({ otp });
@@ -214,6 +300,8 @@ const ResetPassword = () => {
           title: 'OTP Resent!',
           description: 'Please check your email for the new verification code.',
         });
+        setOtpDigits(Array(OTP_LENGTH).fill('')); // Reset OTP inputs
+        startOtpTimer(); // Restart countdown
       } else {
         toast({
           variant: 'destructive',
@@ -345,27 +433,45 @@ const ResetPassword = () => {
           {/* Step 2: OTP Verification */}
           {step === 'otp' && (
             <form onSubmit={handleValidateOTP} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="otp">Verification Code (OTP)</Label>
-                <Input
-                  id="otp"
-                  type="text"
-                  placeholder="Enter the OTP from your email"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  required
-                  className="text-center text-lg tracking-widest"
-                  maxLength={6}
-                />
+              <div className="space-y-4">
+                <Label className="text-center block">Enter Verification Code</Label>
+                <div className="flex justify-center gap-2">
+                  {otpDigits.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (otpInputRefs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      onPaste={handleOtpPaste}
+                      className="w-12 h-14 text-center text-xl font-semibold border-2 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-background"
+                      autoFocus={index === 0}
+                    />
+                  ))}
+                </div>
                 <p className="text-sm text-gray-500 text-center">
-                  We sent a code to <span className="font-medium">{email}</span>
+                  We sent a 6-digit code to <span className="font-medium">{email}</span>
                 </p>
+                <div className="text-center">
+                  {otpTimeLeft > 0 ? (
+                    <p className={`text-sm font-medium ${otpTimeLeft <= 60 ? 'text-red-500' : 'text-gray-600'}`}>
+                      Code expires in <span className="font-mono">{formatTime(otpTimeLeft)}</span>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-red-500 font-medium">
+                      Code has expired. Please request a new one.
+                    </p>
+                  )}
+                </div>
               </div>
 
               <Button
                 type="submit"
                 className="w-full mt-6"
-                disabled={isSubmitting || !otp}
+                disabled={isSubmitting || getOtpValue().length !== OTP_LENGTH || otpTimeLeft === 0}
                 liquidGlass={false}
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -373,14 +479,20 @@ const ResetPassword = () => {
               </Button>
 
               <div className="text-center mt-4">
-                <button
-                  type="button"
-                  onClick={handleResendOTP}
-                  disabled={isSubmitting}
-                  className="text-primary hover:underline text-sm"
-                >
-                  Didn't receive the code? Resend
-                </button>
+                {canResendOtp ? (
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={isSubmitting}
+                    className="text-primary hover:underline text-sm font-medium"
+                  >
+                    Resend Code
+                  </button>
+                ) : (
+                  <p className="text-sm text-gray-400">
+                    Resend code available in <span className="font-mono">{formatTime(otpTimeLeft)}</span>
+                  </p>
+                )}
               </div>
 
               <div className="text-center">
