@@ -37,6 +37,7 @@ const AdminManagement = () => {
             queryClient.invalidateQueries({ queryKey: ['admins'] });
         },
         onError: (error) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const errorMessage = (error as any)?.response?.data?.message || 'Failed to suspend admin.';
             toast({ variant: 'destructive', title: 'Error', description: errorMessage });
         },
@@ -51,6 +52,7 @@ const AdminManagement = () => {
             queryClient.invalidateQueries({ queryKey: ['admins'] });
         },
         onError: (error) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const errorMessage = (error as any)?.response?.data?.message || 'Failed to unsuspend admin.';
             toast({ variant: 'destructive', title: 'Error', description: errorMessage || 'Failed to unsuspend admin.' });
         },
@@ -104,8 +106,22 @@ const AdminManagement = () => {
     return (
         <>
             <div className="flex gap-2 mt-4">
-                <Button className='border-none rounded-none px-3 py-1 rounded-tl rounded-tr h-max' variant={tab === 'admins' ? 'default' : 'outline'} onClick={() => { setTab('admins'); setPage(1); }}>Admins</Button>
-                <Button className='border-none rounded-none px-3 py-1 rounded-tl rounded-tr h-max' variant={tab === 'users' ? 'default' : 'outline'} onClick={() => { setTab('users'); setPage(1); }}>Users</Button>
+                <Button className='border-none rounded-none px-3 py-1 rounded-tl rounded-tr h-max' variant={tab === 'admins' ? 'default' : 'outline'} onClick={() => { setTab('admins'); setPage(1); }}>
+                    Admins
+                    {adminPage && (
+                        <span className="ml-2 text-xs font-normal bg-primary-foreground text-primary px-1.5 py-0.5 rounded-full">
+                            {adminPage.total}
+                        </span>
+                    )}
+                </Button>
+                <Button className='border-none rounded-none px-3 py-1 rounded-tl rounded-tr h-max' variant={tab === 'users' ? 'default' : 'outline'} onClick={() => { setTab('users'); setPage(1); }}>
+                    Users
+                    {userPage && (
+                        <span className="ml-2 text-xs font-normal bg-primary-foreground text-primary px-1.5 py-0.5 rounded-full">
+                            {userPage.total.toLocaleString()}
+                        </span>
+                    )}
+                </Button>
             </div>
             <Card className='rounded'>
                 <CardContent className='px-0'>

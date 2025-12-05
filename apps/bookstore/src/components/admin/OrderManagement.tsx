@@ -153,7 +153,12 @@ const OrderManagement = () => {
   return (
     <Card className="rounded">
       <CardHeader>
-        <CardTitle>Orders</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Orders
+          <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            {totalOrders.toLocaleString()}
+          </span>
+        </CardTitle>
         <AdvancedFilter config={orderFilterConfig} onFilterChange={handleFilterChange} />
       </CardHeader>
       <CardContent className="px-0">

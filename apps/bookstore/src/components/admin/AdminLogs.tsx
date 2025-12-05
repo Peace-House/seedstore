@@ -34,7 +34,14 @@ const AdminLogs = () => {
     <Card className="rounded">
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <CardTitle>Audit Logs</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            Audit Logs
+            {logPage && (
+              <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {logPage.total.toLocaleString()}
+              </span>
+            )}
+          </CardTitle>
           <form onSubmit={handleSearch} className="flex items-center gap-2 w-full md:w-auto">
             <div className="relative flex-1 md:w-80">
               <Search className="absolute z-10 left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

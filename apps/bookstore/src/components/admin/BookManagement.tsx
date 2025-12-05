@@ -171,7 +171,15 @@ const BookManagement = () => {
 
   return (
     <Card className="rounded">
-      <CardContent className="px-0">
+      <CardContent className="px-0 pt-4">
+        <div className="px-4 pb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            Books
+            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {total.toLocaleString()}
+            </span>
+          </h2>
+        </div>
         <AdminTable
           admins={books}
           loading={isLoading}
