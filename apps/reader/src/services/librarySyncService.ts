@@ -82,12 +82,13 @@ export async function clearAllLocalData(): Promise<void> {
 }
 
 /**
- * Logout user - clears all local data and optionally redirects
+ * Logout user - clears all local data and redirects to login
  */
 export async function logout(redirectUrl?: string): Promise<void> {
   await clearAllLocalData()
 
-  if (redirectUrl && typeof window !== 'undefined') {
-    window.location.href = redirectUrl
+  if (typeof window !== 'undefined') {
+    // Redirect to login page by default
+    window.location.href = redirectUrl || '/login'
   }
 }

@@ -4,14 +4,20 @@ import 'react-photo-view/dist/react-photo-view.css'
 import { LiteralProvider } from '@literal-ui/core'
 import { ErrorBoundary } from '@sentry/nextjs'
 import type { AppProps } from 'next/app'
+import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import { RecoilRoot } from 'recoil'
 
 // import { Layout, Theme } from '../components'
 import { Theme } from '../components'
+import { AuthGuard } from '../components/AuthGuard'
 import { Layout } from '../components/layout/Layout'
 
 export default function MyApp({ Component, pageProps }: AppProps) {
+  const router = useRouter()
+  
+  // Pages that should not have Layout wrapper
+  const isLoginPage = router.pathname === '/login'
 
   // if (router.pathname === '/success') return <Component {...pageProps} />
 
@@ -176,14 +182,30 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     }
   }, [])
 
+  // Login page doesn't need Layout or AuthGuard
+  if (isLoginPage) {
+    return (
+      <ErrorBoundary fallback={<Fallback />}>
+        <LiteralProvider {...({} as any)} >
+          <RecoilRoot>
+            <Theme />
+            <Component {...pageProps} />
+          </RecoilRoot>
+        </LiteralProvider>
+      </ErrorBoundary>
+    )
+  }
+
   return (
     <ErrorBoundary fallback={<Fallback />}>
       <LiteralProvider {...({} as any)} >
         <RecoilRoot>
           <Theme />
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
+          <AuthGuard>
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
+          </AuthGuard>
         </RecoilRoot>
       </LiteralProvider>
     </ErrorBoundary>

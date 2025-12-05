@@ -10,6 +10,7 @@ import { useAllReadProgress } from '../hooks/useAllReadProgress'
 import { useLibrarySync } from '../hooks/useLibrarySync'
 import { reader } from '../models'
 import { logout } from '../services/librarySyncService'
+import { Button } from '../components'
 
 const placeholder = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="gray" fill-opacity="0" width="1" height="1"/></svg>`
 
@@ -245,8 +246,14 @@ export default function LibraryPage() {
       {books.length === 0 && (
         <div className="text-center py-12 text-outline">
           <MdLibraryBooks size={48} className="mx-auto mb-4 opacity-50" />
-          <p>Your library is empty</p>
-          <p className="text-sm">Purchase books from the store to start reading</p>
+          <p className="text-lg mb-1">Your library is empty</p>
+          <p className="text-sm mb-6">Purchase books from the store to start reading</p>
+          <a
+            href={`${process.env.NEXT_PUBLIC_BOOKSTORE_URL}/#all-books`}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-green-800 text-white rounded-lg hover:bg-green-900 transition-colors font-medium"
+          >
+            Browse Bookstore
+          </a>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 export * from './Annotation'
 export * from './AudioReader'
+export * from './AuthGuard'
 export * from './base'
 export * from './Button'
 export * from './ErrorBoundary'
