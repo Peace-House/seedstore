@@ -35,7 +35,7 @@ const Footer: React.FC = () => {
         <div>
           <h3 className="text-lg font-bold mb-2">About Livingseed</h3>
           <p className="text-sm mb-4">
-            We are a community of people loving each other and our Lord. Be completely humble and gentle, be patient, bearing with one another in love. We are a community Lord.
+            We are a community of people loving each other and our Lord. Be completely humble and gentle, be patient, bearing with one another in love.
           </p>
         </div>
         {/* Quicklinks */}
