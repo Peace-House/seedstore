@@ -175,14 +175,14 @@ const Auth = () => {
     <div
       className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4"
       style={{
-        backgroundImage: 'url(/cross.jpg)',
+        backgroundImage: 'url(/bg-cross-new.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
       }}
     >
 
-      <Card className="w-full max-w-md shadow-lg relative">
+      <Card className="w-full max-w-md shadow-lg border-[0.5px] border-primary relative">
         <button onClick={() => navigate('/')} className='absolute top-3 left-3'>
           <ChevronLeft className='h-5 w-5' />
         </button>

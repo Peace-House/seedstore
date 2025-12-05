@@ -90,17 +90,17 @@ const Hero = () => {
           {/* not auth */}
           {!user && <div className="relative lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent opacity-90" />
-            <div className="absolute inset-0 flex items-center justify-center"
+            <div className="absolute inset-0 flex items-center md:items-end justify-center md:justify-end"
               style={{
-                backgroundImage: 'url(/cross.jpg)',
+                backgroundImage: 'url(/bg-cross-new.jpg)',
                 backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundPosition: 'left',
                 backgroundRepeat: 'no-repeat',
               }}
             >
-              <div className="text-center text-white space-y-4 p-8">
-                <div className="text-6xl font-bold">{booksWithPricing?.length?.toLocaleString()}+</div>
-                <div className="text-xl">Christian eBooks Available</div>
+              <div className="text-center text-primary space-y-4 p-8">
+                <div className="text-3xl md:text-8xl font-bold">{booksWithPricing?.length?.toLocaleString()}+</div>
+                <div className="text-2xl">Christian eBooks Available</div>
               </div>
             </div>
           </div>}

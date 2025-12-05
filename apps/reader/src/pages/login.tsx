@@ -94,7 +94,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email or PH-Code"
                     required
-                    className="block w-full pl-10 pr-3 py-3 bg-gray-700 border border-green-900 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
+                    className="block w-full pl-10 pr-3 py-3 bg-gray-600 border border-[#0D5415] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0D5415] focus:border-transparent transition"
                   />
                 </div>
               </div>
@@ -116,7 +116,7 @@ export default function LoginPage() {
                     placeholder="Enter your password"
                     required
                     minLength={6}
-                    className="block w-full pl-10 pr-10 py-3 bg-gray-700 border border-green-900 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition"
+                    className="block w-full pl-10 pr-10 py-3 bg-gray-600 border border-green-900 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0D5415] focus:border-transparent transition"
                   />
                   <button
                     type="button"
@@ -136,7 +136,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading || !email || !password}
-                className="w-full py-3 px-4 bg-green-900 hover:bg-green-700 disabled:bg-green-600/50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                className="w-full py-3 px-4 bg-[#0D5415] hover:bg-green-900 disabled:bg-green-900/50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-[#0D5415] focus:ring-offset-2 focus:ring-offset-gray-800"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
