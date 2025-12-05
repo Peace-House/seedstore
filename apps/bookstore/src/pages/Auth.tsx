@@ -198,6 +198,11 @@ const Auth = () => {
               ? 'Sign in to access your library'
               : 'Sign up to start reading'}
           </CardDescription>
+          <CardDescription>
+            {isLogin
+              ? 'Your PHCode & Password On Registration.livingseed will also work here'
+              : 'Your account will also work on Registration.livingseed'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
