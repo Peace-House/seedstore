@@ -28,11 +28,11 @@ const OrderManagement = () => {
 
   // Custom columns for orders
   const orderColumns = [
-    { label: 'Order ID', render: (order: Order) => order.id },
-    { label: 'Customer', render: (order: Order) => order.user?.email || '-' },
-    { label: 'Book', render: (order: Order) => order.book ? `${order.book.title} by ${order.book.author}` : '-' },
-    { label: 'Price', render: (order: Order) => order.book ? `₦${Number(order.book.price).toLocaleString()}` : '-' },
-    { label: 'Date', render: (order: Order) => format(new Date(order.createdAt), 'PPP') },
+    { label: 'ID', sortKey: 'id', render: (order: Order) => order.id },
+    { label: 'Customer', sortKey: 'user.email', render: (order: Order) => order.user?.email || '-' },
+    { label: 'Book', sortKey: 'book.title', render: (order: Order) => order.book ? `${order.book.title} by ${order.book.author}` : '-' },
+    { label: 'Price', sortKey: 'book.price', render: (order: Order) => order.book ? `₦${Number(order.book.price).toLocaleString()}` : '-' },
+    { label: 'Date', sortKey: 'createdAt', render: (order: Order) => format(new Date(order.createdAt), 'PPP') },
     {
       label: 'Status', render: (order: Order) => (
         <span className="inline-block rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800">Completed</span>

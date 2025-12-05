@@ -119,10 +119,11 @@ const BookManagement = () => {
         />
       ),
     },
-    { label: 'Title', render: (book: Book) => <span className="font-semibold line-clamp-2 max-w-[200px]">{book.title}</span> },
-    { label: 'Author', render: (book: Book) => book.author },
+    { label: 'Title', sortKey: 'title', render: (book: Book) => <span className="font-semibold line-clamp-2 max-w-[200px]">{book.title}</span> },
+    { label: 'Author', sortKey: 'author', render: (book: Book) => book.author },
     { 
       label: 'Categories', 
+      sortKey: 'categoryList',
       render: (book: Book) => {
         // Show multiple categories if available, fallback to single category
         const categories = book.categoryList || (book.category ? [book.category] : []);
@@ -133,6 +134,7 @@ const BookManagement = () => {
     },
     { 
       label: 'Group', 
+      sortKey: 'group',
       render: (book: Book) => (
         <span className="text-sm">
           {book.groupBookId ? (
