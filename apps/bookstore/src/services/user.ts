@@ -85,10 +85,26 @@ export const resetPassword = async (token: string, newPassword: string): Promise
   return res.data;
 };
 
+// Order filters interface
+export interface OrderFilters {
+  search?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 // Get all orders (admin only)
-export const getAllOrders = async (page = 1, pageSize = 10): Promise<{ orders: Order[]; total: number; page: number; pageSize: number }> => {
+export const getAllOrders = async (
+  page = 1,
+  pageSize = 10,
+  filters?: OrderFilters
+): Promise<{ orders: Order[]; total: number; page: number; pageSize: number }> => {
   const res = await api.get<{ orders: Order[]; total: number; page: number; pageSize: number }>('/users/orders/all', {
-    params: { page, pageSize }
+    params: {
+      page,
+      pageSize,
+      ...filters
+    }
   });
   return res.data;
 };

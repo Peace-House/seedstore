@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAllOrders, Order } from '@/services/user';
+import { getAllOrders, Order, OrderFilters } from '@/services/user';
 
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import AdminTable from './AdminTable';
-import { Card, CardContent } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import AdvancedFilter, { FilterValues, FilterConfig } from './AdvancedFilter';
 
 // Helper to format currency
 const formatPrice = (price: number | undefined, currency = 'NGN') => {
@@ -33,18 +34,48 @@ const getStatusBadge = (status?: string) => {
   return styles[normalizedStatus] || 'bg-gray-100 text-gray-800';
 };
 
+// Filter configuration for orders
+const orderFilterConfig: FilterConfig = {
+  searchPlaceholder: 'Search by book, customer, amount, or reference...',
+  searchEnabled: true,
+  statusEnabled: true,
+  statusOptions: [
+    { value: 'completed', label: 'Completed' },
+    { value: 'successful', label: 'Successful' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'failed', label: 'Failed' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ],
+  statusPlaceholder: 'All statuses',
+  dateEnabled: true,
+};
+
 const OrderManagement = () => {
   // Pagination state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // Filter state
+  const [filters, setFilters] = useState<OrderFilters>({});
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-orders', page, pageSize],
-    queryFn: () => getAllOrders(page, pageSize),
+    queryKey: ['admin-orders', page, pageSize, filters],
+    queryFn: () => getAllOrders(page, pageSize, filters),
   });
 
   const orders = data?.orders || [];
   const totalOrders = data?.total || 0;
+
+  // Handle filter changes
+  const handleFilterChange = useCallback((filterValues: FilterValues) => {
+    setFilters({
+      search: filterValues.search || undefined,
+      status: filterValues.status || undefined,
+      dateFrom: filterValues.dateFrom ? format(filterValues.dateFrom, 'yyyy-MM-dd') : undefined,
+      dateTo: filterValues.dateTo ? format(filterValues.dateTo, 'yyyy-MM-dd') : undefined,
+    });
+    setPage(1); // Reset to first page when filters change
+  }, []);
 
   // Custom columns for orders
   const orderColumns = [
@@ -121,6 +152,10 @@ const OrderManagement = () => {
 
   return (
     <Card className="rounded">
+      <CardHeader>
+        <CardTitle>Orders</CardTitle>
+        <AdvancedFilter config={orderFilterConfig} onFilterChange={handleFilterChange} />
+      </CardHeader>
       <CardContent className="px-0">
         <AdminTable
           page={page}
