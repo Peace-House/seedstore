@@ -2,15 +2,14 @@ import { useRouter } from 'next/router'
 import { useEffect, useMemo } from 'react'
 import { MdCheckCircle, MdLogout, MdLibraryBooks, MdAutoStories } from 'react-icons/md'
 
-import { db } from '../db'
 import { addBook } from '../file'
+import { db } from '../db'
 import { useSetAction } from '../hooks'
 import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
 import { useAllReadProgress } from '../hooks/useAllReadProgress'
 import { useLibrarySync } from '../hooks/useLibrarySync'
 import { reader } from '../models'
 import { logout } from '../services/librarySyncService'
-import { Button } from '../components'
 
 const placeholder = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="gray" fill-opacity="0" width="1" height="1"/></svg>`
 
