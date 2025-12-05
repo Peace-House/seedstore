@@ -10,10 +10,23 @@ export interface UserPage {
   pageSize: number;
 }
 // Order type for admin/user orders
+export interface BookPrice {
+  id: number;
+  bookId: number;
+  currency: string;
+  soft_copy_price?: number;
+  hard_copy_price?: number;
+  country?: string;
+  createdAt: string;
+}
+
 export interface Order {
   id: string;
   userId: string;
   bookId: string;
+  price: number;
+  paymentReference?: string;
+  status?: string;
   createdAt: string;
   updatedAt?: string;
   user?: {
@@ -27,9 +40,9 @@ export interface Order {
     id: string;
     title: string;
     author: string;
-    price: number;
     cover_url?: string;
     coverImage?: string;
+    prices?: BookPrice[];
   };
 }
 export interface AuthResponse {
@@ -73,9 +86,11 @@ export const resetPassword = async (token: string, newPassword: string): Promise
 };
 
 // Get all orders (admin only)
-export const getAllOrders = async (): Promise<Order[]> => {
-  const res = await api.get<{ orders: Order[] }>('/users/orders/all');
-  return res.data.orders;
+export const getAllOrders = async (page = 1, pageSize = 10): Promise<{ orders: Order[]; total: number; page: number; pageSize: number }> => {
+  const res = await api.get<{ orders: Order[]; total: number; page: number; pageSize: number }>('/users/orders/all', {
+    params: { page, pageSize }
+  });
+  return res.data;
 };
 
 // Get orders for current user
