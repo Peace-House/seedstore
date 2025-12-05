@@ -204,19 +204,12 @@ const Checkout = () => {
               </button>
 
               {/* MTN MoMo Option */}
-              <button
-                onClick={() => setSelectedMethod('mtnmomo')}
-                className={`relative p-6 rounded-xl border-2 transition-all text-left ${
-                  selectedMethod === 'mtnmomo'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
+              <div
+                className="relative p-6 rounded-xl border-2 border-border bg-muted/30 cursor-not-allowed opacity-60"
               >
-                {selectedMethod === 'mtnmomo' && (
-                  <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                    <Check className="w-4 h-4 text-white" />
-                  </div>
-                )}
+                <div className="absolute top-3 right-3 bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                  Coming Soon
+                </div>
                 <div className="flex items-center gap-4 mb-3">
                   <div className="w-12 h-12 bg-[#FFCC00]/10 rounded-full flex items-center justify-center">
                     <Smartphone className="w-6 h-6 text-[#FFCC00]" />
@@ -229,7 +222,7 @@ const Checkout = () => {
                 <p className="text-xs text-muted-foreground">
                   Pay directly from your MTN Mobile Money wallet
                 </p>
-              </button>
+              </div>
             </div>
           </LiquidGlassWrapper>
 
