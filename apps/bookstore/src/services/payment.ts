@@ -106,6 +106,7 @@ export interface ListTransactionsParams {
   from?: string;
   to?: string;
   status?: 'success' | 'failed' | 'abandoned';
+  customer?: number;
 }
 
 export const listPaystackTransactions = async (

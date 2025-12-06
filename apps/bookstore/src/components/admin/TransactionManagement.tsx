@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   listPaystackTransactions,
@@ -7,6 +7,8 @@ import {
 } from '@/services/payment'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -23,8 +25,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { format } from 'date-fns'
-import { CreditCard, RefreshCw } from 'lucide-react'
+import { CreditCard, RefreshCw, Filter, X, Search, Calendar } from 'lucide-react'
 
 // Format amount from kobo to currency
 const formatAmount = (amount: number, currency: string) => {
@@ -72,6 +79,21 @@ const TransactionManagement = () => {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [fromDate, setFromDate] = useState<string>('')
+  const [toDate, setToDate] = useState<string>('')
+  const [searchQuery, setSearchQuery] = useState<string>('')
+  const [channelFilter, setChannelFilter] = useState<string>('')
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+    if (statusFilter) count++
+    if (fromDate) count++
+    if (toDate) count++
+    if (channelFilter) count++
+    return count
+  }, [statusFilter, fromDate, toDate, channelFilter])
 
   const {
     data: transactionsData,
@@ -79,67 +101,269 @@ const TransactionManagement = () => {
     refetch,
     isFetching,
   } = useQuery<PaystackTransactionsResponse>({
-    queryKey: ['paystack-transactions', page, pageSize, statusFilter],
+    queryKey: ['paystack-transactions', page, pageSize, statusFilter, fromDate, toDate],
     queryFn: () =>
       listPaystackTransactions({
         page,
         perPage: pageSize,
         status: statusFilter as 'success' | 'failed' | 'abandoned' | undefined,
+        from: fromDate || undefined,
+        to: toDate || undefined,
       }),
   })
 
-  const transactions = transactionsData?.data || []
+  // Client-side filtering for search query, reference, customer, and channel
+  const filteredTransactions = useMemo(() => {
+    let transactions = transactionsData?.data || []
+    
+    // Filter by search query (reference or customer email)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      transactions = transactions.filter(
+        (txn) =>
+          txn.reference.toLowerCase().includes(query) ||
+          txn.customer.email.toLowerCase().includes(query) ||
+          (txn.customer.first_name?.toLowerCase().includes(query)) ||
+          (txn.customer.last_name?.toLowerCase().includes(query))
+      )
+    }
+
+    // Filter by channel
+    if (channelFilter) {
+      transactions = transactions.filter((txn) => txn.channel === channelFilter)
+    }
+
+    return transactions
+  }, [transactionsData?.data, searchQuery, channelFilter])
+
   const meta = transactionsData?.meta
+
+  const clearFilters = () => {
+    setStatusFilter('')
+    setFromDate('')
+    setToDate('')
+    setSearchQuery('')
+    setChannelFilter('')
+    setPage(1)
+  }
 
   return (
     <Card className="rounded">
       <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Paystack Transactions
-            {meta && (
-              <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                {meta.total.toLocaleString()} total
-              </span>
-            )}
-          </CardTitle>
-          <div className="flex items-center gap-3">
-            <Select
-              value={statusFilter || 'all'}
-              onValueChange={(value) => {
-                setStatusFilter(value === 'all' ? '' : value)
-                setPage(1)
-              }}
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="success">Success</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-                <SelectItem value="abandoned">Abandoned</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Paystack Transactions
+              {meta && (
+                <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  {meta.total.toLocaleString()} total
+                </span>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-3">
+              <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="relative">
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Filters</h4>
+                      {activeFilterCount > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearFilters}
+                          className="h-auto p-1 text-xs text-muted-foreground"
+                        >
+                          Clear all
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* Status Filter */}
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select
+                        value={statusFilter || 'all'}
+                        onValueChange={(value) => {
+                          setStatusFilter(value === 'all' ? '' : value)
+                          setPage(1)
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All statuses</SelectItem>
+                          <SelectItem value="success">Success</SelectItem>
+                          <SelectItem value="failed">Failed</SelectItem>
+                          <SelectItem value="abandoned">Abandoned</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Channel Filter */}
+                    <div className="space-y-2">
+                      <Label>Channel</Label>
+                      <Select
+                        value={channelFilter || 'all'}
+                        onValueChange={(value) => {
+                          setChannelFilter(value === 'all' ? '' : value)
+                          setPage(1)
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All channels" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All channels</SelectItem>
+                          <SelectItem value="card">Card</SelectItem>
+                          <SelectItem value="bank">Bank</SelectItem>
+                          <SelectItem value="ussd">USSD</SelectItem>
+                          <SelectItem value="qr">QR</SelectItem>
+                          <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                          <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                          <SelectItem value="apple_pay">Apple Pay</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Date Range Filter */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Date Range
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">From</Label>
+                          <Input
+                            type="date"
+                            value={fromDate}
+                            onChange={(e) => {
+                              setFromDate(e.target.value)
+                              setPage(1)
+                            }}
+                            className="h-9"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">To</Label>
+                          <Input
+                            type="date"
+                            value={toDate}
+                            onChange={(e) => {
+                              setToDate(e.target.value)
+                              setPage(1)
+                            }}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                disabled={isFetching}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
+
+          {/* Search Bar */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by reference, customer email or name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Active Filters Display */}
+          {(activeFilterCount > 0 || searchQuery) && (
+            <div className="flex flex-wrap gap-2">
+              {searchQuery && (
+                <Badge variant="secondary" className="gap-1">
+                  Search: {searchQuery}
+                  <button onClick={() => setSearchQuery('')}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {statusFilter && (
+                <Badge variant="secondary" className="gap-1">
+                  Status: {statusFilter}
+                  <button onClick={() => setStatusFilter('')}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {channelFilter && (
+                <Badge variant="secondary" className="gap-1">
+                  Channel: {getChannelBadge(channelFilter)}
+                  <button onClick={() => setChannelFilter('')}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {fromDate && (
+                <Badge variant="secondary" className="gap-1">
+                  From: {fromDate}
+                  <button onClick={() => setFromDate('')}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {toDate && (
+                <Badge variant="secondary" className="gap-1">
+                  To: {toDate}
+                  <button onClick={() => setToDate('')}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="text-center py-8">Loading transactions...</div>
-        ) : transactions.length === 0 ? (
+        ) : filteredTransactions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No transactions found.
+            {searchQuery || channelFilter
+              ? 'No transactions match your search criteria.'
+              : 'No transactions found.'}
           </div>
         ) : (
           <>
@@ -157,7 +381,7 @@ const TransactionManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map((txn: PaystackTransaction) => (
+                  {filteredTransactions.map((txn: PaystackTransaction) => (
                     <TableRow key={txn.id}>
                       <TableCell>
                         <span className="font-mono text-xs">{txn.reference}</span>
@@ -219,8 +443,14 @@ const TransactionManagement = () => {
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
-                  Showing {((page - 1) * pageSize) + 1} to{' '}
-                  {Math.min(page * pageSize, meta?.total || 0)} of {meta?.total || 0} transactions
+                  {(searchQuery || channelFilter) ? (
+                    <>Showing {filteredTransactions.length} filtered results</>
+                  ) : (
+                    <>
+                      Showing {((page - 1) * pageSize) + 1} to{' '}
+                      {Math.min(page * pageSize, meta?.total || 0)} of {meta?.total || 0} transactions
+                    </>
+                  )}
                 </span>
               </div>
               <div className="flex items-center gap-4">
