@@ -72,6 +72,7 @@ const AdminManagement = () => {
         queryFn: () => getAdmins(page, pageSize),
         enabled: tab === 'admins',
     });
+    console.log('Admin Page Data:', adminPage);
     // Fetch users (paginated)
     const { data: userPage, isLoading: loadingUsers } = useQuery<UserPage>({
         queryKey: ['users', page, pageSize],
