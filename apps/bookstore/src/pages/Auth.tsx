@@ -198,7 +198,7 @@ const Auth = () => {
               ? 'Sign in to access your library'
               : 'Sign up to start reading'}
           </CardDescription>
-          <CardDescription className='px-12 text-xs text-red-600 bg-yellow-50 rounded-md p-1'>
+          <CardDescription className='px-2 md:px-12 text-xs text-red-600 bg-yellow-50 rounded-md p-1'>
             {isLogin
               ? 'Your PHCode & Password On Registration.livingseed will also work here'
               : 'Your account will also work on Registration.livingseed'}
