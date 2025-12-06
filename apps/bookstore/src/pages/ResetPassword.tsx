@@ -356,13 +356,13 @@ const ResetPassword = () => {
     <div
       className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4"
       style={{
-        backgroundImage: 'url(/cross.jpg)',
+        backgroundImage: 'url(/bg-cross-new.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
       }}
     >
-      <Card className="w-full max-w-md shadow-lg relative">
+      <Card className="w-full max-w-md shadow-lg border-[0.5px] border-primary relative">
         <button onClick={() => navigate('/auth')} className="absolute top-3 left-3">
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -386,7 +386,7 @@ const ResetPassword = () => {
           {/* Step 1: Identity Verification */}
           {step === 'identity' && (
             <form onSubmit={handleGenerateOTP} className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="phcode">PHCode</Label>
                 <div className="relative">
                   <User className="absolute left-3 z-10 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -402,7 +402,7 @@ const ResetPassword = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute z-10 left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -417,6 +417,8 @@ const ResetPassword = () => {
                   />
                 </div>
               </div>
+
+              <br />
 
               <Button
                 type="submit"

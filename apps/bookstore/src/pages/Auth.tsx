@@ -198,9 +198,9 @@ const Auth = () => {
               ? 'Sign in to access your library'
               : 'Sign up to start reading'}
           </CardDescription>
-          <CardDescription className='px-2 md:px-12 text-xs text-red-600 bg-yellow-50 rounded-md p-1'>
+          <CardDescription className='px-2 py-3 md:px-12 text-xs  text-red-600 bg-red-50 rounded-md'>
             {isLogin
-              ? 'Your PHCode & Password On Registration.livingseed will also work here'
+              ? 'Your PHCode & Password On Registration.livingseed will also work here.'
               : 'Your account will also work on Registration.livingseed'}
           </CardDescription>
         </CardHeader>
@@ -209,7 +209,7 @@ const Auth = () => {
             {!isLogin && (
               <div className="flex flex-col md:flex-row md:items-center md:gap-2">
 
-                <div className="space-y-2 w-full md:w-1/2">
+                <div className="space-y-1 w-full md:w-1/2">
                   <Label htmlFor="firstName">First Name</Label>
                   <Input
                     id="firstName"
@@ -220,7 +220,7 @@ const Auth = () => {
                     required={!isLogin}
                   />
                 </div>
-                <div className="space-y-2 w-full md:w-1/2">
+                <div className="space-y-1 w-full md:w-1/2">
                   <Label htmlFor="lastName">Last Name</Label>
                   <Input
                     id="lastName"
@@ -233,8 +233,8 @@ const Auth = () => {
                 </div>
               </div>
             )}
-            {isLogin && <div className="space-y-2">
-              <Label htmlFor="email">Email/Ph-Code</Label>
+            {isLogin && <div className="space-y-1">
+              <Label htmlFor="email">Email/PH-Code</Label>
               <Input
                 id="email"
                 type="text"
@@ -379,8 +379,8 @@ const Auth = () => {
               className="text-primary hover:underline block w-full"
             >
               {isLogin
-                ? "Don't have an account? Sign up"
-                : 'Already have an account? Sign in'}
+                ? "I don't have an account? Sign up"
+                : 'I have an account? Sign in'}
             </button>
             {isLogin && (
               <button
@@ -388,7 +388,7 @@ const Auth = () => {
                 onClick={() => navigate('/reset-password')}
                 className="text-gray-500 hover:underline text-xs"
               >
-                Forgot your password?
+                I forgot your password?
               </button>
             )}
           </div>
