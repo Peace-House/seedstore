@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CreditCard, Smartphone, ArrowLeft, Check } from 'lucide-react';
+import { Loader2, CreditCard, Smartphone, ArrowLeft, Check, Apple } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { initiatePaystackPayment, initiateMtnMomoPayment, PaymentMethod } from '@/services/payment';
 import Breadcrumb from '@/components/Breadcrumb';
@@ -42,13 +42,14 @@ const Checkout = () => {
 
   // Paystack checkout mutation
   const paystackMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (channels?: string[]) => {
       if (!user) throw new Error('Login Required');
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
       return await initiatePaystackPayment({
         amount: total,
         email: user.email,
         callback_url: `${window.location.origin}/payment-callback`,
+        channels,
       });
     },
     onSuccess: (data) => {
@@ -119,7 +120,10 @@ const Checkout = () => {
     }
 
     if (selectedMethod === 'paystack') {
-      paystackMutation.mutate();
+      paystackMutation.mutate([]);
+    } else if (selectedMethod === 'applepay') {
+      // Apple Pay uses Paystack with apple_pay channel
+      paystackMutation.mutate(['apple_pay']);
     } else if (selectedMethod === 'mtnmomo') {
       if (!phoneNumber) {
         toast({
@@ -200,6 +204,34 @@ const Checkout = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Pay securely with your debit/credit card, bank transfer, or USSD
+                </p>
+              </button>
+
+              {/* Apple Pay Option */}
+              <button
+                onClick={() => setSelectedMethod('applepay')}
+                className={`relative p-6 rounded-xl border-2 transition-all text-left ${
+                  selectedMethod === 'applepay'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                {selectedMethod === 'applepay' && (
+                  <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                )}
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center">
+                    <Apple className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Apple Pay</h3>
+                    <p className="text-sm text-muted-foreground">Fast & secure checkout</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pay quickly with Apple Pay on supported devices
                 </p>
               </button>
 
@@ -296,8 +328,8 @@ const Checkout = () => {
               {isPending
                 ? 'Processing...'
                 : selectedMethod
-                ? `Pay with ${selectedMethod === 'paystack' ? 'Paystack' : 'MTN MoMo'}`
-                : 'Select Payment Method'}
+                  ? `Pay with ${selectedMethod === 'paystack' ? 'Paystack' : selectedMethod === 'applepay' ? 'Apple Pay' : 'MTN MoMo'}`
+                  : 'Select Payment Method'}
             </Button>
             {selectedMethod && (
               <p className="text-xs text-center text-muted-foreground mt-3">

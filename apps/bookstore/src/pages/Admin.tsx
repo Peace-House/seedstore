@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { BookOpen, Upload, ClipboardList, List, LogOut, Sidebar, LayoutDashboard, User2, Users, CopyCheck, Rotate3D, RotateCcw, Menu, X } from 'lucide-react';
+import { BookOpen, Upload, ClipboardList, List, LogOut, Sidebar, LayoutDashboard, User2, Users, CopyCheck, Rotate3D, RotateCcw, Menu, X, CreditCard } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
 import AdminLogs from '@/components/admin/AdminLogs';
@@ -9,6 +9,7 @@ import BookManagement from '@/components/admin/BookManagement';
 import OrderManagement from '@/components/admin/OrderManagement';
 import AdminManagement from '@/components/admin/AdminManagement';
 import AdminOverview from '@/components/admin/AdminOverview';
+import TransactionManagement from '@/components/admin/TransactionManagement';
 import { PageLoader } from '@/components/Loader';
 import Logo from '@/components/Logo';
 import EPUBConverter from '@/components/admin/Converter';
@@ -28,6 +29,7 @@ const Admin = () => {
     { value: 'manage', label: 'Books', icon: <BookOpen className="w-5 h-5" /> },
     { value: 'pricing', label: 'Pricing', icon: <CopyCheck className="w-5 h-5" /> },
     { value: 'orders', label: 'Orders', icon: <ClipboardList className="w-5 h-5" /> },
+    { value: 'transactions', label: 'Transactions', icon: <CreditCard className="w-5 h-5" /> },
     { value: 'converter', label: 'Converter', icon: <RotateCcw className="w-5 h-5" /> },
     { value: 'admins', label: 'Users', icon: <Users className="w-5 h-5" /> },
     { value: 'logs', label: 'Logs', icon: <List className="w-5 h-5" /> },
@@ -184,6 +186,7 @@ const Admin = () => {
           {tab === 'manage' && <BookManagement />}
           {tab === 'pricing' && <PricingManagement />}
           {tab === 'orders' && <OrderManagement />}
+          {tab === 'transactions' && <TransactionManagement />}
           {tab === 'converter' && <EPUBConverter />}
           {tab === 'admins' && <AdminManagement />}
           {tab === 'logs' && <AdminLogs />}
