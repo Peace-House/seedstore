@@ -11,6 +11,7 @@ export default function Document() {
         <link rel="icon" href="/icons/192.png"></link>
         <PWA />
         <PreventFlash />
+        <NoAICrawlers />
       </Head>
       <body>
         <GoogleTagManagerNoScript />
@@ -18,6 +19,28 @@ export default function Document() {
         <NextScript />
       </body>
     </Html>
+  )
+}
+
+function NoAICrawlers() {
+  return (
+    <>
+      {/* Block AI crawlers and data training */}
+      <meta name="robots" content="noai, noimageai" />
+      <meta name="googlebot" content="noai, noimageai" />
+      <meta name="GPTBot" content="noindex, nofollow" />
+      <meta name="ChatGPT-User" content="noindex, nofollow" />
+      <meta name="Google-Extended" content="noindex, nofollow" />
+      <meta name="CCBot" content="noindex, nofollow" />
+      <meta name="anthropic-ai" content="noindex, nofollow" />
+      <meta name="ClaudeBot" content="noindex, nofollow" />
+      <meta name="PerplexityBot" content="noindex, nofollow" />
+      <meta name="Amazonbot" content="noindex, nofollow" />
+      <meta name="FacebookBot" content="noindex, nofollow" />
+      <meta name="Bytespider" content="noindex, nofollow" />
+      <meta name="cohere-ai" content="noindex, nofollow" />
+      <meta name="Diffbot" content="noindex, nofollow" />
+    </>
   )
 }
 

@@ -5,16 +5,79 @@ import { LiteralProvider } from '@literal-ui/core'
 import { ErrorBoundary } from '@sentry/nextjs'
 import type { AppProps } from 'next/app'
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { RecoilRoot } from 'recoil'
 
 // import { Layout, Theme } from '../components'
 import { Theme } from '../components'
 import { AuthGuard } from '../components/AuthGuard'
 import { Layout } from '../components/layout/Layout'
+import { detectBot, logBotDetection } from '../botProtection'
+
+/**
+ * Blocked page component shown to AI bots
+ */
+function BotBlockedPage() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f3f4f6',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '1rem',
+    }}>
+      <div style={{
+        maxWidth: '28rem',
+        width: '100%',
+        backgroundColor: 'white',
+        borderRadius: '0.5rem',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+        padding: '2rem',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          width: '4rem',
+          height: '4rem',
+          backgroundColor: '#fee2e2',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 1rem',
+        }}>
+          <svg 
+            style={{ width: '2rem', height: '2rem', color: '#dc2626' }}
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
+            />
+          </svg>
+        </div>
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#111827', marginBottom: '0.5rem' }}>
+          Access Denied
+        </h1>
+        <p style={{ color: '#4b5563', marginBottom: '1rem' }}>
+          Automated access to this website is not permitted.
+        </p>
+        <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+          If you believe this is an error, please try accessing the site from a regular browser.
+        </p>
+      </div>
+    </div>
+  )
+}
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter()
+  const [botBlocked, setBotBlocked] = useState(false)
+  const [isChecked, setIsChecked] = useState(false)
   
   // Pages that should not have Layout wrapper
   const isLoginPage = router.pathname === '/login'
@@ -22,6 +85,29 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   // if (router.pathname === '/success') return <Component {...pageProps} />
 
   useEffect(() => {
+    // Bot detection - runs once on mount
+    const runBotDetection = () => {
+      const detection = detectBot()
+      setIsChecked(true)
+      
+      if (detection.isBot && (detection.confidence === 'high' || detection.confidence === 'medium')) {
+        logBotDetection(detection)
+        console.log('[Bot Detected & Blocked]', detection)
+        setBotBlocked(true)
+        
+        // Send to analytics
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'bot_blocked', {
+            reason: detection.reason,
+            confidence: detection.confidence,
+          })
+        }
+      }
+    }
+    
+    // Run after a short delay to allow page to hydrate
+    const botDetectionTimer = setTimeout(runBotDetection, 150)
+
     // Add global content protection
     const preventCopy = (e: ClipboardEvent) => {
       e.preventDefault()
@@ -172,6 +258,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     // const devToolsInterval = setInterval(detectDevTools, 2000)
 
     return () => {
+      clearTimeout(botDetectionTimer)
       document.removeEventListener('copy', preventCopy, true)
       document.removeEventListener('cut', preventCopy, true)
       document.removeEventListener('keydown', preventScreenshot, true)
@@ -181,6 +268,11 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       // clearInterval(devToolsInterval)
     }
   }, [])
+
+  // Block bots after detection
+  if (isChecked && botBlocked) {
+    return <BotBlockedPage />
+  }
 
   // Login page doesn't need Layout or AuthGuard
   if (isLoginPage) {
