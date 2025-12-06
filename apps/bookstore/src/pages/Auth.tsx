@@ -388,7 +388,7 @@ const Auth = () => {
                 onClick={() => navigate('/reset-password')}
                 className="text-gray-500 hover:underline text-xs"
               >
-                I forgot your password?
+                I forgot my password?
               </button>
             )}
           </div>

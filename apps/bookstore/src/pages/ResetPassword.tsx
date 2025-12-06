@@ -600,7 +600,7 @@ const ResetPassword = () => {
                 onClick={() => navigate('/auth')}
                 className="text-primary hover:underline"
               >
-                Remember your password? Sign in
+                I remember my password? Sign in
               </button>
             </div>
           )}
