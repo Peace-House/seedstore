@@ -127,7 +127,36 @@ export class BookTab extends BaseTab {
     }
     // don't wait promise resolve to make valtio batch updates
     this.book = { ...this.book, ...changes }
-    db?.books.update(this.book.id, changes)
+    
+    // Try to update existing record, or create if it doesn't exist
+    db?.books.get(this.book.id).then(async (existing) => {
+      if (existing) {
+        // Use snapshot to avoid DataCloneError with Valtio proxy objects
+        const plainChanges = JSON.parse(JSON.stringify(changes))
+        await db?.books.update(this.book.id, plainChanges)
+      } else {
+        // Book doesn't exist locally (e.g., from remote library)
+        // Create a minimal record with the current state
+        // Use JSON parse/stringify to convert proxy to plain object
+        const bookSnapshot = snapshot(this.book)
+        const newBook: BookRecord = {
+          id: String(bookSnapshot.id),
+          name: bookSnapshot.name || `book-${bookSnapshot.id}`,
+          size: bookSnapshot.size || 0,
+          metadata: bookSnapshot.metadata || {} as any,
+          createdAt: typeof bookSnapshot.createdAt === 'number' ? bookSnapshot.createdAt : Date.now(),
+          definitions: Array.isArray(bookSnapshot.definitions) ? [...bookSnapshot.definitions] : [],
+          annotations: Array.isArray(bookSnapshot.annotations) ? JSON.parse(JSON.stringify(bookSnapshot.annotations)) : [],
+          cfi: typeof changes.cfi === 'string' ? changes.cfi : undefined,
+          percentage: typeof changes.percentage === 'number' ? changes.percentage : undefined,
+          updatedAt: Date.now(),
+        }
+        await db?.books.put(newBook)
+        console.log(`[BookTab] Created local record for book ${this.book.id}`)
+      }
+    }).catch((error) => {
+      console.error('[BookTab] Error updating book:', error)
+    })
   }
 
   annotationRange?: Range
@@ -141,13 +170,14 @@ export class BookTab extends BaseTab {
   }
   undefine(def: string) {
     this.updateBook({
-      definitions: this.book.definitions.filter(
+      definitions: this.book.definitions?.filter(
         (d) => !compareDefinition(d, def),
       ),
     })
   }
   isDefined(def: string) {
-    return this.book.definitions.some((d) => compareDefinition(d, def))
+    const defs = Array.isArray(this?.book?.definitions) ? this.book.definitions : [];
+    return defs.some((d) => compareDefinition(d, def))
   }
 
   rangeToCfi(range: Range) {
@@ -163,8 +193,9 @@ export class BookTab extends BaseTab {
     const spine = this.section
     if (!spine?.navitem) return
 
-    const i = this.book.annotations.findIndex((a) => a.cfi === cfi)
-    let annotation = this.book.annotations[i]
+  const annotationsArr = Array.isArray(this.book.annotations) ? this.book.annotations : [];
+  const i = annotationsArr.findIndex((a) => a.cfi === cfi)
+  let annotation = annotationsArr[i]
 
     const now = Date.now()
     if (!annotation) {
@@ -184,9 +215,18 @@ export class BookTab extends BaseTab {
         text,
       }
 
+      const arr = Array.isArray(this.book.annotations)
+        ? this.book.annotations
+        : [];
+      let safeAnnotations: typeof arr;
+      try {
+        safeAnnotations = Array.isArray(snapshot(arr)) ? Array.from(snapshot(arr)) : [...arr]
+      } catch {
+        safeAnnotations = [...arr]
+      }
       this.updateBook({
         // DataCloneError: Failed to execute 'put' on 'IDBObjectStore': #<Object> could not be cloned.
-        annotations: [...snapshot(this.book.annotations), annotation],
+        annotations: [...safeAnnotations, annotation],
       })
     } else {
       annotation = {
@@ -373,6 +413,7 @@ export class BookTab extends BaseTab {
     this.rendition.themes.default(defaultStyle)
     this.rendition.hooks.render.register((view: any) => {
       console.log('hooks.render', view)
+      this.applyContentProtection(view)
       this.onRender?.()
     })
 
@@ -425,6 +466,88 @@ export class BookTab extends BaseTab {
     this.rendition.on('removed', (...args: any[]) => {
       console.log('removed', args)
     })
+  }
+
+  private applyContentProtection(view: any) {
+    try {
+      const doc = view.document
+      const win = view.window
+      
+      if (!doc || !win) return
+
+      // Add CSS to make content read-only but allow selection for highlights
+      const style = doc.createElement('style')
+      style.textContent = `
+        * {
+          -webkit-user-select: text !important;
+          -moz-user-select: text !important;
+          -ms-user-select: text !important;
+          user-select: text !important;
+        }
+        body::after {
+          content: "© Protected Content";
+          position: fixed;
+          bottom: 10px;
+          right: 10px;
+          font-size: 10px;
+          color: rgba(0, 0, 0, 0.1);
+          pointer-events: none;
+          z-index: 9999;
+        }
+      `
+      doc.head.appendChild(style)
+
+      // Prevent copy, cut operations
+      const preventCopy = (e: ClipboardEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+
+      doc.addEventListener('copy', preventCopy, true)
+      doc.addEventListener('cut', preventCopy, true)
+
+      // Prevent context menu
+      doc.addEventListener('contextmenu', (e: MouseEvent) => {
+        e.preventDefault()
+        return false
+      }, true)
+
+      // Prevent screenshot keyboard shortcuts
+      const preventScreenshot = (e: KeyboardEvent) => {
+        // Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5 (Mac)
+        // PrtScn, Alt+PrtScn, Win+PrtScn (Windows)
+        if (
+          (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) ||
+          e.key === 'PrintScreen' ||
+          (e.altKey && e.key === 'PrintScreen') ||
+          (e.metaKey && e.key === 'PrintScreen')
+        ) {
+          e.preventDefault()
+          e.stopPropagation()
+          return false
+        }
+
+        // Prevent Ctrl+C, Ctrl+X, Cmd+C, Cmd+X
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'x' || e.key === 'C' || e.key === 'X')) {
+          e.preventDefault()
+          e.stopPropagation()
+          return false
+        }
+      }
+
+      doc.addEventListener('keydown', preventScreenshot, true)
+      win.addEventListener('keydown', preventScreenshot, true)
+
+      // Prevent drag selection to copy
+      doc.addEventListener('dragstart', (e: DragEvent) => {
+        e.preventDefault()
+        return false
+      }, true)
+
+    } catch (error) {
+      console.error('Failed to apply content protection:', error)
+    }
   }
 
   constructor(public book: BookRecord) {

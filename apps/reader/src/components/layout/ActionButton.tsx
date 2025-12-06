@@ -1,6 +1,7 @@
+import clsx from 'clsx'
 import { ComponentProps } from 'react'
 import { IconType } from 'react-icons'
-import clsx from 'clsx'
+
 import { useMobile } from '../../hooks'
 import { activeClass } from '../../styles'
 

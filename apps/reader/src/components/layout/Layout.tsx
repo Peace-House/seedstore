@@ -1,13 +1,14 @@
 import { PropsWithChildren, useEffect, useState } from 'react'
+
 import { useColorScheme, useMobile, useSetAction, useAction } from '../../hooks'
 import { SplitView } from '../base'
+
 import ActivityBar from './ActivityBar'
 import NavigationBar from './NavigationBar'
-import SideBar from './SideBar'
 import Reader from './Reader'
-import LibraryView from './LibraryView'
+import SideBar from './SideBar'
 
-export const Layout = ({ children }: PropsWithChildren<{}>) => {
+export const Layout = ({ children }: PropsWithChildren) => {
   useColorScheme()
   const [ready, setReady] = useState(false)
   const setAction = useSetAction()
@@ -25,8 +26,8 @@ export const Layout = ({ children }: PropsWithChildren<{}>) => {
       <SplitView>
         {mobile === false && <ActivityBar />}
         {mobile === true && <NavigationBar />}
-        {ready && (action === 'library' ? null : <SideBar />)}
-        {ready && (action === 'library' ? <LibraryView /> : <Reader>{children}</Reader>)}
+        {ready && action !== 'library' && <SideBar />}
+        {ready && <Reader>{children}</Reader>}
       </SplitView>
     </div>
   )
