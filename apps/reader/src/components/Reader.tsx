@@ -42,6 +42,7 @@ import {
   Annotations,
 } from './Annotation'
 import { AudioReader } from './AudioReader'
+import { BookReaderShimmer } from './BookReaderShimmer'
 import { Tab } from './Tab'
 import { TextSelectionMenu } from './TextSelectionMenu'
 import { DropZone, SplitView, useDndContext, useSplitViewItem } from './base'
@@ -223,8 +224,8 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
   // Sync annotations with server
   useAnnotationSync(book?.id)
 
-  // Sync reading progress with server
-  useReadProgressSync(book?.id)
+  // Sync reading progress with server and get restoring state
+  const { isRestoring } = useReadProgressSync(book?.id)
 
   useTilg()
 
@@ -430,6 +431,7 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
         // `color-scheme: dark` will make iframe background white
         style={{ colorScheme: 'auto' }}
       >
+        {/* Loading overlay while book is rendering */}
         <div
           className={clsx(
             'absolute inset-0',
@@ -439,6 +441,8 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
             background,
           )}
         />
+        {/* Shimmer loader while restoring reading position */}
+        {isRestoring && rendered && <BookReaderShimmer background={background} />}
         <TextSelectionMenu tab={tab} />
         <Annotations tab={tab} />
       </div>

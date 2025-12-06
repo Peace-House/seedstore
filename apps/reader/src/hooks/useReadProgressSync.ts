@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSnapshot } from 'valtio'
 
 import { reader } from '../models'
@@ -40,6 +40,10 @@ export function useReadProgressSync(bookId: string | undefined) {
   const hasRestoredRef = useRef(false)
   // Track the maximum percentage reached to prevent saving lower progress
   const maxPercentageRef = useRef(0)
+  // Track if we're currently restoring the reading position
+  const [isRestoring, setIsRestoring] = useState(false)
+  // Track if there's saved progress to restore
+  const hasSavedProgressRef = useRef<boolean | null>(null)
 
   // Get the focused book tab
   const { focusedBookTab } = useSnapshot(reader)
@@ -144,18 +148,59 @@ export function useReadProgressSync(bookId: string | undefined) {
     }
   }, [bookId, calculatePercentage, getCurrentCfi])
 
+  // Check if there's saved progress before rendering (called early)
+  const checkForSavedProgress = useCallback(async () => {
+    if (!bookId) {
+      hasSavedProgressRef.current = false
+      return false
+    }
+
+    const numericBookId = parseInt(bookId, 10)
+    if (isNaN(numericBookId)) {
+      hasSavedProgressRef.current = false
+      return false
+    }
+
+    // Check local first
+    const localProgress = await getLocalProgress(bookId)
+    if (localProgress?.cfi && localProgress.percentage > 0) {
+      hasSavedProgressRef.current = true
+      setIsRestoring(true)
+      return true
+    }
+
+    // Check server if online
+    if (isOnline() && isAuthenticated()) {
+      try {
+        const serverProgress = await getReadProgress(numericBookId)
+        if (serverProgress?.cfi && serverProgress.percentage > 0) {
+          hasSavedProgressRef.current = true
+          setIsRestoring(true)
+          return true
+        }
+      } catch {
+        // Ignore errors, assume no saved progress
+      }
+    }
+
+    hasSavedProgressRef.current = false
+    return false
+  }, [bookId])
+
   // Restore reading position - try local first, then server
   const restorePosition = useCallback(async () => {
     console.log(`[ReadProgressSync] restorePosition called:`, { bookId, hasRestored: hasRestoredRef.current })
     
     if (!bookId || hasRestoredRef.current) {
       console.log(`[ReadProgressSync] Skipping restore - bookId: ${bookId}, hasRestored: ${hasRestoredRef.current}`)
+      setIsRestoring(false)
       return
     }
 
     const numericBookId = parseInt(bookId, 10)
     if (isNaN(numericBookId)) {
       console.log(`[ReadProgressSync] Invalid bookId (not a number): ${bookId}`)
+      setIsRestoring(false)
       return
     }
 
@@ -220,9 +265,12 @@ export function useReadProgressSync(bookId: string | undefined) {
                 `[ReadProgressSync] Restored position for book ${bookId} to ${progressToRestore!.percentage}%`
               )
               hasRestoredRef.current = true
+              // Position restored, hide shimmer
+              setIsRestoring(false)
             } catch (err) {
               console.error('[ReadProgressSync] Error restoring position:', err)
               hasRestoredRef.current = true // Mark as restored even on error to prevent loops
+              setIsRestoring(false)
             }
           }, 1000) // Increased delay to ensure rendition is ready
         } else {
@@ -232,6 +280,7 @@ export function useReadProgressSync(bookId: string | undefined) {
       } else {
         console.log('[ReadProgressSync] No progress to restore')
         hasRestoredRef.current = true
+        setIsRestoring(false)
       }
 
       // Initialize maxPercentageRef with the restored/saved progress
@@ -247,6 +296,7 @@ export function useReadProgressSync(bookId: string | undefined) {
     } catch (error) {
       console.error('[ReadProgressSync] Error restoring progress:', error)
       hasRestoredRef.current = true
+      setIsRestoring(false)
     }
   }, [bookId])
 
@@ -337,7 +387,16 @@ export function useReadProgressSync(bookId: string | undefined) {
     hasRestoredRef.current = false
     maxPercentageRef.current = 0
     lastSyncRef.current = { cfi: null, percentage: 0 }
+    hasSavedProgressRef.current = null
+    setIsRestoring(false)
   }, [bookId])
+
+  // Check for saved progress early (before rendering starts)
+  useEffect(() => {
+    if (bookId && hasSavedProgressRef.current === null) {
+      checkForSavedProgress()
+    }
+  }, [bookId, checkForSavedProgress])
 
   // Process sync queue when coming online
   useEffect(() => {
@@ -379,5 +438,6 @@ export function useReadProgressSync(bookId: string | undefined) {
     saveLocally,
     calculatePercentage,
     getCurrentCfi,
+    isRestoring,
   }
 }
