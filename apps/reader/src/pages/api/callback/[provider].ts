@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import nookies from 'nookies'
 
-import { mapToToken } from '@flow/reader/sync'
+// import { mapToToken } from '@flow/reader/sync'
 
 import { dbx } from '../utils'
 
@@ -24,7 +24,7 @@ export default async function handler(
   )
   const result = response.result as any
 
-  nookies.set({ res }, mapToToken['dropbox'], result.refresh_token, {
+  nookies.set({ res }, 'auth_token', result.refresh_token, {
     maxAge: 365 * 24 * 60 * 60,
     secure: true,
     path: '/',

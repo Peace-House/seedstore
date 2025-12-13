@@ -4,57 +4,74 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useBooks } from '@/hooks/useBooks';
+import { useCountry } from '@/hooks/useCountry';
+import { getBookPriceForCountry, hasValidPricing } from '@/utils/pricing';
 import { truncate } from '@/lib/utils';
 import { Book } from '@/services';
 
 const Hero = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { selectedCountry, countryCurrencies } = useCountry();
 
   const books = useBooks();
 
+  // Get the two most recent new release books, sorted by publishedDate (most recent first)
+  // Only show books with valid pricing
+  const newReleaseBooks = books?.data?.books
+    ?.filter((book: Book) => book.isNewRelease && hasValidPricing(book.prices))
+    ?.sort((a: Book, b: Book) => {
+      const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
+      const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
+      return dateB - dateA; // Most recent first
+    })
+    ?.slice(0, 2) || [];
+  
+  // Filter books with valid pricing for "Most read" section
+  const booksWithPricing = books?.data?.books?.filter((book: Book) => hasValidPricing(book.prices)) || [];
+
   return (
-    <section className="relative overflow-hidden">
-      <div className="container py-6 md:py-12 lg:py-12">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8 h-4/5 mt-auto">
-            <h1 className="hidden md:block text-5xl lg:text-6xl font-bold leading-tight">
-              Discover Your Next
+    <section className="relative overflow-hidden from-transparent via-transparent to-primary/20 bg-gradient-to-b">
+      <div className="md:container px-2 md:py-12 lg:py-12">
+        <div className="grid lg:grid-cols-2 md:gap-12 items-center">
+          <div className="md:space-y-8 md:h-4/5 md:mt-auto">
+            <h1 className=" md:block text-4xl md:text-5xl lg:text-[42px] font-bold leading-tight">
+              Strengthen Your walk with God 
               <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Favorite Read
+                With your next read.
               </span>
             </h1>
             {/* no auth */}
-            {!user && <p className="text-xl text-muted-foreground max-w-lg">
-              Access thousands of Christian eBooks. Read anytime. Start your reading journey today.
+            {!user && <p className="text-sm text-muted-foreground max-w-lg">
+              Access Inspired and edifying ebooks from the Livingseed Publishing Team. Read anytime online and offline. 
+              <br />Enhance your reading journey today.
             </p>}
             {user ?
-              <div className='w-full h-1/2'>
+              <div className='w-full max-w-[calc(100vw-1rem)] md:max-w-full h-auto mt-8 md:mt-0 overflow-hidden'>
                 <p className='font-medium mb-1'>Most read</p>
-                <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 w-full h-full px-1'>
-                  {books?.data?.books?.map((book: Book) => (
-                <li key={book.id} className="bg-white/90 h-full min-w-[150px] max-w-[250px] border border-gray-200 rounded-none shadow-lg flex flex-col items-center">
-                  <img
-                    src={book.coverImage}
-                    alt={book.title}
-                    className="h-full w-[150px] object-cover mb-3"
-                  />
-                  {/* <div className="text-[10px] mb-1 text-gray-600 font-semibold text-center line-clamp-1">{book.author}</div> */}
-                </li>
-              ))}
-
+                <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 pb-2 -mx-2 px-2' style={{ WebkitOverflowScrolling: 'touch' }}>
+                  {booksWithPricing.map((book: Book) => (
+                    <li key={book.id} className="bg-transparent flex-shrink-0 h-[180px] max-w-[140px] rounded-none flex flex-col items-center">
+                      <img
+                      src={book.coverImage}
+                      alt={book.title}
+                      className="h-full w-full object-contain object-top scale-90 bg-transparent"
+                      />
+                    </li>
+                  ))}
                 </ul>
               </div>
               :
               (
-                <div className="flex flex-wrap gap-4">
-                  <Button size="lg" className="group" onClick={() => navigate('/auth')}>
+                <div className="grid grid-cols-1 my-8 md:flex flex-wrap gap-4">
+                  <Button size="lg" liquidGlass={false} className="group" onClick={() => navigate('/auth')}>
                     Get Started
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
+                    className='hidden md:block'
                     onClick={() => {
                       const el = document.getElementById('all-books');
                       if (el) {
@@ -73,38 +90,43 @@ const Hero = () => {
           {/* not auth */}
           {!user && <div className="relative lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent opacity-90" />
-            <div className="absolute inset-0 flex items-center justify-center"
+            <div className="absolute inset-0 flex items-center md:items-end justify-center md:justify-end"
               style={{
-                backgroundImage: 'url(/public/cross.jpg)',
+                backgroundImage: 'url(/bg-cross-new.jpg)',
                 backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundPosition: 'left',
                 backgroundRepeat: 'no-repeat',
               }}
             >
-              <div className="text-center text-white space-y-4 p-8">
-                <div className="text-6xl font-bold">10,000+</div>
-                <div className="text-xl">Christian eBooks Available</div>
+              <div className="text-center text-primary space-y-4 p-8">
+                <div className="text-3xl md:text-8xl font-bold">{booksWithPricing?.length?.toLocaleString()}+</div>
+                <div className="text-2xl">Christian eBooks Available</div>
               </div>
             </div>
           </div>}
-          {/* with auth */}
-          {user && books?.data && books?.data?.books && books?.data?.books?.length > 0 && (
-            <div className="h-full grid grid-cols-2 px-6 items-center justify-center gap-6 z-10 relative bg-transparent lg:h-[500px] rounded-2xl overflow-hidden shadow-none">
-              {books.data.books.slice(0, 2).map((book: Book) => (
-                <div key={book.id} className="bg-white/90 h-[89%] w-full rounded-xl shadow-md border overflow-hidden flex flex-col items-center relative">
-                  <div className="absolute top-1 right-1 rounded-lg bg-red-600 italic text-white px-2 py-1 text-xs font-semibold">
-                    New
+          {/* with auth - show two most recent new releases */}
+          {user && newReleaseBooks.length > 0 && (
+            <div className="hidden h-full md:grid grid-cols-1 md:grid-cols-2 px-6 items-center justify-center gap-6 z-10 relative bg-transparent lg:h-[500px] rounded-2xl overflow-hidden shadow-none">
+              {newReleaseBooks.map((book: Book) => {
+                const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+                return (
+                  <div key={book.id} className="bg-white/90 h-[89%] w-full rounded-xl shadow-md border overflow-hidden flex flex-col items-center relative">
+                    <div className="absolute top-1 right-1 rounded-lg bg-red-600 italic text-white px-2 py-1 text-xs font-semibold">
+                      New
+                    </div>
+                    <img
+                      src={book.coverImage}
+                      alt={book.title}
+                      className="h-[90%] w-full object-cover mb-3 shadow"
+                    />
+                    {/* <div className="font-semibold text-lg text-gray-900 text-center line-clamp-2">{truncate(book.title, 18)}</div> */}
+                    {/* <div className="text-sm text-gray-600 text-center line-clamp-1">{book.author}</div> */}
+                    <div className="text-sm font-bold text-gray-600 text-left line-clamp-1 w-full px-4">
+                      {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
+                    </div>
                   </div>
-                  <img
-                    src={book.coverImage}
-                    alt={book.title}
-                    className="h-[80%] w-full object-cover mb-3 shadow"
-                  />
-                  <div className="font-semibold text-lg text-gray-900 text-center line-clamp-2">{truncate(book.title, 18)}</div>
-                  <div className="text-sm text-gray-600 text-center line-clamp-1">{book.author}</div>
-                  <div className="text-sm font-bold text-gray-600 text-center line-clamp-1">₦{book.price}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

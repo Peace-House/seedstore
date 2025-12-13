@@ -12,3 +12,10 @@ export function cn(...inputs: ClassValue[]) {
 
 export const slugify = (str: string) =>
   str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+export function capitalizeWords(text: string): string {
+  if (!text) return text;
+  return text
+    .toLowerCase()
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
