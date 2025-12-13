@@ -35,6 +35,9 @@ const Auth = () => {
   const [states, setStates] = useState<{ Id: string; StateName: string }[]>([]);
   const [countryOfResidence, setCountryOfResidence] = useState('162'); // Default Nigeria
   const [stateOfResidence, setStateOfResidence] = useState('');
+  const [gender, setGender] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+
 
   // Fetch countries and states for signup
   useEffect(() => {
@@ -66,15 +69,17 @@ const Auth = () => {
 
     // Only validate confirmPassword for signup
     if (!isLogin) {
-      const signupSchema = z.object({
-        password: z.string().min(6, 'Password must be at least 6 characters'),
-        confirmPassword: z.string().min(6, 'Confirm Password must be at least 6 characters'),
-      }).refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords don't match",
-        path: ['confirmPassword'],
-      });
+    const signupSchema = z.object({
+  password: z.string().min(6),
+  confirmPassword: z.string().min(6),
+  gender: z.enum(['male', 'female']),
+  dateOfBirth: z.string().min(1, 'Date of birth is required'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
+});
 
-      const validation = signupSchema.safeParse({ password, confirmPassword });
+      const validation = signupSchema.safeParse({ password, confirmPassword, gender, dateOfBirth });
       if (!validation.success) {
         setIsSubmitting(false);
         toast({
@@ -107,7 +112,7 @@ const Auth = () => {
         // Get device info for session tracking
         const deviceName = getDeviceName();
         const location = await getDeviceLocation();
-        
+
         await login({ email, password, platform: detectPlatform(), deviceId: getDeviceId(), deviceName, location });
         toast({
           title: 'Welcome back!',
@@ -141,6 +146,8 @@ const Auth = () => {
           password,
           countryOfResidence,
           stateOfResidence: countryOfResidence === '162' ? stateOfResidence : undefined,
+          gender,
+          dateOfBirth,
         });
         toast({
           title: 'Account Created!',
@@ -214,7 +221,7 @@ const Auth = () => {
                   <Input
                     id="firstName"
                     type="text"
-                    placeholder="John"
+                    placeholder="Enter Firstname"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required={!isLogin}
@@ -225,7 +232,7 @@ const Auth = () => {
                   <Input
                     id="lastName"
                     type="text"
-                    placeholder="Doe"
+                    placeholder="Enter Lastname"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required={!isLogin}
@@ -245,65 +252,94 @@ const Auth = () => {
               />
             </div>}
             {!isLogin &&
-            <>
-              <div className="flex flex-col md:flex-row md:items-center md:gap-2">
-                <div className="space-y-1 w-full md:w-2/3">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-1 w-full md:w-1/2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    placeholder="(+234) 9012345678"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col md:flex-row md:items-center md:gap-2 mt-2">
-                <div className={`space-y-1 w-full ${countryOfResidence === '162' ? 'md:w-1/2' : 'md:w-full'}`}>
-                  <Label htmlFor="countryOfResidence">Country</Label>
-                  <select
-                    id="countryOfResidence"
-                    value={countryOfResidence}
-                    onChange={e => setCountryOfResidence(e.target.value)}
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    required
-                  >
-                    {countries.map(c => (
-                      <option key={c.Id} value={c.Id}>{c.CountryName}</option>
-                    ))}
-                  </select>
-                </div>
-                {countryOfResidence === '162' && (
+              <>
+                <div className="flex flex-col md:flex-row md:items-center md:gap-2">
+                  <div className="space-y-1 w-full md:w-2/3">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
                   <div className="space-y-1 w-full md:w-1/2">
-                    <Label htmlFor="stateOfResidence">State</Label>
+                    <Label htmlFor="phoneNumber">Phone Number</Label>
+                    <Input
+                      id="phoneNumber"
+                      type="tel"
+                      placeholder="+2349000000000"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col md:flex-row md:items-center md:gap-2 mt-2">
+                  <div className={`space-y-1 w-full ${countryOfResidence === '162' ? 'md:w-1/2' : 'md:w-full'}`}>
+                    <Label htmlFor="countryOfResidence">Country</Label>
                     <select
-                      id="stateOfResidence"
-                      value={stateOfResidence}
-                      onChange={e => setStateOfResidence(e.target.value)}
+                      id="countryOfResidence"
+                      value={countryOfResidence}
+                      onChange={e => setCountryOfResidence(e.target.value)}
                       className="w-full border rounded px-3 py-2 text-sm"
-                      required={countryOfResidence === '162'}
-                      
+                      required
                     >
-                      <option value="">Select state</option>
-                      {states.map(s => (
-                        <option key={s.Id} value={s.Id}>{s.StateName}</option>
+                      {countries.map(c => (
+                        <option key={c.Id} value={c.Id}>{c.CountryName}</option>
                       ))}
                     </select>
                   </div>
+                  {countryOfResidence === '162' && (
+                    <div className="space-y-1 w-full md:w-1/2">
+                      <Label htmlFor="stateOfResidence">State</Label>
+                      <select
+                        id="stateOfResidence"
+                        value={stateOfResidence}
+                        onChange={e => setStateOfResidence(e.target.value)}
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        required={countryOfResidence === '162'}
+
+                      >
+                        <option value="">Select state</option>
+                        {states.map(s => (
+                          <option key={s.Id} value={s.Id}>{s.StateName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                {!isLogin && (
+                  <div className="flex flex-col md:flex-row md:gap-2">
+                    <div className="space-y-1 w-full md:w-1/2">
+                      <Label htmlFor="gender">Gender</Label>
+                      <select
+                        id="gender"
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        required
+                      >
+                        <option value="">Select gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1 w-full md:w-1/2">
+                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                      <Input
+                        id="dateOfBirth"
+                        type="date"
+                        value={dateOfBirth}
+                        onChange={(e) => setDateOfBirth(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
                 )}
-              </div>
-            </>
+              </>
             }
             <div className={`grid  ${isLogin ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 md:gap-2'}`}>
               <div className="relative">
