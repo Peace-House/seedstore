@@ -256,12 +256,12 @@ const ResetPassword = () => {
       const response = await resetPasswordLegacy(phcode, password, verificationToken);
       if (response.status) {
         // Sync password to local database as well
-        try {
-          await syncPasswordToLocal(phcode, password);
-        } catch (syncError) {
-          // Don't fail the whole flow if local sync fails - legacy reset was successful
-          console.warn('Local password sync failed (non-critical):', syncError);
-        }
+        // try {
+        //   await syncPasswordToLocal(phcode, password);
+        // } catch (syncError) {
+        //   // Don't fail the whole flow if local sync fails - legacy reset was successful
+        //   console.warn('Local password sync failed (non-critical):', syncError);
+        // }
         
         toast({
           title: 'Password Reset Successful!',
