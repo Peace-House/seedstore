@@ -120,7 +120,8 @@ const Checkout = () => {
     }
 
     if (selectedMethod === 'paystack') {
-      paystackMutation.mutate([]);
+      // paystackMutation.mutate([]);
+      paystackMutation.mutate(["card", "bank", "apple_pay", "ussd", "qr", "mobile_money", "bank_transfer", "eft", "payattitude"]);
     } else if (selectedMethod === 'applepay') {
       // Apple Pay uses Paystack with apple_pay channel
       paystackMutation.mutate(['apple_pay']);
