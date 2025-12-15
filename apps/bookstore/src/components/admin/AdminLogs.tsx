@@ -3,21 +3,72 @@ import { getAuditLogs, AuditLogPage } from '@/services/auditLog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import { Search } from 'lucide-react';
 
 const AdminLogs = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
 
   const { data: logPage, isLoading } = useQuery<AuditLogPage>({
-    queryKey: ['audit-logs', page, pageSize],
-    queryFn: () => getAuditLogs(page, pageSize),
+    queryKey: ['audit-logs', page, pageSize, search],
+    queryFn: () => getAuditLogs(page, pageSize, search),
   });
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput);
+    setPage(1); // Reset to first page on new search
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setSearch('');
+    setPage(1);
+  };
 
   return (
     <Card className="rounded">
       <CardHeader>
-        <CardTitle>Audit Logs</CardTitle>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle className="flex items-center gap-2">
+            Audit Logs
+            {logPage && (
+              <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {logPage.total.toLocaleString()}
+              </span>
+            )}
+          </CardTitle>
+          <form onSubmit={handleSearch} className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:w-80">
+              <Search className="absolute z-10 left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search user, email, or action..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button type="submit" size="sm">
+              Search
+            </Button>
+            {search && (
+              <Button type="button" variant="outline" size="sm" onClick={handleClearSearch}>
+                Clear
+              </Button>
+            )}
+          </form>
+        </div>
+        {search && (
+          <p className="text-sm text-muted-foreground mt-2">
+            Showing results for: <span className="font-medium">&quot;{search}&quot;</span>
+            {logPage && ` (${logPage.total} found)`}
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

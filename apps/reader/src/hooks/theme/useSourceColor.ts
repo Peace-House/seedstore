@@ -17,7 +17,6 @@ export function useSourceColor() {
     },
     [setSettings],
   )
-// bg-[#8FB51C]/15
-  // return { sourceColor: theme?.source ?? '#8FB51C26', setSourceColor }
-  return { sourceColor: theme?.source ?? '#0ea5e9', setSourceColor }
+  // Default to a neutral blue that works well for reading
+  return { sourceColor: theme?.source ?? '#6366f1', setSourceColor }
 }

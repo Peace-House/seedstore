@@ -10,6 +10,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
+  phcode?: string;
   isAdmin: boolean;
   role: string;
   createdAt: string;
@@ -34,8 +35,8 @@ export const useAuth = () => {
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (payload: { email: string; password: string }) => {
-      return await userApi.login(payload.email, payload.password);
+    mutationFn: async (payload: { email: string; password: string; platform?: string; deviceId: string; deviceName?: string; location?: string }) => {
+      return await userApi.login(payload.email, payload.password, payload.platform || 'web', payload.deviceId, payload.deviceName, payload.location);
     },
     onSuccess: (data) => {
       setToken(data.token);
@@ -50,7 +51,7 @@ export const useAuth = () => {
 
   // Register mutation
   const registerMutation = useMutation({
-    mutationFn: async (payload: { email: string; firstName: string; lastName: string; password: string; phoneNumber?: string }) => {
+    mutationFn: async (payload: { email: string; firstName: string; lastName: string; password: string; phoneNumber?: string, countryOfResidence: string, stateOfResidence?: string, gender:string, dateOfBirth: string }) => {
       return await userApi.register({ ...payload });
     },
     onSuccess: (data) => {
@@ -79,7 +80,7 @@ export const useAuth = () => {
   return {
     user,
     token,
-    loading,
+    loading: loading || loginMutation.isPending || registerMutation.isPending,
     login: loginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
     signOut: logoutMutation.mutateAsync,

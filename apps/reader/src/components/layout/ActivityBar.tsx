@@ -1,7 +1,8 @@
-import { useSplitViewItem } from '../base'
-import ViewActionBar from './ViewActionBar'
-import PageActionBar from './PageActionBar'
 import { Env } from '../../hooks'
+import { useSplitViewItem } from '../base'
+
+import PageActionBar from './PageActionBar'
+import ViewActionBar from './ViewActionBar'
 
 const ActivityBar: React.FC = () => {
   useSplitViewItem(ActivityBar, {
