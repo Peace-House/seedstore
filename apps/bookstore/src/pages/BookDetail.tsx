@@ -1,14 +1,15 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getBookById } from '@/services/book';
+import { Book } from '@/services';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useCountry } from '@/hooks/useCountry';
 import { getBookPriceForCountry } from '@/utils/pricing';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { ShoppingCart, BookOpen, Loader2, Calendar, FileText, Hash, ChevronLeft, Plus } from 'lucide-react';
+import { CardContent } from '@/components/ui/card';
+import { ShoppingCart, BookOpen, Loader2, Calendar, FileText, Hash, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import RelatedBooks from '@/components/RelatedBooks';
@@ -19,10 +20,41 @@ import { useLibrary } from '@/hooks/useLibrary';
 
 const reader_route = import.meta.env.VITE_BOOKREADER_URL!;
 
+const COMING_SOON_BOOK_ID = 'sl';
+
+const comingSoonBook: Book = {
+  id: COMING_SOON_BOOK_ID,
+  title: 'Silent Labours',
+  author: 'Gbile Akanni',
+  price: 0,
+  prices: [
+    {
+      currency: 'NGN',
+      country: 'Nigeria',
+      soft_copy_price: 0,
+      hard_copy_price: 0,
+    },
+  ],
+  coverImage: '/sl.png',
+  category: {
+    id: -1,
+    name: 'Coming Soon',
+  },
+  format: 'ebook',
+  description:
+    'This special release is in its final preparation stage. Check back soon to read the full book or subscribe to our updates for launch alerts.',
+  featured: true,
+  isNewRelease: true,
+  publishedDate: '2026-01-01T00:00:00.000Z',
+  pages: 0,
+  ISBN: 'COMING-SOON-SL-001',
+};
+
 const BookDetail = () => {
   const { id: slugId } = useParams();
   // Extract id from slug-id
   const id = slugId?.split('-').pop();
+  const isComingSoon = id === COMING_SOON_BOOK_ID;
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -30,13 +62,17 @@ const BookDetail = () => {
   const { selectedCountry, countryCurrencies } = useCountry();
   const { addFreeBookAsync, isAddingFreeBook, library } = useLibrary();
 
-  const { data: book, isLoading } = useQuery({
+  const { data: fetchedBook, isLoading } = useQuery({
     queryKey: ['book', id],
     queryFn: async () => {
       if (!id) return null;
       return await getBookById(id);
     },
+    enabled: !!id && !isComingSoon,
   });
+
+  const book = isComingSoon ? comingSoonBook : fetchedBook;
+  const loading = isComingSoon ? false : isLoading;
 
   // Check if book is in user's library (purchased or added as free)
   const isPurchased = book && Array.isArray(library)
@@ -57,6 +93,7 @@ const BookDetail = () => {
   };
 
   const handleAddToCart = () => {
+    if (!book || isComingSoon) return;
     addToCart(book, {
       onSuccess: () => {
         toast({
@@ -78,10 +115,12 @@ const BookDetail = () => {
   };
 
   const handleAddFreeBook = async () => {
+    if (isComingSoon) return;
     if (!user) {
       navigate('/auth');
       return;
     }
+    if (!book) return;
     try {
       await addFreeBookAsync(Number(book.id));
       toast({
@@ -98,7 +137,7 @@ const BookDetail = () => {
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <>
         {/* <Navbar /> */}
@@ -124,10 +163,16 @@ const BookDetail = () => {
   console.log('Book Detail:', book);
 
   // Check if book is already in cart
-  const isInCart = cartItems.some((item: { book?: { id: string }; bookId?: string; id: string }) => {
-    const itemBookId = item.book?.id || item.bookId || item.id;
-    return itemBookId == book.id;
-  });
+  const isInCart = book
+    ? cartItems.some((item: { book?: { id: string }; bookId?: string; id: string }) => {
+        const itemBookId = item.book?.id || item.bookId || item.id;
+        return itemBookId == book.id;
+      })
+    : false;
+
+  const priceInfo = book
+    ? getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies)
+    : null;
 
   return (
     <>
@@ -160,18 +205,26 @@ const BookDetail = () => {
               )}
             </div>
 
-            {(() => {
-              const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies)
-              return (
-                <div className="flex items-baseline gap-4">
-                  <span className="text-4xl font-bold text-primary">
-                    {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
-                  </span>
-                </div>
-              )
-            })()}
+            {isComingSoon ? (
+              <div className="flex flex-col gap-2">
+                <span className="text-2xl font-semibold text-primary">Coming Soon</span>
+                <p className="text-sm text-muted-foreground text-red-600">
+                  Watch this space for when it comes live.
+                </p>
+              </div>
+            ) : priceInfo ? (
+              <div className="flex items-baseline gap-4">
+                <span className="text-4xl font-bold text-primary">
+                  {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
+                </span>
+              </div>
+            ) : null}
 
-            {isPurchased ? (
+            {isComingSoon ? (
+              <Button size="lg" className="w-full" disabled>
+                Coming Soon
+              </Button>
+            ) : isPurchased ? (
               <div className='flex flex-col md:flex-row md:items-center gap-4'>
                 <Button
                   size="lg"
@@ -184,7 +237,7 @@ const BookDetail = () => {
                 </Button>
 
               </div>
-            ) : getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies).price === 0 ? (
+            ) : priceInfo?.price === 0 ? (
               <Button
                 size="lg"
                 className="w-full"
@@ -276,7 +329,7 @@ const BookDetail = () => {
           </div>
         </div>
       {/* related books */}
-      {book.category?.id && (
+      {book.category?.id && !isComingSoon && (
         <div className="mt-32 mb-10">
           <RelatedBooks categoryId={book.category.id} excludeBookId={book.id} showActions={false}  />
         </div>

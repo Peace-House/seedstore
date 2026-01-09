@@ -11,6 +11,7 @@ import BooksListView from './BooksListView';
 import LiquidGlassWrapper from './LiquidGlassWrapper';
 import { useCountry } from '@/hooks/useCountry';
 import { getBookPriceForCountry, hasValidPricing } from '@/utils/pricing';
+import { Book } from '@/services';
 
 const AllBooks = () => {
   const [activeTab, setActiveTab] = useState<'categories' | 'authors'>('categories');
@@ -53,7 +54,34 @@ const AllBooks = () => {
     queryFn: getCategories,
   });
 
-  const filteredBooks = books.filter(book => {
+  const comingSoonBook: Book = {
+    id: 'coming-soon-sl',
+    title: 'Silent Labours',
+    author: 'Gbile Akanni',
+    price: 0,
+    prices: [
+      {
+        currency: 'NGN',
+        country: 'Nigeria',
+        soft_copy_price: 0,
+        hard_copy_price: 0,
+      },
+    ],
+    coverImage: '/sl.png',
+    category: {
+      id: -1,
+      name: 'Coming Soon',
+    },
+    format: 'epub',
+    description: 'This title will be available soon. Stay tuned for the official release.',
+    featured: true,
+    isNewRelease: true,
+    publishedDate: new Date().toISOString(),
+  };
+
+  const booksForFiltering = [...books, comingSoonBook];
+
+  const filteredBooks = booksForFiltering.filter(book => {
     // Filter out books without valid pricing (for user view only)
     if (!hasValidPricing(book.prices)) return false;
     

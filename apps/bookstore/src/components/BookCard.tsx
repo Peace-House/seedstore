@@ -132,6 +132,13 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
               )}
             </div>
           </div>
+          <>
+          {book.id === 'coming-soon-sl' ? (
+            <div className="text-xs font-semibold text-red-600 bg-gray-100 px-2 py-1 rounded">
+              Coming Soon
+            </div>
+          ) : (
+
           <div className="flex items-end justify-between w-full">
             <span className="text-primary text-xs font-bold">
               {displayPrice === 0 ? 'Free' : `${displaySymbol}${Number(displayPrice).toLocaleString()}`}
@@ -181,6 +188,8 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
               </Button>
             )}
           </div>
+          )}
+          </>
         </div>
       </LiquidGlassWrapper>
     );
@@ -214,6 +223,13 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
           </Button>
         </div>
       </div>
+      {
+        book.id === 'coming-soon-sl' ? (
+          <div className="border-t pt-2 px-2 pb-3 flex flex-col items-center text-center">
+            <p className="text-lg py-0.5 font-semibold text-red-600">Coming Soon</p>
+          </div>
+        ) : (
+      
       <div className='h-max-[80px] border pt-2 flex flex-col justify-between'>
 
         <CardFooter className="p-2 bg-none pt-0 flex items-center justify-between">
@@ -280,6 +296,8 @@ const BookCard = ({ book, listView, showActions = true, className }: BookCardPro
           }
         </CardFooter>
       </div>
+        )
+      }
     </LiquidGlassWrapper>
   );
 };

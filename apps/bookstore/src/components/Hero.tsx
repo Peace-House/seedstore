@@ -105,7 +105,7 @@ const Hero = () => {
             </div>
           </div>}
           {/* with auth - show two most recent new releases */}
-          {user && newReleaseBooks.length > 0 && (
+          {/* {user && newReleaseBooks.length > 0 && (
             <div className="hidden h-full md:grid grid-cols-1 md:grid-cols-2 px-6 items-center justify-center gap-6 z-10 relative bg-transparent lg:h-[500px] rounded-2xl overflow-hidden shadow-none">
               {newReleaseBooks.map((book: Book) => {
                 const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
@@ -119,8 +119,6 @@ const Hero = () => {
                       alt={book.title}
                       className="h-[90%] w-full object-cover mb-3 shadow"
                     />
-                    {/* <div className="font-semibold text-lg text-gray-900 text-center line-clamp-2">{truncate(book.title, 18)}</div> */}
-                    {/* <div className="text-sm text-gray-600 text-center line-clamp-1">{book.author}</div> */}
                     <div className="text-sm font-bold text-gray-600 text-left line-clamp-1 w-full px-4">
                       {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
                     </div>
@@ -128,7 +126,22 @@ const Hero = () => {
                 );
               })}
             </div>
-          )}
+          )} */}
+          <div className="hidden md:flex h-full items-center justify-center">
+            <div className="bg-white/90 h-[89%] w-full max-w-md rounded-xl shadow-md border overflow-hidden flex flex-col items-center relative">
+              <div className="absolute top-1 right-1 rounded-lg bg-primary italic text-white px-2 py-1 text-xs font-semibold">
+                Coming Soon
+              </div>
+              <img
+                src="/sl.png"
+                alt="Coming Soon"
+                className="h-[85%] w-full object-fill shadow"
+              />
+              <div className="text-2xl font-semibold text-red-700 text-center py-3 px-4">
+                This book will be available on the shelf very soon
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

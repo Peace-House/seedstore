@@ -1,6 +1,7 @@
 import { Book } from '@/services';
 import BookCard from './BookCard';
 import React from 'react';
+import ComingSoonBookTile from './ComingSoonBookTile';
 
 interface BooksListViewProps {
   books: Book[];
@@ -12,6 +13,7 @@ const BooksListView: React.FC<BooksListViewProps> = ({ books }) => (
       {books.map((book) => (
         <BookCard key={book.id} book={book} listView />
       ))}
+      {/* <ComingSoonBookTile variant="list" /> */}
     </div>
   </div>
 );
