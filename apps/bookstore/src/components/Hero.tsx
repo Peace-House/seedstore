@@ -88,7 +88,7 @@ const Hero = () => {
             }
           </div>
           {/* not auth */}
-          {!user && <div className="relative lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
+          {/* {!user && <div className="relative lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent opacity-90" />
             <div className="absolute inset-0 flex items-center md:items-end justify-center md:justify-end"
               style={{
@@ -103,7 +103,7 @@ const Hero = () => {
                 <div className="text-2xl">Christian eBooks Available</div>
               </div>
             </div>
-          </div>}
+          </div>} */}
           {/* with auth - show two most recent new releases */}
           {/* {user && newReleaseBooks.length > 0 && (
             <div className="hidden h-full md:grid grid-cols-1 md:grid-cols-2 px-6 items-center justify-center gap-6 z-10 relative bg-transparent lg:h-[500px] rounded-2xl overflow-hidden shadow-none">
