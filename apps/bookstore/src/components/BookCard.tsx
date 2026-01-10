@@ -1,4 +1,4 @@
-import { Card, CardContent, CardFooter } from './ui/card';
+import { CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { ShoppingCart, Eye, Plus } from 'lucide-react';
 import { BookOpen } from 'lucide-react';
