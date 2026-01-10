@@ -24,7 +24,7 @@ export function useBackground() {
     [setSettings],
   )
 
-  // [-1, 1, 3, 5]
+  // [-1, 1, 3, 5] where -1 = white
   const level = theme?.background ?? -1
 
   const background = useMemo(() => {

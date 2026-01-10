@@ -24,20 +24,21 @@ const DefinitionPane: React.FC = () => {
   const { focusedBookTab } = useReaderSnapshot()
   const t = useTranslation('annotation')
 
+  const definitions = Array.isArray(focusedBookTab?.book?.definitions)
+    ? focusedBookTab?.book?.definitions ?? []
+    : [];
   return (
     <Pane headline={t('definitions')} preferredSize={120}>
-      {focusedBookTab?.book.definitions.map((d) => {
-        return (
-          <Row
-            key={d}
-            onDelete={() => {
-              reader.focusedBookTab?.undefine(d)
-            }}
-          >
-            {d}
-          </Row>
-        )
-      })}
+      {definitions.map((d) => (
+        <Row
+          key={d}
+          onDelete={() => {
+            reader.focusedBookTab?.undefine(d)
+          }}
+        >
+          {d}
+        </Row>
+      ))}
     </Pane>
   )
 }
