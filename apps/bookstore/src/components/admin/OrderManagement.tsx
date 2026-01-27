@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { useState, useCallback } from 'react';
 import AdminTable from './AdminTable';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import CreateOrderDialog from './CreateOrderDialog';
 import AdvancedFilter, { FilterValues, FilterConfig } from './AdvancedFilter';
 
 // Helper to format currency
@@ -153,12 +154,15 @@ const OrderManagement = () => {
   return (
     <Card className="rounded">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Orders
-          <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-            {totalOrders.toLocaleString()}
-          </span>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            Orders
+            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {totalOrders.toLocaleString()}
+            </span>
+          </CardTitle>
+          <CreateOrderDialog />
+        </div>
         <AdvancedFilter config={orderFilterConfig} onFilterChange={handleFilterChange} />
       </CardHeader>
       <CardContent className="px-0">

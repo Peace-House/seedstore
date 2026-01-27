@@ -190,3 +190,17 @@ export const resendVerificationEmail = async (email: string): Promise<{ message:
   const res = await api.post<{ message: string }>('/users/resend-verification', { email });
   return res.data;
 };
+
+// Create manual order (admin)
+export interface CreateManualOrderInput {
+  userId: number;
+  bookId: number;
+  price: number;
+  paymentReference?: string;
+  status?: string;
+}
+
+export async function createManualOrder(input: CreateManualOrderInput) {
+  const res = await api.post('/admin/orders/manual', input);
+  return res.data;
+}

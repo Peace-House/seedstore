@@ -219,6 +219,12 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
   const { sourceColor } = useSourceColor()
   const [showAudioReader, setShowAudioReader] = useState(false)
 
+  // Restore last page from localStorage or default to 0
+  const [page, setPage] = useState(() => {
+    const last = localStorage.getItem('audioReader:lastPage')
+    return last !== null && !isNaN(Number(last)) ? Number(last) : 0
+  })
+
   const { iframe, rendition, rendered, container, book } = useSnapshot(tab)
 
   // Sync annotations with server
@@ -268,6 +274,23 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
     }
     return ''
   }, [rendition])
+
+  // Navigation helpers for AudioReader
+  const handleNextPage = useCallback(() => {
+    setPage((prev) => {
+      const next = Number(prev) + 1
+      tab.next()
+      return next
+    })
+  }, [tab])
+
+  const handlePrevPage = useCallback(() => {
+    setPage((prev) => {
+      const prevPage = Math.max(Number(prev) - 1, 0)
+      tab.prev()
+      return prevPage
+    })
+  }, [tab])
 
   const applyCustomStyle = useCallback(() => {
     const contents = rendition?.getContents()[0]
@@ -449,9 +472,11 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
       {showAudioReader && (
         <AudioReader
           getText={getCurrentPageText}
+          page={page}
+          onPageChange={(page:number|string)=>setPage(page as number)}
           onClose={() => setShowAudioReader(false)}
-          onNextPage={() => tab.next()}
-          onPrevPage={() => tab.prev()}
+          onNextPage={handleNextPage}
+          onPrevPage={handlePrevPage}
         />
       )}
       <ReaderPaneFooter 

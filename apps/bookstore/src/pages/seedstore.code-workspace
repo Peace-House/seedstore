@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../ls/ls-server"
+		},
+		{
+			"path": "../../../.."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "ls-server"
+	}
+}
