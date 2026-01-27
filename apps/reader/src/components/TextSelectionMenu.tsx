@@ -3,7 +3,6 @@ import clsx from 'clsx'
 import { useCallback, useRef, useState } from 'react'
 import FocusLock from 'react-focus-lock'
 import {
-  MdCopyAll,
   MdOutlineAddBox,
   MdOutlineEdit,
   MdOutlineIndeterminateCheckBox,
@@ -23,7 +22,7 @@ import {
 import { BookTab } from '../models'
 import { isTouchScreen, scale } from '../platform'
 import { useSettings } from '../state'
-import { copy, keys, last } from '../utils'
+import { keys, last } from '../utils'
 
 import { Button, IconButton } from './Button'
 import { TextField } from './Form'
@@ -40,7 +39,8 @@ export const TextSelectionMenu: React.FC<TextSelectionMenuProps> = ({
 
   // `manager` is not reactive, so we need to use getter
   const view = useCallback(() => {
-    return rendition?.manager?.views._views[0]
+    const views = rendition?.manager?.views?._views
+    return Array.isArray(views) && views.length > 0 ? views[0] : undefined
   }, [rendition])
 
   const win = view()?.window
@@ -132,7 +132,7 @@ const TextSelectionMenuRenderer: React.FC<TextSelectionMenuRendererProps> = ({
   const t = useTranslation('menu')
 
   const cfi = tab.rangeToCfi(range)
-  const annotation = tab.book.annotations.find((a) => a.cfi === cfi)
+  const annotation = tab.book.annotations?.find((a) => a.cfi === cfi)
   const [annotate, setAnnotate] = useState(!!annotation)
 
   const position = forward
@@ -184,9 +184,9 @@ const TextSelectionMenuRenderer: React.FC<TextSelectionMenuRendererProps> = ({
         tabIndex={-1}
         onKeyDown={(e) => {
           e.stopPropagation()
-          if (e.key === 'c' && e.ctrlKey) {
-            copy(text)
-          }
+          // if (e.key === 'c' && e.ctrlKey) {
+          //   copy(text)
+          // }
         }}
       >
         {annotate ? (
@@ -203,15 +203,6 @@ const TextSelectionMenuRenderer: React.FC<TextSelectionMenuRendererProps> = ({
           </div>
         ) : (
           <div className="text-on-surface-variant -mx- mb-3 flex gap-1">
-            <IconButton
-              title={t('copy')}
-              Icon={MdCopyAll}
-              size={ICON_SIZE}
-              onClick={() => {
-                hide()
-                copy(text)
-              }}
-            />
             <IconButton
               title={t('search_in_book')}
               Icon={MdSearch}

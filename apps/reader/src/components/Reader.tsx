@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
-import { MdChevronRight, MdWebAsset } from 'react-icons/md'
+import { MdChevronRight, MdHeadphones, MdWebAsset } from 'react-icons/md'
 import { RiBookLine } from 'react-icons/ri'
 import { PhotoSlider } from 'react-photo-view'
 import { useSetRecoilState } from 'recoil'
@@ -25,10 +25,13 @@ import {
   useColorScheme,
   useDisablePinchZooming,
   useMobile,
+  useSourceColor,
   useSync,
   useTranslation,
   useTypography,
 } from '../hooks'
+import { useAnnotationSync } from '../hooks/useAnnotationSync'
+import { useReadProgressSync } from '../hooks/useReadProgressSync'
 import { BookTab, reader, useReaderSnapshot } from '../models'
 import { isTouchScreen } from '../platform'
 import { updateCustomStyle } from '../styles'
@@ -38,6 +41,8 @@ import {
   setClickedAnnotation,
   Annotations,
 } from './Annotation'
+import { AudioReader } from './AudioReader'
+import { BookReaderShimmer } from './BookReaderShimmer'
 import { Tab } from './Tab'
 import { TextSelectionMenu } from './TextSelectionMenu'
 import { DropZone, SplitView, useDndContext, useSplitViewItem } from './base'
@@ -211,8 +216,22 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
   const typography = useTypography(tab)
   const { dark } = useColorScheme()
   const [background] = useBackground()
+  const { sourceColor } = useSourceColor()
+  const [showAudioReader, setShowAudioReader] = useState(false)
 
-  const { iframe, rendition, rendered, container } = useSnapshot(tab)
+  // Restore last page from localStorage or default to 0
+  const [page, setPage] = useState(() => {
+    const last = localStorage.getItem('audioReader:lastPage')
+    return last !== null && !isNaN(Number(last)) ? Number(last) : 0
+  })
+
+  const { iframe, rendition, rendered, container, book } = useSnapshot(tab)
+
+  // Sync annotations with server
+  useAnnotationSync(book?.id)
+
+  // Sync reading progress with server and get restoring state
+  const { isRestoring } = useReadProgressSync(book?.id)
 
   useTilg()
 
@@ -241,10 +260,42 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
   const setNavbar = useSetRecoilState(navbarState)
   const mobile = useMobile()
 
+  // Get text content from current page for TTS
+  const getCurrentPageText = useCallback(() => {
+    try {
+      const contents = rendition?.getContents()?.[0]
+      if (contents?.document?.body) {
+        // Get the visible text content from the current page
+        const body = contents.document.body
+        return body.innerText || body.textContent || ''
+      }
+    } catch (err) {
+      console.error('Error getting page text:', err)
+    }
+    return ''
+  }, [rendition])
+
+  // Navigation helpers for AudioReader
+  const handleNextPage = useCallback(() => {
+    setPage((prev) => {
+      const next = Number(prev) + 1
+      tab.next()
+      return next
+    })
+  }, [tab])
+
+  const handlePrevPage = useCallback(() => {
+    setPage((prev) => {
+      const prevPage = Math.max(Number(prev) - 1, 0)
+      tab.prev()
+      return prevPage
+    })
+  }, [tab])
+
   const applyCustomStyle = useCallback(() => {
     const contents = rendition?.getContents()[0]
-    updateCustomStyle(contents, typography)
-  }, [rendition, typography])
+    updateCustomStyle(contents, typography, sourceColor)
+  }, [rendition, typography, sourceColor])
 
   useEffect(() => {
     tab.onRender = applyCustomStyle
@@ -403,6 +454,7 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
         // `color-scheme: dark` will make iframe background white
         style={{ colorScheme: 'auto' }}
       >
+        {/* Loading overlay while book is rendering */}
         <div
           className={clsx(
             'absolute inset-0',
@@ -412,10 +464,26 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
             background,
           )}
         />
+        {/* Shimmer loader while restoring reading position */}
+        {isRestoring && rendered && <BookReaderShimmer background={background} />}
         <TextSelectionMenu tab={tab} />
         <Annotations tab={tab} />
       </div>
-      <ReaderPaneFooter tab={tab} />
+      {showAudioReader && (
+        <AudioReader
+          getText={getCurrentPageText}
+          page={page}
+          onPageChange={(page:number|string)=>setPage(page as number)}
+          onClose={() => setShowAudioReader(false)}
+          onNextPage={handleNextPage}
+          onPrevPage={handlePrevPage}
+        />
+      )}
+      <ReaderPaneFooter 
+        tab={tab} 
+        showAudioReader={showAudioReader}
+        onToggleAudioReader={() => setShowAudioReader((prev) => !prev)}
+      />
     </div>
   )
 }
@@ -455,9 +523,16 @@ const ReaderPaneHeader: React.FC<ReaderPaneHeaderProps> = ({ tab }) => {
 
 interface FooterProps {
   tab: BookTab
+  showAudioReader?: boolean
+  onToggleAudioReader?: () => void
 }
-const ReaderPaneFooter: React.FC<FooterProps> = ({ tab }) => {
+const ReaderPaneFooter: React.FC<FooterProps> = ({ 
+  tab, 
+  showAudioReader,
+  onToggleAudioReader,
+}) => {
   const { locationToReturn, location, book } = useSnapshot(tab)
+  const setNavbar = useSetRecoilState(navbarState)
 
   return (
     <Bar>
@@ -483,7 +558,27 @@ const ReaderPaneFooter: React.FC<FooterProps> = ({ tab }) => {
       ) : (
         <>
           <div>{location?.start.href}</div>
-          <div>{((book.percentage ?? 0) * 100).toFixed()}%</div>
+          <div className="flex items-center gap-2">
+            <span>{((book.percentage ?? 0) * 100).toFixed()}%</span>
+            <button
+              className={clsx(
+                'flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors',
+                showAudioReader 
+                  ? 'bg-primary70/20 text-primary70' 
+                  : 'hover:bg-surface-variant text-outline hover:text-on-surface'
+              )}
+              onClick={onToggleAudioReader}
+              title="Listen to this page"
+            >
+              <MdHeadphones size={16} />
+            </button>
+          </div>
+          <button 
+            className="md:hidden text-primary70 font-medium"
+            onClick={() => setNavbar(true)}
+          >
+            Menu
+          </button>
         </>
       )}
     </Bar>

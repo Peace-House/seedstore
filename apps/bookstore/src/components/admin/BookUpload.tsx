@@ -3,7 +3,7 @@ import BookPreviewCard from './BookPreviewCard';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createBook } from '@/services/book';
+import { createBook, getBookGroups, BookGroup } from '@/services/book';
 import { getCategories } from '@/services/category';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -14,24 +14,25 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Checkbox } from '@/components/ui/checkbox';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { X } from 'lucide-react';
 
 const bookSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   author: z.string().min(1, 'Author is required').max(100),
   description: z.string().max(2000).optional(),
-  price: z.string().min(1, 'Price is required'),
-  category: z.string().max(50).optional(),
+  categoryIds: z.array(z.string()).default([]), // Multiple categories
+  groupId: z.string().optional(),
   isbn: z.string().max(20).optional(),
-  pages: z.string().optional(),
   publishedDate: z.string().optional(),
   isFeatured: z.boolean().default(false),
+  isNewRelease: z.boolean().default(false),
 });
 
 type BookFormData = z.infer<typeof bookSchema>;
 
 
 interface BookUploadProps {
-  initialValues?: Partial<BookFormData> & { coverImage?: string };
+  initialValues?: Partial<BookFormData> & { coverImage?: string; category?: string };
   onSubmitOverride?: (data: BookFormData, coverFile: File | null, bookFile: File | null) => Promise<void>;
   submitLabel?: string;
   isUpdate?: boolean;
@@ -45,15 +46,30 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Convert legacy single category to array for backward compatibility
+  const defaultCategoryIds = initialValues?.categoryIds || 
+    (initialValues?.category ? [initialValues.category] : []);
+
   const form = useForm<BookFormData>({
     resolver: zodResolver(bookSchema),
-    defaultValues: initialValues || { isFeatured: false },
+    defaultValues: { 
+      ...initialValues, 
+      categoryIds: defaultCategoryIds,
+      isFeatured: initialValues?.isFeatured ?? false, 
+      isNewRelease: initialValues?.isNewRelease ?? false 
+    },
   });
 
   // Fetch categories from backend
-  const { data: categories, isLoading: loadingCategories } = useQuery<{ id: string; name: string }[]>({
+  const { data: categories, isLoading: loadingCategories } = useQuery<{ id: number; name: string }[]>({
     queryKey: ['categories'],
     queryFn: getCategories,
+  });
+
+  // Fetch book groups from backend
+  const { data: bookGroups, isLoading: loadingGroups } = useQuery<BookGroup[]>({
+    queryKey: ['book-groups'],
+    queryFn: getBookGroups,
   });
 
   const onSubmit = async (data: BookFormData) => {
@@ -80,41 +96,25 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
     setUploading(true);
     try {
       // Frontend validation
-      if (!data.title || !data.author || !data.price) {
-        toast({
-          variant: 'destructive',
-          title: 'Missing required fields',
-          description: 'Title, author, price, and category are required.',
-        });
-        setUploading(false);
-        return;
-      }
-      if (isNaN(Number(data.price))) {
-        toast({
-          variant: 'destructive',
-          title: 'Invalid price',
-          description: 'Price must be a valid number.',
-        });
-        setUploading(false);
-        return;
-      }
       // Prepare FormData for backend upload
       const formData = new FormData();
-  formData.append('title', data.title);
-  formData.append('author', data.author);
-  formData.append('description', data.description || '');
-  formData.append('price', data.price);
-  // Use categoryId as required by backend
-  if (data.category) formData.append('categoryId', data.category);
-  if (data.isbn) formData.append('ISBN', data.isbn);
-  if (data.pages) formData.append('pages', data.pages);
-  if (data.publishedDate) formData.append('publishedDate', data.publishedDate);
-  // Optional: genre (if you want to add a field for it)
-  formData.append('genre', 'N/A');
-  formData.append('featured', data.isFeatured ? 'true' : 'false');
-  // File uploads: backend expects 'coverImage' and 'file'
-  formData.append('coverImage', coverFile as Blob);
-  formData.append('file', bookFile as Blob);
+      formData.append('title', data.title);
+      formData.append('author', data.author);
+      formData.append('description', data.description || '');
+      // Send multiple category IDs as comma-separated string
+      if (data.categoryIds && data.categoryIds.length > 0) {
+        formData.append('categoryIds', data.categoryIds.join(','));
+      }
+      if (data.groupId) formData.append('groupId', data.groupId);
+      if (data.isbn) formData.append('ISBN', data.isbn);
+      if (data.publishedDate) formData.append('publishedDate', data.publishedDate);
+      // Optional: genre (if you want to add a field for it)
+      formData.append('genre', 'N/A');
+      formData.append('featured', data.isFeatured ? 'true' : 'false');
+      formData.append('isNewRelease', data.isNewRelease ? 'true' : 'false');
+      // File uploads: backend expects 'coverImage' and 'file'
+      formData.append('coverImage', coverFile as Blob);
+      formData.append('file', bookFile as Blob);
       await createBook(formData);
       toast({
         title: 'Book uploaded',
@@ -142,13 +142,16 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
   };
 
   // Gather preview data from form state
+  const selectedCategoryIds = form.watch('categoryIds') || [];
   const previewData = {
     title: form.watch('title'),
     author: form.watch('author'),
-    price: form.watch('price'),
     coverFile,
     coverImage: initialValues?.coverImage,
-    category: categories?.find((cat) => cat.id === form.watch('category'))?.name,
+    category: categories
+      ?.filter((cat) => selectedCategoryIds.includes(String(cat.id)))
+      .map((cat) => cat.name)
+      .join(', '),
     description: form.watch('description'),
   };
 
@@ -193,14 +196,63 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                   )}
                 />
 
+                {/* Price field removed */}
+
                 <FormField
                   control={form.control}
-                  name="price"
+                  name="categoryIds"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price (₦) *</FormLabel>
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Categories</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" {...field} />
+                        <div className="space-y-2">
+                          {/* Selected categories display */}
+                          {field.value && field.value.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {field.value.map((catId: string) => {
+                                const cat = categories?.find((c) => String(c.id) === catId);
+                                return cat ? (
+                                  <span
+                                    key={catId}
+                                    className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-sm"
+                                  >
+                                    {cat.name}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        field.onChange(field.value.filter((id: string) => id !== catId));
+                                      }}
+                                      className="hover:bg-primary/20 rounded-full p-0.5"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          )}
+                          {/* Category select dropdown */}
+                          <select
+                            value=""
+                            onChange={(e) => {
+                              const selectedId = e.target.value;
+                              if (selectedId && !field.value?.includes(selectedId)) {
+                                field.onChange([...(field.value || []), selectedId]);
+                              }
+                            }}
+                            className="block w-full border rounded px-3 py-2 bg-background"
+                            disabled={loadingCategories}
+                          >
+                            <option value="">Add a category...</option>
+                            {categories
+                              ?.filter((cat) => !field.value?.includes(String(cat.id)))
+                              .map((cat) => (
+                                <option key={cat.id} value={String(cat.id)}>
+                                  {cat.name}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -209,20 +261,22 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
 
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="groupId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category</FormLabel>
+                      <FormLabel>Book Group *</FormLabel>
                       <FormControl>
                         <select
                           value={field.value}
                           onChange={field.onChange}
                           className="block w-full border rounded px-3 py-2 bg-background"
-                          disabled={loadingCategories}
+                          disabled={loadingGroups}
                         >
-                          <option value="">Select category</option>
-                          {categories?.map((cat: { id: string; name: string }) => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          <option value="">Select book group</option>
+                          {bookGroups?.map((group) => (
+                            <option key={group.id} value={String(group.id)}>
+                              {group.name} ({group.shortcode})
+                            </option>
                           ))}
                         </select>
                       </FormControl>
@@ -245,19 +299,7 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="pages"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pages</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Pages field removed */}
 
                 <FormField
                   control={form.control}
@@ -300,10 +342,10 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                 </div>
 
                 <div>
-                  <FormLabel>Book File (PDF/EPUB/HTML/DOCX) *</FormLabel>
+                  <FormLabel>Book File (EPUB/HTML/DOCX) *</FormLabel>
                   <Input
                     type="file"
-                    accept=".pdf,.epub, .html, .docx, .doc, .htm"
+                    accept=".epub, .html, .docx, .doc, .htm"
                     onChange={(e) =>{
                       const selectedFile = e.target.files[0];
                       if (selectedFile) {
@@ -336,6 +378,19 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="isNewRelease"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel className="!mt-0">New Release (notify users who opted in for new releases)</FormLabel>
+                  </FormItem>
+                )}
+              />
               <div className="flex justify-end">
                 <Button
                   type="submit"
@@ -343,7 +398,6 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                     uploading ||
                     !form.watch('title') ||
                     !form.watch('author') ||
-                    !form.watch('price') ||
                     (!isUpdate && !coverFile) ||
                     (!isUpdate && !bookFile)
                   }

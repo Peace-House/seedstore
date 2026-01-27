@@ -1,12 +1,4 @@
-import { ThemeView } from '../viewlets/ThemeView'
-import { TocView } from '../viewlets/TocView'
-import { SearchView } from '../viewlets/SearchView'
-import { AnnotationView } from '../viewlets/AnnotationView'
-import { ImageView } from '../viewlets/ImageView'
-import { TimelineView } from '../viewlets/TimelineView'
-import { TypographyView } from '../viewlets/TypographyView'
-import { Action, Env } from '../../hooks'
-import LibraryView from './LibraryView'
+import React from 'react'
 import { IconType } from 'react-icons'
 import {
   MdFormatUnderlined,
@@ -19,7 +11,15 @@ import {
   MdLibraryBooks,
 } from 'react-icons/md'
 import { RiFontSize } from 'react-icons/ri'
-import React from 'react'
+
+import { Action, Env } from '../../hooks'
+import { AnnotationView } from '../viewlets/AnnotationView'
+import { ImageView } from '../viewlets/ImageView'
+import { SearchView } from '../viewlets/SearchView'
+import { ThemeView } from '../viewlets/ThemeView'
+import { TimelineView } from '../viewlets/TimelineView'
+import { TocView } from '../viewlets/TocView'
+import { TypographyView } from '../viewlets/TypographyView'
 
 interface IAction {
   name: string
@@ -66,20 +66,6 @@ export const viewActions: IViewAction[] = [
     Icon: MdFormatUnderlined,
     View: AnnotationView,
     env: Env.Desktop | Env.Mobile,
-  },
-  {
-    name: 'image',
-    title: 'image',
-    Icon: MdOutlineImage,
-    View: ImageView,
-    env: Env.Desktop,
-  },
-  {
-    name: 'timeline',
-    title: 'timeline',
-    Icon: MdTimeline,
-    View: TimelineView,
-    env: Env.Desktop,
   },
   {
     name: 'typography',

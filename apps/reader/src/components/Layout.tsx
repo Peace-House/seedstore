@@ -1,22 +1,20 @@
 import { Overlay } from '@literal-ui/core'
 import clsx from 'clsx'
+import Link from 'next/link'
 import { PropsWithChildren } from 'react'
 import { ComponentProps, useEffect, useState } from 'react'
 import { useMemo } from 'react'
 import { IconType } from 'react-icons'
 import {
   MdFormatUnderlined,
-  MdOutlineImage,
   MdSearch,
-  MdToc,
-  MdTimeline,
   MdOutlineLightMode,
   MdChevronLeft,
   MdExitToApp,
   MdMenuBook,
   MdLibraryBooks,
 } from 'react-icons/md'
-import { RiFontSize, RiHome6Line, RiSettings5Line, RiShieldFill } from 'react-icons/ri'
+import { RiFontSize, RiHome6Line, RiSettings5Line } from 'react-icons/ri'
 import { useRecoilState } from 'recoil'
 
 import {
@@ -36,11 +34,8 @@ import { activeClass } from '../styles'
 import { SplitView, useSplitViewItem } from './base'
 import { Settings } from './pages'
 import { AnnotationView } from './viewlets/AnnotationView'
-import { ImageView } from './viewlets/ImageView'
 import { SearchView } from './viewlets/SearchView'
 import { ThemeView } from './viewlets/ThemeView'
-import Link from 'next/link'
-import { TimelineView } from './viewlets/TimelineView'
 import { TocView } from './viewlets/TocView'
 import { TypographyView } from './viewlets/TypographyView'
 
@@ -54,7 +49,9 @@ export const Layout = ({ children }: PropsWithChildren<Record<string, any>>) => 
 
   useEffect(() => {
     if (mobile === undefined) return
-    setAction(mobile ? undefined : 'toc')
+    // setAction(mobile ? undefined : 'toc')
+    setAction(mobile ? undefined : 'library')
+
     setReady(true)
   }, [mobile, setAction])
 
@@ -97,13 +94,13 @@ const viewActions: IViewAction[] = [
     View: TocView,
     env: Env.Desktop | Env.Mobile,
   },
-  {
-    name: 'toc',
-    title: 'toc',
-    Icon: MdMenuBook,
-    View: TocView,
-    env: Env.Desktop | Env.Mobile,
-  },
+  // {
+  //   name: 'toc',
+  //   title: 'toc',
+  //   Icon: MdMenuBook,
+  //   View: TocView,
+  //   env: Env.Desktop | Env.Mobile,
+  // },
   {
     name: 'library',
     title: 'library',
@@ -124,20 +121,6 @@ const viewActions: IViewAction[] = [
     Icon: MdFormatUnderlined,
     View: AnnotationView,
     env: Env.Desktop | Env.Mobile,
-  },
-  {
-    name: 'image',
-    title: 'image',
-    Icon: MdOutlineImage,
-    View: ImageView,
-    env: Env.Desktop,
-  },
-  {
-    name: 'timeline',
-    title: 'timeline',
-    Icon: MdTimeline,
-    View: TimelineView,
-    env: Env.Desktop,
   },
   {
     name: 'typography',
@@ -191,7 +174,7 @@ function ViewActionBar({ className, env }: EnvActionBarProps) {
               Icon={Icon}
               active={active}
               onClick={() => {
-                if(name === 'store') {
+                if (name === 'store') {
                   window.location.href = bookstore_url as string
                   return
                 }
@@ -217,13 +200,13 @@ function PageActionBar({ env }: EnvActionBarProps) {
 
   const pageActions: IPageAction[] = useMemo(
     () => [
-       {
-    name: 'store',
-    title: 'Store',
-    Icon: MdChevronLeft,
-    View: null,
-    env:  Env.Mobile,
-  },
+      {
+        name: 'store',
+        title: 'Store',
+        Icon: MdChevronLeft,
+        View: null,
+        env: Env.Mobile,
+      },
       {
         name: 'home',
         title: 'home',
@@ -289,7 +272,7 @@ function NavigationBar() {
   )
 }
 
-interface ActionBarProps extends ComponentProps<'ul'> {}
+interface ActionBarProps extends ComponentProps<'ul'> { }
 function ActionBar({ className, ...props }: ActionBarProps) {
   return (
     <ul className={clsx('ActionBar flex sm:flex-col', className)} {...props} />
@@ -363,7 +346,7 @@ const SideBar: React.FC = () => {
   )
 }
 
-interface ReaderProps extends ComponentProps<'div'> {}
+interface ReaderProps extends ComponentProps<'div'> { }
 const Reader = ({ className, ...props }: ReaderProps) => {
   useSplitViewItem(Reader)
   const [bg] = useBackground()

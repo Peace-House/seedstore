@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Security: Prevent printing */
+@media print {
+  body {
+    display: none !important;
+  }
+  html {
+    background: white;
+  }
+  html::after {
+    content: "Printing is not allowed for copyright protection.";
+    display: block;
+    padding: 50px;
+    text-align: center;
+    font-size: 24px;
+    color: #666;
+  }
+}
+
+/* Security: Prevent image drag (but allow text selection for annotations) */
+.Reader img,
+.book-content img,
+iframe img {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+  pointer-events: none;
+}
+
 html,
 body,
 #__next,

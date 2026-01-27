@@ -4,8 +4,8 @@ import { useSnapshot } from 'valtio'
 import { Annotation } from '@flow/reader/annotation'
 import { BookRecord } from '@flow/reader/db'
 import { BookTab } from '@flow/reader/models'
-import { uploadData } from '@flow/reader/sync'
 
+// useRemoteBooks now fetches from server, not Dropbox
 import { useRemoteBooks } from './useRemote'
 
 export function useSync(tab: BookTab) {
@@ -18,17 +18,15 @@ export function useSync(tab: BookTab) {
     async (changes: Partial<BookRecord>) => {
       // to remove effect dependency `remoteBooks`
       mutate(
-        (remoteBooks) => {
+        (remoteBooks: BookRecord[] | undefined) => {
           if (remoteBooks) {
-            const i = remoteBooks.findIndex((b) => b.id === id)
+            const i = remoteBooks.findIndex((b: BookRecord) => b.id === id)
             if (i < 0) return remoteBooks
 
             remoteBooks[i] = {
               ...remoteBooks[i]!,
               ...changes,
             }
-
-            uploadData(remoteBooks)
 
             return [...remoteBooks]
           }

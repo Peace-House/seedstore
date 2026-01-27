@@ -6,8 +6,6 @@ export type Action =
   | 'search'
   | 'annotation'
   | 'typography'
-  | 'image'
-  | 'timeline'
   | 'theme'
   | 'library'
 export const actionState = atom<Action | undefined>({

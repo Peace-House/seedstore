@@ -1,8 +1,10 @@
-import { useAction, useMobile, useTranslation } from '../../hooks'
-import { useSplitViewItem } from '../base'
-import { viewActions } from './viewActions'
 import { Overlay } from '@literal-ui/core'
 import clsx from 'clsx'
+
+import { useAction, useMobile, useTranslation } from '../../hooks'
+import { useSplitViewItem } from '../base'
+
+import { viewActions } from './viewActions'
 
 const SideBar: React.FC = () => {
   const [action, setAction] = useAction()
@@ -12,17 +14,17 @@ const SideBar: React.FC = () => {
   const { size } = useSplitViewItem(SideBar, {
     preferredSize: 240,
     minSize: 160,
-    visible: !!action,
+    visible: !!action && !mobile,
   })
 
   return (
     <>
-      {action && mobile && <Overlay onClick={() => setAction(undefined)} />}
+      {action && mobile && <Overlay className="!z-40" onClick={() => setAction(undefined)} />}
       <div
         className={clsx(
           'SideBar bg-surface flex flex-col',
           !action && '!hidden',
-          mobile ? 'absolute inset-y-0 right-0 z-10' : '',
+          mobile && 'fixed inset-y-0 right-0 z-50 shadow-xl',
         )}
         style={{ width: mobile ? '75%' : size }}
       >
