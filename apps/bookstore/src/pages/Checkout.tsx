@@ -45,11 +45,32 @@ const Checkout = () => {
     mutationFn: async (channels?: string[]) => {
       if (!user) throw new Error('Login Required');
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
+
+      // Build metadata so the backend/webhook can reliably create orders
+      const cartItemsMetadata = cartItems.map((item) => {
+        const book = (item as any).book || item;
+        const priceInfo = getBookPriceForCountry(
+          book.prices,
+          selectedCountry,
+          'soft_copy',
+          countryCurrencies
+        );
+        return {
+          bookId: book.id,
+          title: book.title,
+          price: Number(priceInfo.price),
+        };
+      });
+
       return await initiatePaystackPayment({
         amount: total,
         email: user.email,
         callback_url: `${window.location.origin}/payment-callback`,
         channels,
+        metadata: {
+          userId: user.id,
+          cartItems: cartItemsMetadata,
+        },
       });
     },
     onSuccess: (data) => {

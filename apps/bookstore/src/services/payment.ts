@@ -2,18 +2,39 @@ import api from './apiService';
 
 export type PaymentMethod = 'paystack' | 'mtnmomo' | 'applepay';
 
+export interface PaystackMetadataCartItem {
+  bookId: number | string;
+  title?: string;
+  price?: number;
+}
+
+export interface PaystackMetadata {
+  userId?: number | string;
+  cartItems?: PaystackMetadataCartItem[];
+  // Allow any other extra fields if needed
+  [key: string]: any;
+}
+
 export const initiatePaystackPayment = async ({
   amount,
   email,
   callback_url,
   channels,
+  metadata,
 }: {
   amount: number;
   email: string;
   callback_url: string;
   channels?: string[];
+  metadata?: PaystackMetadata;
 }) => {
-  const res = await api.post('/payment/initiate_paystack', { amount, email, callback_url, channels });
+  const res = await api.post('/payment/initiate_paystack', {
+    amount,
+    email,
+    callback_url,
+    channels,
+    metadata,
+  });
   return res.data;
 };
 

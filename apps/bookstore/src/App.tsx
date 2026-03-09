@@ -17,6 +17,7 @@ import PaymentCallback from "./pages/PaymentCallback";
 import Settings from "./pages/Settings";
 import VerifyEmail from "./pages/VerifyEmail";
 import ResetPassword from "./pages/ResetPassword";
+import ResolvePurchaseIssue from "./pages/ResolvePurchaseIssue";
 import Navigation from "./components/Navigation";
 import { CountryProvider } from "./contexts/CountryContext";
 
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/library" element={<Navigation><Library /></Navigation>} />
+            <Route path="/resolve-purchase" element={<Navigation><ResolvePurchaseIssue /></Navigation>} />
             <Route path="/reader/:orderId/:bookId" element={<Reader />} />
             <Route path="/payment-callback" element={<PaymentCallback />} />
             <Route path="/search" element={<Navigation><BookSearchPage /></Navigation>} />

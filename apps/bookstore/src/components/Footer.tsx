@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -46,6 +47,11 @@ const Footer: React.FC = () => {
             <li><a target='_blank' rel="noopener noreferrer" href="http://registration.livingsseed.org/" className="hover:underline">Registration</a></li>
             <li><a target='_blank' rel="noopener noreferrer" href="https://blog.livingseed.org/" className="hover:underline">Our Blog</a></li>
             <li><a target='_blank' rel="noopener noreferrer" href="https://livingseed.org/event" className="hover:underline">Upcoming Programs</a></li>
+            <li>
+              <Link to="/resolve-purchase" className="hover:underline">
+                Resolve book purchase issue
+              </Link>
+            </li>
           </ul>
         </div>
           {/* Contact Info */}
