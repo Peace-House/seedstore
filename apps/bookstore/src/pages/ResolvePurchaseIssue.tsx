@@ -66,11 +66,19 @@ const ResolvePurchaseIssue = () => {
       }
     },
     onError: (error: unknown) => {
+      // Prefer short, user-friendly message from backend if available
+      const axiosError = error as { response?: { data?: { error?: string; message?: string } } };
+      const backendMessage =
+        axiosError?.response?.data?.error || axiosError?.response?.data?.message;
       const message =
-        error instanceof Error ? error.message : 'Could not submit your request. Please try again.';
+        typeof backendMessage === 'string'
+          ? backendMessage
+          : error instanceof Error
+            ? error.message
+            : 'Could not submit your request. Please try again.';
       toast({
         variant: 'destructive',
-        title: 'Submission failed',
+        title: 'Could not resolve purchase',
         description: message,
       });
     },
