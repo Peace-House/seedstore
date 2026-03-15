@@ -232,7 +232,7 @@ const ResolvePurchaseIssue = () => {
                 By submitting, you agree that we may use these details to verify your payment with
                 our payment partners.
               </p>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button liquidGlass={false} type="submit" disabled={mutation.isPending || !email.trim() || !paymentReference.trim() || !selectedBookIds.length}>
                 {mutation.isPending ? 'Submitting...' : 'Resolve issue'}
               </Button>
             </div>

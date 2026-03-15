@@ -126,11 +126,23 @@ export interface UpdateProfileData {
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
+  preferredDisplayCountry?: string | null;
 }
 
 export const updateProfile = async (data: UpdateProfileData): Promise<User> => {
   const res = await api.put<{ user: User }>('/users/profile', data);
   return res.data.user;
+};
+
+/** Save display preferences (e.g. currency/country). Persists across web and mobile. */
+export const updatePreferences = async (data: {
+  preferredDisplayCountry?: string | null;
+}): Promise<{ preferredDisplayCountry: string | null; message: string }> => {
+  const res = await api.patch<{ preferredDisplayCountry: string | null; message: string }>(
+    '/users/me/preferences',
+    data,
+  );
+  return res.data;
 };
 
 // Change password

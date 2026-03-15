@@ -14,6 +14,7 @@ export interface User {
   isAdmin: boolean;
   role: string;
   createdAt: string;
+  preferredDisplayCountry?: string | null;
 }
 export const useAuth = () => {
   const queryClient = useQueryClient();

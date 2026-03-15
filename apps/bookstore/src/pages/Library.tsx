@@ -176,6 +176,25 @@ const Library = () => {
             )}
           </div>
 
+          {/* Purchase issue awareness banner */}
+          <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-semibold text-amber-900">
+                Paid for a book but can&apos;t see it here?
+              </p>
+              <p className="text-sm text-amber-900/80">
+                Use our self-service tool to resolve missing book purchases in a few steps.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="border-amber-400 text-amber-900 hover:bg-primary w-full md:w-auto"
+              onClick={() => navigate('/resolve-purchase')}
+            >
+              Resolve book purchase
+            </Button>
+          </div>
+
           {!orderedBooks || orderedBooks.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground mb-4">You haven't purchased any books yet.</p>
