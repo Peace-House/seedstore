@@ -4,19 +4,27 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import BookCard from './BookCard';
 import { Skeleton } from './ui/skeleton';
-import { getBooks } from '@/services/book';
+import { Book, getBooks } from '@/services/book';
+import LiquidGlassWrapper from './LiquidGlassWrapper';
+import { hasValidPricing } from '@/utils/pricing';
+import { useBooks } from '@/hooks/useBooks';
 
 const FeaturedBooks = () => {
-  const { data, isLoading } = useQuery({
-    queryKey: ['featured-books'],
-    queryFn: async () => {
-      // Fetch more books and filter client-side for featured
-      const res = await getBooks(1, 20);
-  return res.books
-  // return res.books.filter((b: Book) => b.featured).slice(0, 6); // Updated to show 6 featured books
-    },
-  });
-  const books = data || [];
+  // const { data, isLoading } = useQuery({
+  //   queryKey: ['featured-books'],
+  //   queryFn: async () => {
+  //     // Fetch more books and filter client-side for featured
+  //     const res = await getBooks(1, 20);
+  //     return res.books
+  //     // return res.books.filter((b: Book) => b.featured).slice(0, 6); // Updated to show 6 featured books
+  //   },
+  // });
+  const booksData = useBooks(1, 50)
+  // const books = data || [];
+  const books = booksData.data?.books
+    ?.filter((book: Book) => book.isNewRelease) || [];
+
+  console.log(books)
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -33,7 +41,7 @@ const FeaturedBooks = () => {
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || books.length === 0) return;
-    
+
     let direction: 'right' | 'left' = 'right';
     const interval: NodeJS.Timeout = setInterval(() => {
       if (!el) return;
@@ -62,10 +70,10 @@ const FeaturedBooks = () => {
     return () => el.removeEventListener('scroll', checkScroll);
   }, [books.length]);
 
-  if (isLoading) {
+  if (booksData.isLoading) {
     return (
       <section className="container py-16 bg-white/50">
-        <h2 className="text-3xl font-bold mb-8">Featured Books</h2>
+        <h2 className="text-3xl font-bold mb-2">New Books</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="space-y-4">
@@ -81,9 +89,13 @@ const FeaturedBooks = () => {
 
   if (!books || books.length === 0) return null;
 
+  // Filter for featured books with valid pricing
+  // const featuredBooks = books.filter((book) => book.featured && hasValidPricing(book.prices));
+  // if (featuredBooks.length === 0) return null;
+
   return (
-    <section className="container mt-8 relative px-2 md:px-12">
-      <h2 className="text-3xl font-bold mb-6">Featured Books</h2>
+    <section className="container pt-12 relative px-2">
+      <h2 className="text-3xl font-bold mb-2">New Books</h2>
       <div className="relative">
         <button
           className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 rounded-full shadow p-2 hover:bg-primary/10 transition disabled:opacity-40"
@@ -94,15 +106,16 @@ const FeaturedBooks = () => {
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <div
+        <LiquidGlassWrapper
+          liquidGlass={true}
           ref={scrollRef}
-          className="flex gap-6 bg-white/80 py-6 px-4 shadow-sm rounded-md overflow-x-scroll scrollbar-hide scroll-smooth"
+          className="flex gap-6 py-6 px-4 shadow-sm rounded-md overflow-x-scroll scrollbar-hide scroll-smooth"
           style={{ scrollBehavior: 'smooth' }}
         >
           {books.map((book) => (
             <BookCard key={book.id} book={book} showActions={false} className='min-w-[180px]' />
           ))}
-        </div>
+        </LiquidGlassWrapper>
         <button
           className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 rounded-full shadow p-2 hover:bg-primary/10 transition disabled:opacity-40"
           style={{ marginRight: '-1.5rem' }}

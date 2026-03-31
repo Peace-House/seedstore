@@ -1,22 +1,23 @@
-import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useCountry } from '@/hooks/useCountry';
+import { getBookPriceForCountry } from '@/utils/pricing';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, Loader2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { initiatePaystackPayment } from '@/services/payment';
 import Breadcrumb from '@/components/Breadcrumb';
 import { useEffect } from 'react';
 import { PageLoader } from '@/components/Loader';
+import LiquidGlassWrapper from '@/components/LiquidGlassWrapper';
 
 const Cart = () => {
   const { user, loading: authLoading } = useAuth();
+  const { selectedCountry, selectedSymbol, countryCurrencies } = useCountry();
 
   const [searchParams] = useSearchParams();
-    const isCheckout = searchParams.get('action');
+  const isCheckout = searchParams.get('action');
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -30,38 +31,6 @@ const Cart = () => {
   // Backend returns cart object with items array
   const cartItems = Array.isArray(rawCartItems) ? rawCartItems : [];
 
-  // Checkout mutation
-  const checkoutMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('Login Required');
-      if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty');
-      const total = cartItems.reduce(
-        (sum, item) => sum + Number(item.book?.price ?? item.price ?? 0),
-        0
-      );
-      return await initiatePaystackPayment(
-        {
-          amount: total,
-          email: user.email,
-          callback_url: `${window.location.origin}/payment-callback`
-        }
-      );
-    },
-    onSuccess: (data) => {
-      if (data?.data?.authorization_url) {
-        window.location.href = data.data.authorization_url;
-      }
-    },
-    onError: (error: unknown) => {
-      const errMsg = (error instanceof Error) ? error.message : 'Failed to initiate payment';
-      toast({
-        variant: 'destructive',
-        title: 'Checkout Failed',
-        description: errMsg,
-      });
-    },
-  });
-
   const handleCheckout = () => {
     if (!user) {
       toast({
@@ -71,15 +40,15 @@ const Cart = () => {
       navigate('/auth?redirect=cart');
       return;
     }
-    checkoutMutation.mutate();
+    // Navigate to checkout page for payment method selection
+    navigate('/checkout');
   };
 
   useEffect(() => {
-    if(user&&isCheckout&&cartItems?.length>0){
-      navigate('/cart')
-    checkoutMutation.mutate();
+    if (user && isCheckout && cartItems?.length > 0) {
+      navigate('/checkout');
     }
-  }, [user, isCheckout, cartItems.length])
+  }, [user, isCheckout, cartItems.length, navigate])
 
   if (isLoading) {
     return (
@@ -91,14 +60,18 @@ const Cart = () => {
       </>
     );
   }
- 
+
 
   const total = cartItems.reduce(
-    (sum, item) => sum + Number(item.book?.price ?? item.price ?? 0),
+    (sum, item) => {
+      const book = item.book || item;
+      const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+      return sum + Number(priceInfo.price);
+    },
     0
   );
 
-  
+
 
   return (
     <>
@@ -115,81 +88,113 @@ const Cart = () => {
           </Card>
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4 shadow-md border-[1.5px] rounded-md md:bg-white md:min-h-[50vh]">
+            <LiquidGlassWrapper className="lg:col-span-2 space-y-4 shadow-md border-[1.5px] rounded-md md:bg-white md:min-h-[50vh]">
               {cartItems.map((item, idx) => {
                 const book = item.book || item;
                 return (
-                  <div key={item.id+idx}>
-                  <Card key={item.id} className='bg-transparent border-none shadow-none'>
-                    <CardContent className="px-0 md:p-6 flex gap-4">
-                      <div className="w-16 h-20 md:w-24 md:h-32 flex-shrink-0 bg-muted rounded overflow-hidden">
-                        {book.coverImage ? (
-                          <img
-                            src={book.coverImage}
-                            alt={book.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
-                            <span className="text-4xl font-bold text-muted-foreground">
-                              {book.title?.[0]}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-xs md:text-lg">{book.title}</h3>
-                        <p className="text-muted-foreground text-xs md:text-sm">{book.author}</p>
-                        <p className="text-xs md:text-2xl font-bold text-primary mt-2">
-                          ₦{Number(book.price ?? 0).toLocaleString()}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          removeFromCart({ bookId: book.id });
-                        }}
-                        disabled={isRemovingFromCart}
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                  <hr className='border-gray-100' />
+                  <div key={item.id + idx}>
+                    <Card key={item.id} className='bg-transparent border-none shadow-none'>
+                      <CardContent className="px-0 md:p-6 flex gap-4">
+                        <div className="w-16 h-20 md:w-24 md:h-32 flex-shrink-0 bg-muted rounded overflow-hidden">
+                          {book.coverImage ? (
+                            <img
+                              src={book.coverImage}
+                              alt={book.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                              <span className="text-4xl font-bold text-muted-foreground">
+                                {book.title?.[0]}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-xs md:text-lg">{book.title}</h3>
+                          <p className="text-muted-foreground text-xs md:text-sm">{book.author}</p>
+                          {(() => {
+                            const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+                            return (
+                              <p className="text-xs md:text-2xl font-bold text-primary mt-2">
+                                {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
+                              </p>
+                            );
+                          })()}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            removeFromCart({ bookId: book.id });
+                          }}
+                          disabled={isRemovingFromCart}
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    <hr className='border-gray-100' />
                   </div>
                 );
               })}
-            </div>
-            <div>
-              <Card className="sticky top-20 rounded shadow-none border-none">
+            </LiquidGlassWrapper>
+            {/* <div>
+              <LiquidGlassWrapper className="sticky top-20 rounded shadow-none border-none">
+                <CardContent className="p-6 space-y-4">
+                  <h2 className="text-2xl font-bold">Important Notice!</h2>
+                  <div className="space-y-2">
+                    <ul className="grid gap-3 list-disc pl-5">
+                      <li className="text-muted-foreground">Books purchased on this platfrom are not downloadable.</li>
+                      <li>They are deposited in your Library, to read online and offline</li>
+                      <li>To read the books offline, download the offline-reader(Look for a laptop icon with a down arrow in your browser's address bar, and click on it to install.)</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </LiquidGlassWrapper>
+            </div> */}
+            <div className='space-y-8'>
+              <LiquidGlassWrapper className="sticky top-20 rounded shadow-none border-none">
                 <CardContent className="p-6 space-y-4">
                   <h2 className="text-2xl font-bold">Order Summary</h2>
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Items ({cartItems.length})</span>
                       <span className="font-semibold">
-                        ₦{total.toLocaleString()}
+                        {selectedSymbol}{total.toLocaleString()}
                       </span>
                     </div>
                     <div className="border-t pt-2 flex justify-between text-lg font-bold">
                       <span>Total</span>
                       <span className="text-primary">
-                        ₦{total.toLocaleString()}
+                        {selectedSymbol}{total.toLocaleString()}
                       </span>
                     </div>
                   </div>
                   <Button
                     className="w-full"
                     size="lg"
+                    liquidGlass={false}
                     onClick={handleCheckout}
-                    disabled={checkoutMutation.isPending || cartItems.length === 0}
+                    disabled={cartItems.length === 0}
                   >
-                    {checkoutMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Proceed to Checkout
                   </Button>
                 </CardContent>
-              </Card>
+              </LiquidGlassWrapper>
+              <LiquidGlassWrapper className="sticky top-20 rounded shadow-none border-none">
+                <CardContent className="p-6 space-y-4">
+                  <h2 className="text-2xl font-bold text-red-600">Important Notice!</h2>
+                  <div className="space-y-2">
+                    <ul className="grid gap-3 list-disc pl-5 ">
+                      <li>Books purchased on this platfrom are not downloadable.</li>
+                      <li>They are available in your Library, to read online and offline</li>
+                      <li>To read the books offline, download the offline-reader(Look for a laptop icon with a down arrow in your browser's address bar, and click on it to install.)</li>
+                      <li>Click country at the top right corner to change to your preferred cunnrency</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </LiquidGlassWrapper>
             </div>
           </div>
         )}

@@ -6,6 +6,34 @@ import { Settings } from './state'
 import { keys } from './utils'
 
 export const activeClass = 'bg-primary70'
+
+// Default link color - will be overridden by theme
+let themeLinkColor = '#3b82f6'
+let themeSelectionColor = 'rgba(3, 102, 214, 0.2)'
+
+export function setThemeLinkColor(color: string) {
+  themeLinkColor = color
+  // Calculate a lighter version for selection
+  themeSelectionColor = `${color}33` // 20% opacity
+}
+
+export const getDefaultStyle = () => ({
+  html: {
+    padding: '0 !important',
+  },
+  body: {
+    background: 'transparent',
+  },
+  'a:any-link': {
+    color: `${themeLinkColor} !important`,
+    'text-decoration': 'none !important',
+  },
+  '::selection': {
+    'background-color': themeSelectionColor,
+  },
+})
+
+// Keep for backwards compatibility
 export const defaultStyle = {
   html: {
     padding: '0 !important',
@@ -39,6 +67,7 @@ enum Style {
 export function updateCustomStyle(
   contents: Contents | undefined,
   settings: Settings | undefined,
+  themeColor?: string,
 ) {
   if (!contents || !settings) return
 
@@ -68,7 +97,12 @@ export function updateCustomStyle(
     }`
   }
 
-  return contents.addStylesheetCss(css, Style.Custom)
+  contents.addStylesheetCss(css, Style.Custom)
+
+  // Apply theme colors if provided
+  if (themeColor) {
+    applyThemeToContents(contents, themeColor)
+  }
 }
 
 export function lock(l: number, r: number, unit = 'px') {
@@ -76,4 +110,34 @@ export function lock(l: number, r: number, unit = 'px') {
   const maxw = 2560
 
   return `calc(${l}${unit} + ${r - l} * (100vw - ${minw}px) / ${maxw - minw})`
+}
+
+enum ThemeStyle {
+  Theme = 'theme-colors',
+}
+
+export function applyThemeToContents(
+  contents: Contents | undefined,
+  themeColor: string,
+) {
+  if (!contents) return
+
+  // Update the link color
+  setThemeLinkColor(themeColor)
+
+  const selectionBg = `${themeColor}33` // 20% opacity
+
+  const css = `
+    a, a:link, a:visited, a:hover, a:active, a:any-link {
+      color: ${themeColor} !important;
+    }
+    ::selection {
+      background-color: ${selectionBg} !important;
+    }
+    ::-moz-selection {
+      background-color: ${selectionBg} !important;
+    }
+  `
+
+  return contents.addStylesheetCss(css, ThemeStyle.Theme)
 }

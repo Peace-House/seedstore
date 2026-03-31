@@ -21,7 +21,7 @@ export interface AuditLogPage {
   pageSize: number;
 }
 
-export const getAuditLogs = async (page = 1, pageSize = 20): Promise<AuditLogPage> => {
-  const res = await api.get('/audit-logs', { params: { page, pageSize } });
+export const getAuditLogs = async (page = 1, pageSize = 20, search = ''): Promise<AuditLogPage> => {
+  const res = await api.get('/audit-logs', { params: { page, pageSize, search } });
   return res.data;
 };

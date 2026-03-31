@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import React, {ComponentPropsWithoutRef} from 'react'
+import React, { ComponentPropsWithoutRef } from 'react'
 import {
   ElementType,
   useRef,
@@ -7,7 +7,6 @@ import {
   // RefObject,
   ComponentProps,
 } from 'react'
-import { IconType } from 'react-icons'
 import { MdCheck, MdClose } from 'react-icons/md'
 // import { PolymorphicPropsWithoutRef } from 'react-polymorphic-types'
 
@@ -45,7 +44,7 @@ export type TextFieldProps<T extends ElementType = 'input'> = {
   actions?: Array<{
     title: string
     Icon: any
-    onClick: (element: HTMLInputElement | null) => void
+    onClick: (el: HTMLInputElement | null) => void
   }>
   datalist?: React.ReactNode
   onClear?: (element: HTMLInputElement | null) => void
@@ -200,7 +199,7 @@ interface LabelProps extends ComponentProps<'label'> {
   hide?: boolean
 }
 
-export const Label= ({
+export const Label = ({
   name,
   hide = false,
   className,
