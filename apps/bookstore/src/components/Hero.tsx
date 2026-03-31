@@ -4,29 +4,33 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useBooks } from '@/hooks/useBooks';
-import { useCountry } from '@/hooks/useCountry';
-import { getBookPriceForCountry, hasValidPricing } from '@/utils/pricing';
-import { truncate } from '@/lib/utils';
+// import { useCountry } from '@/hooks/useCountry';
+import {
+  // getBookPriceForCountry, 
+  hasValidPricing
+} from '@/utils/pricing';
+// import { truncate } from '@/lib/utils';
 import { Book } from '@/services';
+import FeaturedBooks from './FeaturedBooks';
 
 const Hero = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { selectedCountry, countryCurrencies } = useCountry();
+  // const { selectedCountry, countryCurrencies } = useCountry();
 
   const books = useBooks();
 
   // Get the two most recent new release books, sorted by publishedDate (most recent first)
   // Only show books with valid pricing
-  const newReleaseBooks = books?.data?.books
-    ?.filter((book: Book) => book.isNewRelease && hasValidPricing(book.prices))
-    ?.sort((a: Book, b: Book) => {
-      const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
-      const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
-      return dateB - dateA; // Most recent first
-    })
-    ?.slice(0, 2) || [];
-  
+  // const newReleaseBooks = books?.data?.books
+  //   ?.filter((book: Book) => book.isNewRelease && hasValidPricing(book.prices))
+  //   ?.sort((a: Book, b: Book) => {
+  //     const dateA = a.publishedDate ? new Date(a.publishedDate).getTime() : 0;
+  //     const dateB = b.publishedDate ? new Date(b.publishedDate).getTime() : 0;
+  //     return dateB - dateA; // Most recent first
+  //   })
+  //   ?.slice(0, 2) || [];
+
   // Filter books with valid pricing for "Most read" section
   const booksWithPricing = books?.data?.books?.filter((book: Book) => hasValidPricing(book.prices)) || [];
 
@@ -34,33 +38,34 @@ const Hero = () => {
     <section className="relative overflow-hidden from-transparent via-transparent to-primary/20 bg-gradient-to-b">
       <div className="md:container px-2 md:py-12 lg:py-12">
         <div className="grid lg:grid-cols-2 md:gap-12 items-center">
-          <div className="md:space-y-8 md:h-4/5 md:mt-auto">
+          <div className="md:space-y-8 ">
             <h1 className=" md:block text-4xl md:text-5xl lg:text-[42px] font-bold leading-tight">
-              Strengthen Your walk with God 
+              Strengthen Your walk with God
               <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 With your next read.
               </span>
             </h1>
             {/* no auth */}
             {!user && <p className="text-sm text-muted-foreground max-w-lg">
-              Access Inspired and edifying ebooks from the Livingseed Publishing Team. Read anytime online and offline. 
+              Access Inspired and edifying ebooks from the Livingseed Publishing Team. Read anytime online and offline.
               <br />Enhance your reading journey today.
             </p>}
             {user ?
-              <div className='w-full max-w-[calc(100vw-1rem)] md:max-w-full h-auto mt-8 md:mt-0 overflow-hidden'>
-                <p className='font-medium mb-1'>Most read</p>
-                <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 pb-2 -mx-2 px-2' style={{ WebkitOverflowScrolling: 'touch' }}>
-                  {booksWithPricing.map((book: Book) => (
-                    <li key={book.id} className="bg-transparent flex-shrink-0 h-[180px] max-w-[140px] rounded-none flex flex-col items-center">
-                      <img
-                      src={book.coverImage}
-                      alt={book.title}
-                      className="h-full w-full object-contain object-top scale-90 bg-transparent"
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              // <div className='w-full max-w-[calc(100vw-1rem)] md:max-w-full h-auto mt-8 md:mt-0 overflow-hidden'>
+              //   <p className='font-medium mb-1'>Most read</p>
+              //   <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 pb-2 -mx-2 px-2' style={{ WebkitOverflowScrolling: 'touch' }}>
+              //     {booksWithPricing.map((book: Book) => (
+              //       <li key={book.id} className="bg-transparent flex-shrink-0 h-[180px] max-w-[140px] rounded-none flex flex-col items-center">
+              //         <img
+              //         src={book.coverImage}
+              //         alt={book.title}
+              //         className="h-full w-full object-contain object-top scale-90 bg-transparent"
+              //         />
+              //       </li>
+              //     ))}
+              //   </ul>
+              // </div>
+              <FeaturedBooks />
               :
               (
                 <div className="grid grid-cols-1 my-8 md:flex flex-wrap gap-4">
@@ -88,7 +93,7 @@ const Hero = () => {
             }
           </div>
           {/* not auth */}
-          {!user && <div className="relative lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
+          {<div className="relative lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent opacity-90" />
             <div className="absolute inset-0 flex items-center md:items-end justify-center md:justify-end"
               style={{
@@ -105,7 +110,7 @@ const Hero = () => {
             </div>
           </div>}
           {/* with auth - show two most recent new releases */}
-          {user && newReleaseBooks.length > 0 && (
+          {/* {user && newReleaseBooks.length > 0 && (
             <div className="hidden h-full md:grid grid-cols-1 md:grid-cols-2 px-6 items-center justify-center gap-6 z-10 relative bg-transparent lg:h-[500px] rounded-2xl overflow-hidden shadow-none">
               {newReleaseBooks.map((book: Book) => {
                 const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
@@ -118,17 +123,14 @@ const Hero = () => {
                       src={book.coverImage}
                       alt={book.title}
                       className="h-[90%] w-full object-cover mb-3 shadow"
-                    />
-                    {/* <div className="font-semibold text-lg text-gray-900 text-center line-clamp-2">{truncate(book.title, 18)}</div> */}
-                    {/* <div className="text-sm text-gray-600 text-center line-clamp-1">{book.author}</div> */}
-                    <div className="text-sm font-bold text-gray-600 text-left line-clamp-1 w-full px-4">
+                    /><div className="text-sm font-bold text-gray-600 text-left line-clamp-1 w-full px-4">
                       {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
                     </div>
                   </div>
                 );
               })}
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </section>

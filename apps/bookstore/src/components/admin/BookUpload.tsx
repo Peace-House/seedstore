@@ -26,6 +26,12 @@ const bookSchema = z.object({
   publishedDate: z.string().optional(),
   isFeatured: z.boolean().default(false),
   isNewRelease: z.boolean().default(false),
+  isLendable: z.boolean().default(false),
+  lendDurationDays: z.number().min(1).default(7),
+  maxBorrowsPerUser: z.number().min(1).default(1),
+  maxConcurrentBorrows: z.number().min(1).default(5),
+  quotaPeriodDays: z.number().min(1).default(30),
+  quotaLimit: z.number().min(1).default(3),
 });
 
 type BookFormData = z.infer<typeof bookSchema>;
@@ -56,7 +62,13 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
       ...initialValues, 
       categoryIds: defaultCategoryIds,
       isFeatured: initialValues?.isFeatured ?? false, 
-      isNewRelease: initialValues?.isNewRelease ?? false 
+      isNewRelease: initialValues?.isNewRelease ?? false,
+      isLendable: initialValues?.isLendable ?? false,
+      lendDurationDays: initialValues?.lendDurationDays ?? 7,
+      maxBorrowsPerUser: initialValues?.maxBorrowsPerUser ?? 1,
+      maxConcurrentBorrows: initialValues?.maxConcurrentBorrows ?? 5,
+      quotaPeriodDays: initialValues?.quotaPeriodDays ?? 30,
+      quotaLimit: initialValues?.quotaLimit ?? 3,
     },
   });
 
@@ -112,6 +124,12 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
       formData.append('genre', 'N/A');
       formData.append('featured', data.isFeatured ? 'true' : 'false');
       formData.append('isNewRelease', data.isNewRelease ? 'true' : 'false');
+      formData.append('isLendable', data.isLendable ? 'true' : 'false');
+      formData.append('lendDurationDays', String(data.lendDurationDays));
+      formData.append('maxBorrowsPerUser', String(data.maxBorrowsPerUser));
+      formData.append('maxConcurrentBorrows', String(data.maxConcurrentBorrows));
+      formData.append('quotaPeriodDays', String(data.quotaPeriodDays));
+      formData.append('quotaLimit', String(data.quotaLimit));
       // File uploads: backend expects 'coverImage' and 'file'
       formData.append('coverImage', coverFile as Blob);
       formData.append('file', bookFile as Blob);
@@ -378,7 +396,6 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="isNewRelease"
@@ -391,6 +408,79 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                   </FormItem>
                 )}
               />
+
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-sm font-medium mb-4">Lending Configuration</h3>
+                <FormField
+                  control={form.control}
+                  name="isLendable"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Enable Lending</FormLabel>
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch('isLendable') && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 animate-in fade-in slide-in-from-top-2">
+                    <FormField
+                      control={form.control}
+                      name="lendDurationDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Duration (Days)</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="maxConcurrentBorrows"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Max Concurrent</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="quotaLimit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quota Limit</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="quotaPeriodDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quota Period (Days)</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
               <div className="flex justify-end">
                 <Button
                   type="submit"

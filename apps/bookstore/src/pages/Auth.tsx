@@ -37,6 +37,8 @@ const Auth = () => {
   const [stateOfResidence, setStateOfResidence] = useState('');
   const [gender, setGender] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [showSignUpSuccessfulModal, setShowSignUpSuccessfulModal] = useState(false);
+  const [PhCode, setPhCode] = useState('EKE22-F2345FG');
 
 
   // Fetch countries and states for signup
@@ -69,15 +71,15 @@ const Auth = () => {
 
     // Only validate confirmPassword for signup
     if (!isLogin) {
-    const signupSchema = z.object({
-  password: z.string().min(6),
-  confirmPassword: z.string().min(6),
-  gender: z.enum(['male', 'female']),
-  dateOfBirth: z.string().min(1, 'Date of birth is required'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
-});
+      const signupSchema = z.object({
+        password: z.string().min(6),
+        confirmPassword: z.string().min(6),
+        gender: z.enum(['male', 'female']),
+        dateOfBirth: z.string().min(1, 'Date of birth is required'),
+      }).refine((data) => data.password === data.confirmPassword, {
+        message: "Passwords don't match",
+        path: ['confirmPassword'],
+      });
 
       const validation = signupSchema.safeParse({ password, confirmPassword, gender, dateOfBirth });
       if (!validation.success) {
@@ -133,12 +135,13 @@ const Auth = () => {
             title: 'Admin Account Created!',
             description: 'You can now log in to your admin account.',
           });
-          setIsLogin(true);
+          setShowSignUpSuccessfulModal(true);
+          // setIsLogin(true);
           navigate('/auth');
           return;
         }
         // Regular user registration
-        await register({
+        const res: any = await register({
           email,
           firstName,
           lastName,
@@ -154,7 +157,10 @@ const Auth = () => {
           description: 'You can now log in to your account.',
         });
         setIsLogin(true);
+        const legacy_phcode = res?.PHCode
+        setPhCode(legacy_phcode)
       }
+
     } catch (error: unknown) {
       console.error('Authentication error:', error);
       const errorCode = (error as { response?: { data?: { code?: string } } })?.response?.data?.code;
@@ -172,7 +178,9 @@ const Auth = () => {
         variant: 'destructive',
         title: 'Error',
         description: errorMessage,
-      });
+      },
+
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -198,12 +206,12 @@ const Auth = () => {
             <Logo />
           </div>
           <CardTitle className="text-2xl font-bold">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            {showSignUpSuccessfulModal ? 'Welcome!' : isLogin ? 'Welcome Back' : 'Create Account'}
           </CardTitle>
           <CardDescription>
             {isLogin
               ? 'Sign in to access your library'
-              : 'Sign up to start reading'}
+              : showSignUpSuccessfulModal ? 'You can now log in to your account.' : 'Sign up to start reading'}
           </CardDescription>
           <CardDescription className='px-2 py-3 md:px-12 text-xs  text-red-600 bg-red-50 rounded-md'>
             {isLogin
@@ -213,7 +221,41 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
-            {!isLogin && (
+            {showSignUpSuccessfulModal && (
+
+              <>
+                <div>
+                  <div className="flex justify-center mb-2 text-lg font-bold">
+                    {"Your Account Has Been Created Successfully!"}
+                  </div>
+                  <br />
+                  <div>
+                    <strong>{"Please note the following:"}</strong>
+
+                    <ul className="list-disc pl-5 grid gap-2">
+                      <li>You have been assigned the PHCode: <b className='text-red-600 '>{PhCode}</b> Please Copy and Keep it in a Safe Place</li>
+                      <li>You will be required to login with this PHCode and password subsequently</li>
+                      <li>This PHCode will also log you in on all PeaceHouse platform</li>
+                      <li>Important verififcation message has been sent to the email you provided</li>
+                    </ul>
+                  </div>
+                </div>
+                <br />
+                <div className="space-y-1">
+                  <Button
+                    className='w-full'
+                    variant='default'
+                    onClick={() => {
+                      setShowSignUpSuccessfulModal(false);
+                      setIsLogin(true);
+                    }}
+                  >
+                    Go to Login
+                  </Button>
+                </div>
+              </>
+            )}
+            {!isLogin && !showSignUpSuccessfulModal && (
               <div className="flex flex-col md:flex-row md:items-center md:gap-2">
 
                 <div className="space-y-1 w-full md:w-1/2">
@@ -240,18 +282,18 @@ const Auth = () => {
                 </div>
               </div>
             )}
-            {isLogin && <div className="space-y-1">
-              <Label htmlFor="email">Email/PH-Code</Label>
+            {isLogin && !showSignUpSuccessfulModal && <div className="space-y-1">
+              <Label htmlFor="email">PH-Code</Label>
               <Input
                 id="email"
                 type="text"
-                placeholder="Enter your email or phcode"
+                placeholder="Enter your PHCode"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>}
-            {!isLogin &&
+            {!isLogin && !showSignUpSuccessfulModal &&
               <>
                 <div className="flex flex-col md:flex-row md:items-center md:gap-2">
                   <div className="space-y-1 w-full md:w-2/3">
@@ -341,7 +383,7 @@ const Auth = () => {
                 )}
               </>
             }
-            <div className={`grid  ${isLogin ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 md:gap-2'}`}>
+            {!showSignUpSuccessfulModal && <div className={`grid  ${isLogin ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 md:gap-2'}`}>
               <div className="relative">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -399,16 +441,16 @@ const Auth = () => {
                 </div>}
 
 
-            </div>
-            <Button variant='outline' type="submit" className="w-full !mt-8 mb-3 shadow-lg !bg-primary !text-white"
+            </div>}
+            {!showSignUpSuccessfulModal && <Button variant='outline' type="submit" className="w-full !mt-8 mb-3 shadow-lg !bg-primary !text-white"
               disabled={isSubmitting || loading || (!isLogin && password !== confirmPassword)
                 || (isLogin && (!email || !password))
               }>
               {(isSubmitting || loading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLogin ? 'Sign In' : 'Sign Up'}
-            </Button>
+            </Button>}
           </form>
-          <div className="mt-4 text-center text-sm space-y-2">
+          {!showSignUpSuccessfulModal && <div className="mt-4 text-center text-sm space-y-2">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
@@ -428,6 +470,7 @@ const Auth = () => {
               </button>
             )}
           </div>
+          }
         </CardContent>
       </Card>
     </div>

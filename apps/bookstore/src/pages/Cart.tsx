@@ -17,7 +17,7 @@ const Cart = () => {
   const { selectedCountry, selectedSymbol, countryCurrencies } = useCountry();
 
   const [searchParams] = useSearchParams();
-    const isCheckout = searchParams.get('action');
+  const isCheckout = searchParams.get('action');
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -45,7 +45,7 @@ const Cart = () => {
   };
 
   useEffect(() => {
-    if(user && isCheckout && cartItems?.length > 0){
+    if (user && isCheckout && cartItems?.length > 0) {
       navigate('/checkout');
     }
   }, [user, isCheckout, cartItems.length, navigate])
@@ -60,7 +60,7 @@ const Cart = () => {
       </>
     );
   }
- 
+
 
   const total = cartItems.reduce(
     (sum, item) => {
@@ -71,7 +71,7 @@ const Cart = () => {
     0
   );
 
-  
+
 
   return (
     <>
@@ -92,54 +92,68 @@ const Cart = () => {
               {cartItems.map((item, idx) => {
                 const book = item.book || item;
                 return (
-                  <div key={item.id+idx}>
-                  <Card key={item.id} className='bg-transparent border-none shadow-none'>
-                    <CardContent className="px-0 md:p-6 flex gap-4">
-                      <div className="w-16 h-20 md:w-24 md:h-32 flex-shrink-0 bg-muted rounded overflow-hidden">
-                        {book.coverImage ? (
-                          <img
-                            src={book.coverImage}
-                            alt={book.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
-                            <span className="text-4xl font-bold text-muted-foreground">
-                              {book.title?.[0]}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-xs md:text-lg">{book.title}</h3>
-                        <p className="text-muted-foreground text-xs md:text-sm">{book.author}</p>
-                        {(() => {
-                          const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
-                          return (
-                            <p className="text-xs md:text-2xl font-bold text-primary mt-2">
-                              {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
-                            </p>
-                          );
-                        })()}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          removeFromCart({ bookId: book.id });
-                        }}
-                        disabled={isRemovingFromCart}
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                  <hr className='border-gray-100' />
+                  <div key={item.id + idx}>
+                    <Card key={item.id} className='bg-transparent border-none shadow-none'>
+                      <CardContent className="px-0 md:p-6 flex gap-4">
+                        <div className="w-16 h-20 md:w-24 md:h-32 flex-shrink-0 bg-muted rounded overflow-hidden">
+                          {book.coverImage ? (
+                            <img
+                              src={book.coverImage}
+                              alt={book.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                              <span className="text-4xl font-bold text-muted-foreground">
+                                {book.title?.[0]}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-xs md:text-lg">{book.title}</h3>
+                          <p className="text-muted-foreground text-xs md:text-sm">{book.author}</p>
+                          {(() => {
+                            const priceInfo = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
+                            return (
+                              <p className="text-xs md:text-2xl font-bold text-primary mt-2">
+                                {priceInfo.symbol}{Number(priceInfo.price).toLocaleString()}
+                              </p>
+                            );
+                          })()}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            removeFromCart({ bookId: book.id });
+                          }}
+                          disabled={isRemovingFromCart}
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    <hr className='border-gray-100' />
                   </div>
                 );
               })}
             </LiquidGlassWrapper>
-            <div>
+            {/* <div>
+              <LiquidGlassWrapper className="sticky top-20 rounded shadow-none border-none">
+                <CardContent className="p-6 space-y-4">
+                  <h2 className="text-2xl font-bold">Important Notice!</h2>
+                  <div className="space-y-2">
+                    <ul className="grid gap-3 list-disc pl-5">
+                      <li className="text-muted-foreground">Books purchased on this platfrom are not downloadable.</li>
+                      <li>They are deposited in your Library, to read online and offline</li>
+                      <li>To read the books offline, download the offline-reader(Look for a laptop icon with a down arrow in your browser's address bar, and click on it to install.)</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </LiquidGlassWrapper>
+            </div> */}
+            <div className='space-y-8'>
               <LiquidGlassWrapper className="sticky top-20 rounded shadow-none border-none">
                 <CardContent className="p-6 space-y-4">
                   <h2 className="text-2xl font-bold">Order Summary</h2>
@@ -166,6 +180,19 @@ const Cart = () => {
                   >
                     Proceed to Checkout
                   </Button>
+                </CardContent>
+              </LiquidGlassWrapper>
+              <LiquidGlassWrapper className="sticky top-20 rounded shadow-none border-none">
+                <CardContent className="p-6 space-y-4">
+                  <h2 className="text-2xl font-bold text-red-600">Important Notice!</h2>
+                  <div className="space-y-2">
+                    <ul className="grid gap-3 list-disc pl-5 ">
+                      <li>Books purchased on this platfrom are not downloadable.</li>
+                      <li>They are available in your Library, to read online and offline</li>
+                      <li>To read the books offline, download the offline-reader(Look for a laptop icon with a down arrow in your browser's address bar, and click on it to install.)</li>
+                      <li>Click country at the top right corner to change to your preferred cunnrency</li>
+                    </ul>
+                  </div>
                 </CardContent>
               </LiquidGlassWrapper>
             </div>

@@ -243,6 +243,11 @@ const BookManagement = () => {
                 isFeatured: !!editing.featured,
                 isNewRelease: !!editing.isNewRelease,
                 coverImage: editing.coverImage,
+                isLendable: !!editing.isLendable,
+                lendDurationDays: editing.lendDurationDays || 7,
+                maxConcurrentBorrows: editing.maxConcurrentBorrows || 5,
+                quotaLimit: editing.quotaLimit || 3,
+                quotaPeriodDays: editing.quotaPeriodDays || 30,
               }}
               submitLabel="Save Changes"
               onSubmitOverride={async (data, coverFile, bookFile) => {
@@ -262,6 +267,11 @@ const BookManagement = () => {
                   formData.append('publishedDate', data.publishedDate || '');
                   formData.append('featured', data.isFeatured ? 'true' : 'false');
                   formData.append('isNewRelease', data.isNewRelease ? 'true' : 'false');
+                  formData.append('isLendable', data.isLendable ? 'true' : 'false');
+                  formData.append('lendDurationDays', String(data.lendDurationDays));
+                  formData.append('maxConcurrentBorrows', String(data.maxConcurrentBorrows));
+                  formData.append('quotaLimit', String(data.quotaLimit));
+                  formData.append('quotaPeriodDays', String(data.quotaPeriodDays));
                   if (coverFile) formData.append('coverImage', coverFile);
                   if (bookFile) formData.append('file', bookFile);
                   updateMutation.mutate({ id: editing.id as number, data: formData });
@@ -280,6 +290,11 @@ const BookManagement = () => {
                   formData.append('publishedDate', data.publishedDate || '');
                   formData.append('featured', data.isFeatured ? 'true' : 'false');
                   formData.append('isNewRelease', data.isNewRelease ? 'true' : 'false');
+                  formData.append('isLendable', data.isLendable ? 'true' : 'false');
+                  formData.append('lendDurationDays', String(data.lendDurationDays));
+                  formData.append('maxConcurrentBorrows', String(data.maxConcurrentBorrows));
+                  formData.append('quotaLimit', String(data.quotaLimit));
+                  formData.append('quotaPeriodDays', String(data.quotaPeriodDays));
                   updateMutation.mutate({ id: editing.id as number, data: formData });
                 }
               }}

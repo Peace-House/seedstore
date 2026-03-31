@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getLibrary, addFreeBookToLibrary } from '@/services/library';
+import { getLibrary, addFreeBookToLibrary, borrowBook } from '@/services/library';
 import { useAuth } from './useAuth';
 
 // For anonymous users, fallback to localStorage (or empty)
@@ -34,6 +34,16 @@ export const useLibrary = () => {
     },
   });
 
+  // Mutation to borrow a book
+  const borrowBookMutation = useMutation({
+    mutationFn: (bookId: string) => borrowBook(bookId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['library'] });
+      queryClient.invalidateQueries({ queryKey: ['has-purchased'] });
+      queryClient.invalidateQueries({ queryKey: ['borrow-eligibility'] });
+    },
+  });
+
   // Add book to anonymous library (for demo/testing)
   const addToLibrary = (book: { id: number }) => {
     if (user) return; // Only for anonymous
@@ -63,5 +73,8 @@ export const useLibrary = () => {
     addFreeBook: addFreeBookMutation.mutate,
     addFreeBookAsync: addFreeBookMutation.mutateAsync,
     isAddingFreeBook: addFreeBookMutation.isPending,
+    borrowBook: borrowBookMutation.mutate,
+    borrowBookAsync: borrowBookMutation.mutateAsync,
+    isBorrowingBook: borrowBookMutation.isPending,
   };
-};
+}

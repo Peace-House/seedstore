@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getBookById } from '@/services/book';
+import { getBorrowEligibility } from '@/services/library';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useCountry } from '@/hooks/useCountry';
@@ -8,7 +9,7 @@ import { getBookPriceForCountry } from '@/utils/pricing';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShoppingCart, BookOpen, Loader2, Calendar, FileText, Hash, ChevronLeft, Plus } from 'lucide-react';
+import { ShoppingCart, BookOpen, Loader2, Calendar, FileText, Hash, ChevronLeft, Plus, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import RelatedBooks from '@/components/RelatedBooks';
@@ -16,6 +17,8 @@ import Breadcrumb from '@/components/Breadcrumb';
 import { PageLoader } from '@/components/Loader';
 import LiquidGlassWrapper from '@/components/LiquidGlassWrapper';
 import { useLibrary } from '@/hooks/useLibrary';
+import BorrowModal from '@/components/BorrowModal';
+import { useState } from 'react';
 
 const reader_route = import.meta.env.VITE_BOOKREADER_URL!;
 
@@ -28,7 +31,7 @@ const BookDetail = () => {
   const { toast } = useToast();
   const { addToCart, isAddingToCart, cartItems } = useCart();
   const { selectedCountry, countryCurrencies } = useCountry();
-  const { addFreeBookAsync, isAddingFreeBook, library } = useLibrary();
+  const { addFreeBookAsync, isAddingFreeBook, library, borrowBookAsync, isBorrowingBook } = useLibrary();
 
   const { data: book, isLoading } = useQuery({
     queryKey: ['book', id],
@@ -36,6 +39,12 @@ const BookDetail = () => {
       if (!id) return null;
       return await getBookById(id);
     },
+  });
+
+  const { data: eligibility } = useQuery({
+    queryKey: ['borrow-eligibility', id],
+    queryFn: () => getBorrowEligibility(id!),
+    enabled: !!id && !!user && !!book?.isLendable,
   });
 
   // Check if book is in user's library (purchased or added as free)
@@ -93,6 +102,30 @@ const BookDetail = () => {
       toast({
         variant: 'destructive',
         title: 'Error',
+        description: errMsg,
+      });
+    }
+  };
+
+  const [showBorrowModal, setShowBorrowModal] = useState(false);
+  
+  const handleBorrowBook = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    try {
+      await borrowBookAsync(String(book.id));
+      toast({
+        title: 'Book Borrowed',
+        description: `You've borrowed "${book.title}" for ${book.lendDurationDays} days.`,
+      });
+      setShowBorrowModal(false);
+    } catch (error: any) {
+      const errMsg = error?.response?.data?.error || 'Failed to borrow book';
+      toast({
+        variant: 'destructive',
+        title: 'Borrowing Failed',
         description: errMsg,
       });
     }
@@ -210,20 +243,45 @@ const BookDetail = () => {
                 Added to Cart
               </Button>
             ) : (
-              <Button
-                size="lg"
-                liquidGlass={false}
-                className="w-full"
-                onClick={handleAddToCart}
-                disabled={isAddingToCart}
-              >
-                {isAddingToCart ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (
-                  <ShoppingCart className="mr-2 h-5 w-5" />
+              <div className="space-y-3">
+                <Button
+                  size="lg"
+                  liquidGlass={false}
+                  className="w-full"
+                  onClick={handleAddToCart}
+                  disabled={isAddingToCart}
+                >
+                  {isAddingToCart ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                  )}
+                  Add to Cart
+                </Button>
+
+                {book.isLendable && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setShowBorrowModal(true)}
+                  >
+                    <Clock className="mr-2 h-5 w-5" />
+                    Read Free for {book.lendDurationDays} days
+                  </Button>
                 )}
-                Add to Cart
-              </Button>
+              </div>
+            )}
+
+            {book && (
+              <BorrowModal 
+                book={book}
+                eligibility={eligibility}
+                isOpen={showBorrowModal}
+                onOpenChange={setShowBorrowModal}
+                isLoading={isBorrowingBook}
+                onConfirm={handleBorrowBook}
+              />
             )}
 
             {book.description && (

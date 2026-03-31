@@ -1,5 +1,5 @@
 
-import { BookOpen, GripVertical } from 'lucide-react';
+import { BookOpen, GripVertical, Clock, AlertTriangle } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -20,17 +20,31 @@ const Library = () => {
   
   // State for ordered books and drag-and-drop
   const [orderedBooks, setOrderedBooks] = useState<Book[]>([]);
+  const [borrowedBooks, setBorrowedBooks] = useState<Book[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [now, setNow] = useState(new Date());
+
+  // Update "now" every minute for countdowns
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Load saved order from localStorage and apply to books
   useEffect(() => {
-    if (purchasedBooks && purchasedBooks.length > 0) {
+    if (purchasedBooks && Array.isArray(purchasedBooks)) {
+      // Split library into purchased and borrowed
+      const borrowed = purchasedBooks.filter(b => b.isBorrowed);
+      const purchased = purchasedBooks.filter(b => !b.isBorrowed);
+      
+      setBorrowedBooks(borrowed);
+
       const savedOrder = localStorage.getItem(LIBRARY_ORDER_KEY);
       if (savedOrder) {
         try {
           const orderIds: (number | string)[] = JSON.parse(savedOrder);
-          const sorted = [...purchasedBooks].sort((a, b) => {
+          const sorted = [...purchased].sort((a, b) => {
             const indexA = orderIds.indexOf(a.id);
             const indexB = orderIds.indexOf(b.id);
             if (indexA === -1 && indexB === -1) return 0;
@@ -40,10 +54,10 @@ const Library = () => {
           });
           setOrderedBooks(sorted);
         } catch {
-          setOrderedBooks([...purchasedBooks]);
+          setOrderedBooks([...purchased]);
         }
       } else {
-        setOrderedBooks([...purchasedBooks]);
+        setOrderedBooks([...purchased]);
       }
     }
   }, [purchasedBooks]);
@@ -149,6 +163,18 @@ const Library = () => {
     window.location.href = url;
   }
 
+  const getTimeRemaining = (expiresAt: string) => {
+    const expiry = new Date(expiresAt);
+    const diff = expiry.getTime() - now.getTime();
+    if (diff <= 0) return 'Expired';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) return `${days}d ${hours}h left`;
+    return `${hours}h left`;
+  };
+
   // Group books into shelves (8 books per shelf on large, 6 on md, 4 on tablet, 2 on mobile)
   // Using 8 as the max for grouping, CSS will handle responsive display
   const booksPerShelf = 8;
@@ -168,13 +194,54 @@ const Library = () => {
           <br />
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-4xl font-bold text-primary">My Library</h1>
-            {orderedBooks && orderedBooks.length > 0 && (
-              <p className="text-sm text-muted-foreground hidden md:block">
-                <GripVertical className="inline w-4 h-4 mr-1" />
-                Drag books to rearrange
-              </p>
-            )}
+            <div className="flex items-center gap-4">
+              {orderedBooks && orderedBooks.length > 0 && (
+                <p className="text-sm text-muted-foreground hidden md:block">
+                  <GripVertical className="inline w-4 h-4 mr-1" />
+                  Drag books to rearrange
+                </p>
+              )}
+            </div>
           </div>
+
+          {/* Borrowed Books Section */}
+          {borrowedBooks.length > 0 && (
+            <div className="mb-12">
+              <h2 className="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
+                <Clock className="w-6 h-6" />
+                Borrowed Books
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                {borrowedBooks.map((book) => (
+                  <div key={book.id} className="space-y-3 group">
+                    <div 
+                      className="aspect-[2/3] relative rounded-lg overflow-hidden shadow-md group-hover:shadow-xl transition-all cursor-pointer"
+                      onClick={() => handleReadNow(book.id, book.orderId!)}
+                    >
+                      {book.coverImage ? (
+                        <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center p-4 text-center text-xs font-bold">
+                          {book.title}
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <BookOpen className="text-white w-10 h-10" />
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm p-2 text-white text-[10px] flex items-center justify-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {getTimeRemaining(book.expiresAt!)}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm line-clamp-1">{book.title}</h3>
+                      <p className="text-xs text-muted-foreground">{book.author}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Purchase issue awareness banner */}
           <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -196,9 +263,9 @@ const Library = () => {
           </div>
 
           {!orderedBooks || orderedBooks.length === 0 ? (
-            <div className="text-center py-16">
+            <div className="text-center py-16 bg-white/30 rounded-xl border-2 border-dashed border-primary/20">
               <p className="text-muted-foreground mb-4">You haven't purchased any books yet.</p>
-              <Button onClick={() => navigate('/')}>Browse Books</Button>
+              <Button onClick={() => navigate('/')}>Browse Bookstore</Button>
             </div>
           ) : (
             <div className="space-y-0">

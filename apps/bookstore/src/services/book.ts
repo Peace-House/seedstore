@@ -44,6 +44,15 @@ export interface Book {
   ISBN?: string;
   featured?: boolean;
   isNewRelease?: boolean;
+  // Lending fields
+  isLendable?: boolean;
+  lendDurationDays?: number;
+  maxBorrowsPerUser?: number;
+  maxConcurrentBorrows?: number;
+  quotaPeriodDays?: number;
+  quotaLimit?: number;
+  isBorrowed?: boolean;
+  expiresAt?: string;
 }
 
 export interface PaginatedBooks {

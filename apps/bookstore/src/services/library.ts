@@ -36,4 +36,22 @@ export const addFreeBookToLibrary = async (bookId: number) => {
   return res.data;
 };
 
+// Check if user is eligible to borrow a book
+export const getBorrowEligibility = async (bookId: string) => {
+  const res = await api.get(`/borrow/eligibility/${bookId}`);
+  return res.data;
+};
+
+// Borrow a book
+export const borrowBook = async (bookId: string) => {
+  const res = await api.post(`/borrow/${bookId}`);
+  return res.data;
+};
+
+// Return a borrowed book
+export const returnBook = async (bookId: string) => {
+  const res = await api.post(`/borrow/return/${bookId}`);
+  return res.data;
+};
+
 // Add more library-related API functions as needed
