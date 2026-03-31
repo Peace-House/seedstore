@@ -203,6 +203,30 @@ export const resendVerificationEmail = async (email: string): Promise<{ message:
   return res.data;
 };
 
+export interface RetrievePHCodeParams {
+  surname: string;
+  phoneNumber: string;
+  email: string;
+  day: string;
+  month: string;
+  year: string;
+}
+
+export const retrievePHCode = async (params: RetrievePHCodeParams): Promise<{
+  success: boolean;
+  phcode?: string;
+  source?: 'legacy' | 'signup';
+  message?: string;
+}> => {
+  const res = await api.post<{
+    success: boolean;
+    phcode?: string;
+    source?: 'legacy' | 'signup';
+    message?: string;
+  }>('/users/retrieve-ph-code', params);
+  return res.data;
+};
+
 // Create manual order (admin)
 export interface CreateManualOrderInput {
   userId: number;
