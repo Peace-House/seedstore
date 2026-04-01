@@ -201,13 +201,21 @@ const ManageGroupBuy = () => {
                           type="button"
                           variant="outline"
                           onClick={() => verifyCodes(gp.id)}
+                          disabled={localDraft.every((c) => !c.trim())}
                         >
                           Check PH-Codes
                         </Button>
                         <Button
                           type="button"
                           onClick={() => saveAssignment(gp.id)}
-                          disabled={assignMutation.isPending}
+                          disabled={
+                            assignMutation.isPending ||
+                            localDraft.every((c) => !c.trim()) ||
+                            !localDraft
+                              .map((c) => c.trim())
+                              .filter(Boolean)
+                              .every((code) => localChecks[code] === true)
+                          }
                         >
                           Save Assignment
                         </Button>
