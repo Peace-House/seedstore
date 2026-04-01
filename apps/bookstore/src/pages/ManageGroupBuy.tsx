@@ -193,6 +193,7 @@ const ManageGroupBuy = () => {
                           type="button"
                           variant="outline"
                           onClick={() => addDraftCode(gp.id)}
+                          disabled={localDraft.length >= remaining}
                         >
                           Add PH-Code
                         </Button>
