@@ -12,6 +12,7 @@ import {
 } from '@/services/groupPurchase'
 import Breadcrumb from '@/components/Breadcrumb'
 import Navigation from '@/components/Navigation'
+import LiquidGlassWrapper from '@/components/LiquidGlassWrapper'
 
 const ManageGroupBuy = () => {
   const { toast } = useToast()
@@ -124,7 +125,7 @@ const ManageGroupBuy = () => {
             const localChecks = checks[gp.id] ?? {}
 
             return (
-              <Card key={gp.id}>
+              <LiquidGlassWrapper key={gp.id}>
                 <CardContent className="space-y-4 p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -181,6 +182,12 @@ const ManageGroupBuy = () => {
                             <Button
                               type="button"
                               variant="ghost"
+                              size="sm"
+                              className="rounded-full"
+                              style={{
+                                color: 'red',
+                                border: '0.5px solid',
+                              }}
                               onClick={() => removeDraftCode(gp.id, idx)}
                             >
                               Remove
@@ -191,7 +198,9 @@ const ManageGroupBuy = () => {
                       <div className="flex gap-2">
                         <Button
                           type="button"
-                          variant="outline"
+                          liquidGlass={false}
+                          variant="default"
+                          className="bg-primary/20 hover:bg-primary/10 text-primary hover:text-primary"
                           onClick={() => addDraftCode(gp.id)}
                           disabled={localDraft.length >= remaining}
                         >
@@ -200,6 +209,9 @@ const ManageGroupBuy = () => {
                         <Button
                           type="button"
                           variant="outline"
+                          style={{
+                            color: 'red',
+                          }}
                           onClick={() => verifyCodes(gp.id)}
                           disabled={localDraft.every((c) => !c.trim())}
                         >
@@ -207,6 +219,7 @@ const ManageGroupBuy = () => {
                         </Button>
                         <Button
                           type="button"
+                          variant="default"
                           onClick={() => saveAssignment(gp.id)}
                           disabled={
                             assignMutation.isPending ||
@@ -217,7 +230,7 @@ const ManageGroupBuy = () => {
                               .every((code) => localChecks[code] === true)
                           }
                         >
-                          Save Assignment
+                          Assign Copies
                         </Button>
                       </div>
                     </div>
@@ -229,7 +242,7 @@ const ManageGroupBuy = () => {
                     </p>
                   )}
                 </CardContent>
-              </Card>
+              </LiquidGlassWrapper>
             )
           })}
         </div>

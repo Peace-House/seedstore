@@ -1,21 +1,55 @@
 import { BookOpen, GripVertical, Clock, AlertTriangle } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useAuth } from '@/hooks/useAuth'
 import { useLibrary } from '@/hooks/useLibrary'
 import { Book } from '@/services'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import Breadcrumb from '@/components/Breadcrumb'
 import { PageLoader } from '@/components/Loader'
+import {
+  createPeerLending,
+  getMyPeerLends,
+  getPeerLendingConfig,
+  revokePeerLending,
+} from '@/services/peerLending'
+import { useToast } from '@/hooks/use-toast'
 
 const LIBRARY_ORDER_KEY = 'library_book_order'
 
 const Library = () => {
   const { user, loading } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
 
   const { library: purchasedBooks, isLoading } = useLibrary()
+  const { data: lendingConfig } = useQuery({
+    queryKey: ['peer-lending-config'],
+    queryFn: getPeerLendingConfig,
+    enabled: !!user,
+  })
+  const { data: myLends = [] } = useQuery({
+    queryKey: ['peer-lending-my-lends', user?.id],
+    queryFn: getMyPeerLends,
+    enabled: !!user,
+  })
+
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareBook, setShareBook] = useState<Book | null>(null)
+  const [recipient, setRecipient] = useState('')
+  const [durationDays, setDurationDays] = useState(1)
 
   // State for ordered books and drag-and-drop
   const [orderedBooks, setOrderedBooks] = useState<Book[]>([])
@@ -23,6 +57,54 @@ const Library = () => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const [now, setNow] = useState(new Date())
+
+  const lendMutation = useMutation({
+    mutationFn: async () => {
+      if (!shareBook) throw new Error('No book selected')
+      return createPeerLending({
+        bookId: shareBook.id,
+        recipient,
+        durationDays,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['peer-lending-my-lends'] })
+      queryClient.invalidateQueries({ queryKey: ['library'] })
+      toast({ title: 'Access shared successfully' })
+      setShareOpen(false)
+      setRecipient('')
+      setDurationDays(1)
+    },
+    onError: (error: any) => {
+      toast({
+        variant: 'destructive',
+        title: 'Unable to share access',
+        description:
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          'Please try again.',
+      })
+    },
+  })
+
+  const revokeMutation = useMutation({
+    mutationFn: (id: string) => revokePeerLending(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['peer-lending-my-lends'] })
+      queryClient.invalidateQueries({ queryKey: ['library'] })
+      toast({ title: 'Lending revoked' })
+    },
+    onError: (error: any) => {
+      toast({
+        variant: 'destructive',
+        title: 'Unable to revoke lending',
+        description:
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          'Please try again.',
+      })
+    },
+  })
 
   // Update "now" every minute for countdowns
   useEffect(() => {
@@ -192,6 +274,76 @@ const Library = () => {
 
   return (
     <>
+      <Dialog
+        open={shareOpen}
+        onOpenChange={(open) => {
+          setShareOpen(open)
+          if (!open) {
+            setRecipient('')
+            setDurationDays(1)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Lend Book</DialogTitle>
+            <DialogDescription>
+              {shareBook
+                ? `Lend "${shareBook.title}" temporarily.`
+                : 'Lend this book temporarily.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="peer-recipient">Recipient PH-Code</Label>
+              <Input
+                id="peer-recipient"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="Enter recipient PH-Code"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="peer-duration">Duration (days)</Label>
+              <Input
+                id="peer-duration"
+                type="number"
+                min={1}
+                max={Math.max(lendingConfig?.max_lend_duration_days ?? 14, 1)}
+                value={durationDays}
+                onChange={(e) => setDurationDays(Number(e.target.value || 1))}
+              />
+              <p className="text-muted-foreground text-xs">
+                Max {lendingConfig?.max_lend_duration_days ?? 14} days
+              </p>
+            </div>
+
+            {lendingConfig?.allow_lender_access_during_lend === false && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                You will not have access to this book while lending is active.
+              </div>
+            )}
+
+            <Button
+              className="w-full rounded-full"
+              variant="default"
+              disabled={
+                lendMutation.isPending ||
+                !shareBook ||
+                !recipient.trim() ||
+                durationDays < 1 ||
+                durationDays >
+                  Math.max(lendingConfig?.max_lend_duration_days ?? 14, 1)
+              }
+              onClick={() => lendMutation.mutate()}
+            >
+              {lendMutation.isPending ? 'Lending...' : 'Confirm Lend'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50">
         <div className="container py-8">
           <Breadcrumb />
@@ -200,7 +352,7 @@ const Library = () => {
             <h1 className="text-primary text-4xl font-bold">My Library</h1>
             <div className="flex items-center gap-4">
               <Button
-                variant="outline"
+                variant="default"
                 onClick={() => navigate('/manage-group-buy')}
               >
                 Manage Group Buy
@@ -254,9 +406,49 @@ const Library = () => {
                       <p className="text-muted-foreground text-xs">
                         {book.author}
                       </p>
+                      {book.lenderName && (
+                        <p className="text-muted-foreground text-xs">
+                          Borrowed from {book.lenderName}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {myLends.filter((lend) => lend.status === 'ACTIVE').length > 0 && (
+            <div className="mb-8 rounded-xl border border-orange-200 bg-white/70 p-4">
+              <h2 className="text-primary mb-3 text-xl font-bold">
+                Active Shared Access
+              </h2>
+              <div className="space-y-3">
+                {myLends
+                  .filter((lend) => lend.status === 'ACTIVE')
+                  .map((lend) => (
+                    <div
+                      key={lend.id}
+                      className="flex flex-col justify-between gap-3 rounded-lg border border-orange-100 bg-white p-3 md:flex-row md:items-center"
+                    >
+                      <div>
+                        <p className="font-semibold">{lend.book?.title}</p>
+                        <p className="text-muted-foreground text-sm">
+                          Shared with {lend.borrower?.firstName}{' '}
+                          {lend.borrower?.lastName} until{' '}
+                          {new Date(lend.endAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="default"
+                        className="rounded-full"
+                        disabled={revokeMutation.isPending}
+                        onClick={() => revokeMutation.mutate(lend.id)}
+                      >
+                        Take Back
+                      </Button>
+                    </div>
+                  ))}
               </div>
             </div>
           )}
@@ -304,6 +496,14 @@ const Library = () => {
                       const isDragging = draggedIndex === globalIndex
                       const isDragOver =
                         hoverIndex === globalIndex && !isDragging
+                      const activeLendForBook = myLends.find(
+                        (lend) =>
+                          lend.status === 'ACTIVE' &&
+                          Number(lend.book?.id) === Number(book.id),
+                      )
+                      const isLentOutNoAccess =
+                        !!activeLendForBook &&
+                        !activeLendForBook.lenderHasAccess
 
                       return (
                         <div
@@ -339,9 +539,10 @@ const Library = () => {
                               transformStyle: 'preserve-3d',
                               perspective: '1000px',
                             }}
-                            onClick={() =>
+                            onClick={() => {
+                              if (isLentOutNoAccess) return
                               handleReadNow(book.id, book.orderId!)
-                            }
+                            }}
                           >
                             {/* Book cover */}
                             {book.coverImage ? (
@@ -349,6 +550,11 @@ const Library = () => {
                                 src={book.coverImage}
                                 alt={book.title}
                                 className="h-full w-full object-cover"
+                                style={{
+                                  filter: isLentOutNoAccess
+                                    ? 'grayscale(80%) brightness(0.7)'
+                                    : undefined,
+                                }}
                               />
                             ) : (
                               <div
@@ -395,6 +601,39 @@ const Library = () => {
                             <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/20 group-hover:opacity-100">
                               <BookOpen className="h-6 w-6 text-white drop-shadow-lg md:h-8 md:w-8" />
                             </div>
+
+                            {isLentOutNoAccess && (
+                              <div className="bg-black/65 absolute inset-x-0 bottom-0 p-2 text-center text-[10px] font-semibold text-white backdrop-blur-sm">
+                                Lent out until{' '}
+                                {new Date(
+                                  activeLendForBook!.endAt,
+                                ).toLocaleDateString()}
+                              </div>
+                            )}
+
+                            {!!lendingConfig?.peer_lending_enabled && (
+                              <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  style={{
+                                    color: 'red',
+                                    cursor: 'pointer',
+                                  }}
+                                  className="text-primary h-7 cursor-pointer rounded-full bg-white px-2 text-xs text-red-700 outline outline-red-700 hover:bg-white/90"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setShareBook(book)
+                                    setDurationDays(1)
+                                    setRecipient('')
+                                    setShareOpen(true)
+                                  }}
+                                >
+                                  Lend Book
+                                </Button>
+                              </div>
+                            )}
                           </div>
 
                           {/* Book bottom shadow on shelf */}

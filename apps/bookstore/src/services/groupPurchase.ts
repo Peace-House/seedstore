@@ -89,3 +89,33 @@ export function getGroupBuyDiscount(seats: number): number {
   if (seats >= 25) return 5
   return 0
 }
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+export interface GroupBuyBookSetting {
+  id: number | string
+  title: string
+  author: string | null
+  allowGroupBuy: boolean
+}
+
+export const getGroupBuyBooks = async (
+  page = 1,
+  pageSize = 20,
+): Promise<{
+  books: GroupBuyBookSetting[]
+  total: number
+  page: number
+  pageSize: number
+}> => {
+  const res = await api.get('/group-purchase/admin/books', {
+    params: { page, pageSize },
+  })
+  return res.data
+}
+
+export const updateGroupBuySettings = async (
+  books: { id: number | string; allowGroupBuy: boolean }[],
+): Promise<{ message: string }> => {
+  const res = await api.put('/group-purchase/admin/settings', { books })
+  return res.data
+}

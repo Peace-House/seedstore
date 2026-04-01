@@ -1,0 +1,238 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
+import {
+  getAppFeatureSettings,
+  updateAppFeatureSettings,
+} from '@/services/admin'
+import {
+  getGroupBuyBooks,
+  updateGroupBuySettings,
+  type GroupBuyBookSetting,
+} from '@/services/groupPurchase'
+import AdminTable from './AdminTable'
+
+const GroupBuyingManagement = () => {
+  const { toast } = useToast()
+
+  const [loadingFeature, setLoadingFeature] = useState(true)
+  const [savingFeature, setSavingFeature] = useState(false)
+  const [groupBuyingEnabled, setGroupBuyingEnabled] = useState(true)
+  const [initialGroupBuyingEnabled, setInitialGroupBuyingEnabled] =
+    useState(true)
+
+  const [books, setBooks] = useState<GroupBuyBookSetting[]>([])
+  const [loadingBooks, setLoadingBooks] = useState(false)
+  const [savingBooks, setSavingBooks] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(10)
+  const [total, setTotal] = useState(0)
+  const [modified, setModified] = useState<Record<string, boolean>>({})
+
+  const hasFeatureChanges = groupBuyingEnabled !== initialGroupBuyingEnabled
+
+  const hasBookChanges = useMemo(
+    () => Object.keys(modified).length > 0,
+    [modified],
+  )
+
+  const loadFeature = async () => {
+    setLoadingFeature(true)
+    try {
+      const settings = await getAppFeatureSettings()
+      const enabled = settings.group_buying_enabled ?? true
+      setGroupBuyingEnabled(enabled)
+      setInitialGroupBuyingEnabled(enabled)
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load group buying feature setting.',
+      })
+    } finally {
+      setLoadingFeature(false)
+    }
+  }
+
+  const loadBooks = async () => {
+    setLoadingBooks(true)
+    try {
+      const data = await getGroupBuyBooks(page, pageSize)
+      setBooks(data.books)
+      setTotal(data.total)
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to fetch group-buy book settings.',
+      })
+    } finally {
+      setLoadingBooks(false)
+    }
+  }
+
+  useEffect(() => {
+    loadFeature()
+  }, [])
+
+  useEffect(() => {
+    if (groupBuyingEnabled) {
+      loadBooks()
+    }
+  }, [groupBuyingEnabled, page])
+
+  const saveFeature = async () => {
+    setSavingFeature(true)
+    try {
+      const updated = await updateAppFeatureSettings({
+        group_buying_enabled: groupBuyingEnabled,
+      })
+      const enabled = updated.group_buying_enabled ?? true
+      setGroupBuyingEnabled(enabled)
+      setInitialGroupBuyingEnabled(enabled)
+      toast({
+        title: 'Saved',
+        description: 'Group buying feature toggle updated.',
+      })
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Save failed',
+        description: 'Could not update group buying feature setting.',
+      })
+    } finally {
+      setSavingFeature(false)
+    }
+  }
+
+  const handleBookToggle = (bookId: string | number, value: boolean) => {
+    setModified((prev) => ({ ...prev, [String(bookId)]: value }))
+    setBooks((prev) =>
+      prev.map((b) => (b.id === bookId ? { ...b, allowGroupBuy: value } : b)),
+    )
+  }
+
+  const saveBookSettings = async () => {
+    const updates = Object.entries(modified).map(([id, allowGroupBuy]) => ({
+      id,
+      allowGroupBuy,
+    }))
+
+    if (updates.length === 0) {
+      toast({
+        title: 'No changes',
+        description: "You haven't modified any book settings.",
+      })
+      return
+    }
+
+    setSavingBooks(true)
+    try {
+      await updateGroupBuySettings(updates)
+      toast({
+        title: 'Saved',
+        description: 'Book-level group-buy settings updated.',
+      })
+      setModified({})
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Save failed',
+        description: 'Could not update book-level settings.',
+      })
+    } finally {
+      setSavingBooks(false)
+    }
+  }
+
+  return (
+    <Card className="rounded">
+      <CardHeader>
+        <CardTitle>Group Buying</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6 px-0">
+        <div className="px-4">
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="font-medium">Group buying feature</p>
+              <p className="text-muted-foreground text-sm">
+                Enable or disable the group-buy flow platform-wide.
+              </p>
+            </div>
+            <Switch
+              checked={groupBuyingEnabled}
+              onCheckedChange={setGroupBuyingEnabled}
+              disabled={loadingFeature || savingFeature}
+            />
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <Button
+              onClick={saveFeature}
+              disabled={loadingFeature || savingFeature || !hasFeatureChanges}
+            >
+              {savingFeature ? 'Saving...' : 'Save Feature Toggle'}
+            </Button>
+          </div>
+        </div>
+
+        {groupBuyingEnabled && (
+          <>
+            <div className="flex items-center justify-between px-4">
+              <h3 className="text-sm font-semibold">
+                Group buying - Book-level settings
+              </h3>
+              <Button
+                size="sm"
+                onClick={saveBookSettings}
+                disabled={savingBooks || !hasBookChanges}
+              >
+                {savingBooks ? 'Saving...' : 'Save Book Changes'}
+              </Button>
+            </div>
+
+            <AdminTable
+              admins={books}
+              loading={loadingBooks}
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={() => {}}
+              columns={[
+                {
+                  label: 'Title',
+                  render: (book: GroupBuyBookSetting) => (
+                    <div className="min-w-[200px]">
+                      <p className="line-clamp-1 font-semibold">{book.title}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {book.author || 'No Author'}
+                      </p>
+                    </div>
+                  ),
+                  sortKey: 'title',
+                },
+                {
+                  label: 'Allow Group Buy',
+                  render: (book: GroupBuyBookSetting) => (
+                    <Switch
+                      checked={book.allowGroupBuy}
+                      onCheckedChange={(checked) =>
+                        handleBookToggle(book.id, checked)
+                      }
+                    />
+                  ),
+                },
+              ]}
+              renderActions={undefined}
+            />
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export default GroupBuyingManagement

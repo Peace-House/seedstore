@@ -14,6 +14,7 @@ import LiquidGlassWrapper from '@/components/LiquidGlassWrapper'
 import GroupBuyModal from '@/components/GroupBuyModal'
 import { getCartWithGroupPurchases } from '@/services/groupPurchase'
 import { useQuery } from '@tanstack/react-query'
+import { getAppFeatureSettings } from '@/services/admin'
 
 const Cart = () => {
   const { user, loading: authLoading } = useAuth()
@@ -53,6 +54,13 @@ const Cart = () => {
     queryFn: () => getCartWithGroupPurchases(currencyCode),
     enabled: !!user,
   })
+
+    const { data: featureSettings } = useQuery({
+      queryKey: ['app-feature-settings'],
+      queryFn: getAppFeatureSettings,
+      staleTime: 60_000,
+    })
+    const groupBuyingEnabled = featureSettings?.group_buying_enabled ?? true
 
   // Backend returns cart object with items array
   const cartItems = Array.isArray(rawCartItems) ? rawCartItems : []
@@ -192,48 +200,101 @@ const Cart = () => {
                             )
                           })()}
                           {user && (
-                            <div className="mt-3 flex items-center gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                className="rounded-full"
-                                variant={'default'}
-                                onClick={() =>
-                                  setGroupBuyBook({
-                                    id: book.id,
-                                    title: book.title,
-                                    groupPurchase: gp
-                                      ? {
-                                          id: gp.id,
-                                          totalSeats: gp.totalSeats,
-                                          discountPercent: gp.discountPercent,
-                                          assignedSeats: gp.assignedSeats,
-                                          phcodes: Array.isArray(gp.seats)
-                                            ? gp.seats
-                                                .map((seat: any) =>
-                                                  typeof seat?.phcode ===
-                                                  'string'
-                                                    ? seat.phcode
-                                                    : '',
-                                                )
-                                                .filter(
-                                                  (p: string) =>
-                                                    p.trim().length > 0,
-                                                )
-                                            : [],
-                                        }
-                                      : null,
-                                  })
-                                }
-                              >
-                                {gp ? 'Edit Group' : 'Buy for a Group'}
-                              </Button>
-                              {gp ? (
-                                <span className="text-muted-foreground text-xs">
-                                  {gp.totalSeats} users, {gp.discountPercent}%
-                                  discount
-                                </span>
-                              ) : null}
+                            <div className="mt-3 flex flex-col gap-2">
+                              {gp &&
+                                  groupBuyingEnabled &&
+                                  book.allowGroupBuy !== false &&
+                                  (() => {
+                                  const priceInfo = getBookPriceForCountry(
+                                    book.prices,
+                                    selectedCountry,
+                                    'soft_copy',
+                                    countryCurrencies,
+                                  )
+                                  const pricePerSeat =
+                                    gp.pricePerSeat ?? Number(priceInfo.price)
+                                  const fullTotal = pricePerSeat * gp.totalSeats
+                                  const discountedTotal =
+                                    gp.totalPaid ?? fullTotal
+                                  const hasDiscount = gp.discountPercent > 0
+                                  return (
+                                    <div className="flex items-baseline gap-2">
+                                      <span className="text-muted-foreground text-xs">
+                                        Group ({gp.totalSeats} users):
+                                      </span>
+                                      {hasDiscount && (
+                                        <span className="text-muted-foreground text-xs line-through">
+                                          {priceInfo.symbol}
+                                          {fullTotal.toLocaleString(undefined, {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                          })}
+                                        </span>
+                                      )}
+                                      <span className="text-primary text-sm font-bold">
+                                        {priceInfo.symbol}
+                                        {Number(discountedTotal).toLocaleString(
+                                          undefined,
+                                          {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                          },
+                                        )}
+                                      </span>
+                                      {hasDiscount && (
+                                        <span className="rounded-full bg-white px-1.5 py-0.5 text-[11px] font-semibold text-red-700 dark:bg-green-900/30 dark:text-green-400">
+                                          -{gp.discountPercent}%
+                                        </span>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="rounded-full"
+                                  style={{
+                                    fontSize: '13px',
+                                  }}
+                                  variant={'default'}
+                                    disabled={!groupBuyingEnabled || book.allowGroupBuy === false}
+                                    onClick={() =>
+                                      setGroupBuyBook({
+                                      id: book.id,
+                                      title: book.title,
+                                      groupPurchase: gp
+                                        ? {
+                                            id: gp.id,
+                                            totalSeats: gp.totalSeats,
+                                            discountPercent: gp.discountPercent,
+                                            assignedSeats: gp.assignedSeats,
+                                            phcodes: Array.isArray(gp.seats)
+                                              ? gp.seats
+                                                  .map((seat: any) =>
+                                                    typeof seat?.phcode ===
+                                                    'string'
+                                                      ? seat.phcode
+                                                      : '',
+                                                  )
+                                                  .filter(
+                                                    (p: string) =>
+                                                      p.trim().length > 0,
+                                                  )
+                                              : [],
+                                          }
+                                        : null,
+                                    })
+                                  }
+                                >
+                                  {gp ? 'Edit Group' : 'Buy for a Group'}
+                                </Button>
+                              </div>
+                                {(!groupBuyingEnabled || book.allowGroupBuy === false) && (
+                                  <p className="text-muted-foreground text-xs">
+                                    Group buying is not available for this item.
+                                  </p>
+                                )}
                             </div>
                           )}
                         </div>
