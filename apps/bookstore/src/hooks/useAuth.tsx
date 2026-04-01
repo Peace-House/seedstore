@@ -36,8 +36,8 @@ export const useAuth = () => {
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (payload: { email: string; password: string; platform?: string; deviceId: string; deviceName?: string; location?: string }) => {
-      return await userApi.login(payload.email, payload.password, payload.platform || 'web', payload.deviceId, payload.deviceName, payload.location);
+    mutationFn: async (payload: { phcode: string; password: string; platform?: string; deviceId: string; deviceName?: string; location?: string }) => {
+      return await userApi.login(payload.phcode, payload.password, payload.platform || 'web', payload.deviceId, payload.deviceName, payload.location);
     },
     onSuccess: (data) => {
       setToken(data.token);
@@ -52,7 +52,7 @@ export const useAuth = () => {
 
   // Register mutation
   const registerMutation = useMutation({
-    mutationFn: async (payload: { email: string; firstName: string; lastName: string; password: string; phoneNumber?: string, countryOfResidence: string, stateOfResidence?: string, gender:string, dateOfBirth: string }) => {
+    mutationFn: async (payload: { email: string; firstName: string; lastName: string; password: string; phoneNumber?: string, countryOfResidence: string, stateOfResidence?: string, gender: string, dateOfBirth: string }) => {
       return await userApi.register({ ...payload });
     },
     onSuccess: (data) => {
