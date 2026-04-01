@@ -13,7 +13,9 @@ function getToken() {
 
 async function fetchPreferredCountry(): Promise<string | null> {
   try {
-    const res = await api.get<{ user: { preferredDisplayCountry?: string | null } }>('/users/me')
+    const res = await api.get<{
+      user: { preferredDisplayCountry?: string | null }
+    }>('/users/me')
     return res.data.user?.preferredDisplayCountry ?? null
   } catch {
     return null
@@ -35,6 +37,29 @@ export const CountryProvider: React.FC<{ children: ReactNode }> = ({
   const lastSyncedFromServer = useRef<string | null>(null)
   const isSaving = useRef(false)
 
+  const refreshCurrencyDependentQueries = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: ['group-cart-summary'],
+      refetchType: 'active',
+    })
+    queryClient.invalidateQueries({
+      queryKey: ['cart'],
+      refetchType: 'active',
+    })
+    queryClient.invalidateQueries({
+      queryKey: ['books'],
+      refetchType: 'active',
+    })
+    queryClient.invalidateQueries({
+      queryKey: ['book'],
+      refetchType: 'active',
+    })
+    queryClient.invalidateQueries({
+      queryKey: ['related-books'],
+      refetchType: 'active',
+    })
+  }, [queryClient])
+
   // On mount + when tab regains focus: pull the latest preference from the server
   const syncFromServer = useCallback(async () => {
     if (!getToken() || isSaving.current) return
@@ -43,8 +68,9 @@ export const CountryProvider: React.FC<{ children: ReactNode }> = ({
       lastSyncedFromServer.current = serverCountry
       setSelectedCountryState(serverCountry)
       localStorage.setItem(STORAGE_KEY, serverCountry)
+      refreshCurrencyDependentQueries()
     }
-  }, [])
+  }, [refreshCurrencyDependentQueries])
 
   useEffect(() => {
     syncFromServer()
@@ -52,8 +78,25 @@ export const CountryProvider: React.FC<{ children: ReactNode }> = ({
 
   useEffect(() => {
     const onFocus = () => syncFromServer()
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromServer()
+      }
+    }
+
     window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+
+    // Keep currency preference fresh across long-lived tabs.
+    const timer = window.setInterval(() => {
+      syncFromServer()
+    }, 30000)
+
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.clearInterval(timer)
+    }
   }, [syncFromServer])
 
   const { data: countryCurrencies = [], isLoading } = useQuery({
@@ -62,25 +105,29 @@ export const CountryProvider: React.FC<{ children: ReactNode }> = ({
     staleTime: 1000 * 60 * 60,
   })
 
-  const setSelectedCountry = useCallback(async (country: string) => {
-    setSelectedCountryState(country)
-    localStorage.setItem(STORAGE_KEY, country)
-    lastSyncedFromServer.current = country
+  const setSelectedCountry = useCallback(
+    async (country: string) => {
+      setSelectedCountryState(country)
+      localStorage.setItem(STORAGE_KEY, country)
+      lastSyncedFromServer.current = country
+      refreshCurrencyDependentQueries()
 
-    if (getToken()) {
-      try {
-        isSaving.current = true
-        await savePreferredCountry(country)
-      } catch (err) {
-        console.error('Failed to save currency preference:', err)
-      } finally {
-        isSaving.current = false
+      if (getToken()) {
+        try {
+          isSaving.current = true
+          await savePreferredCountry(country)
+        } catch (err) {
+          console.error('Failed to save currency preference:', err)
+        } finally {
+          isSaving.current = false
+        }
       }
-    }
-  }, [])
+    },
+    [refreshCurrencyDependentQueries],
+  )
 
   const selectedCurrencyData = countryCurrencies.find(
-    (c) => c.country.toLowerCase() === selectedCountry.toLowerCase()
+    (c) => c.country.toLowerCase() === selectedCountry.toLowerCase(),
   )
   const selectedCurrency = selectedCurrencyData?.currency || 'NGN'
   const selectedSymbol = selectedCurrencyData?.symbol || '₦'
