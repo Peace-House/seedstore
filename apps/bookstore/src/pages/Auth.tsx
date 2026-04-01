@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { useEffect, useState } from 'react'
 import { getCountries, getStates } from '@/services/location'
 import { useToast } from '@/hooks/use-toast'
-import { ChevronLeft, Loader2, Eye, EyeOff } from 'lucide-react'
+import { ChevronLeft, Loader2, Eye, EyeOff, User } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import Logo from '@/components/Logo'
@@ -25,16 +25,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { retrievePHCode } from '@/services/user'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Copy, Check } from 'lucide-react'
-import { set } from 'date-fns'
 
 const Auth = () => {
   const [searchParams] = useSearchParams()
@@ -63,24 +53,7 @@ const Auth = () => {
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [showSignUpSuccessfulModal, setShowSignUpSuccessfulModal] =
     useState(false)
-  const [PhCode, setPhCode] = useState('EKE22-F2345FG')
-
-  // Retrieval related state
-  const [retrieveMethod, setRetrieveMethod] = useState<
-    'phone' | 'email' | 'dob' | null
-  >(null)
-  const [showRetrieveModal, setShowRetrieveModal] = useState(false)
-  const [showResultModal, setShowResultModal] = useState(false)
-  const [retrievedPhCode, setRetrievedPhCode] = useState('')
-  const [retrieveSource, setRetrieveSource] = useState<
-    'legacy' | 'signup' | null
-  >(null)
-  const [retrieveMessage, setRetrieveMessage] = useState('')
-  const [birthDay, setBirthDay] = useState('')
-  const [birthMonth, setBirthMonth] = useState('')
-  const [birthYear, setBirthYear] = useState('')
-  const [isCopied, setIsCopied] = useState(false)
-  const [surname, setSurname] = useState('')
+  const [PhCode, setPhCode] = useState('')
 
   // Fetch countries and states for signup
   useEffect(() => {
@@ -109,14 +82,6 @@ const Auth = () => {
       navigate('/#all-books')
     }
   }, [user, authToken])
-
-  useEffect(() => {
-    setPhoneNumber('')
-    setEmail('')
-    setBirthDay('')
-    setBirthMonth('')
-    setBirthYear('')
-  }, [retrieveMethod])
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -176,7 +141,7 @@ const Auth = () => {
         const location = await getDeviceLocation()
 
         await login({
-          email,
+          phcode,
           password,
           platform: detectPlatform(),
           deviceId: getDeviceId(),
@@ -274,8 +239,11 @@ const Auth = () => {
         backgroundRepeat: 'no-repeat',
       }}
     >
-      <Card className="border-primary relative w-full max-w-md border-[0.5px] shadow-lg">
-        <button onClick={() => navigate('/')} className="absolute top-3 left-3">
+      <Card className="border-primary relative w-full max-w-lg border-[0.5px] shadow-lg">
+        <button onClick={() =>
+          !isLogin && !showSignUpSuccessfulModal ?
+            setIsLogin(true)
+            : navigate('/')} className="absolute top-3 left-3">
           <ChevronLeft className="h-5 w-5" />
         </button>
         <CardHeader className="space-y-1 text-center">
@@ -286,20 +254,20 @@ const Auth = () => {
             {showSignUpSuccessfulModal
               ? 'Welcome!'
               : isLogin
-              ? 'Welcome Back'
-              : 'Create Account'}
+                ? 'Welcome Back'
+                : 'Create Account'}
           </CardTitle>
           <CardDescription>
             {isLogin
               ? 'Sign in to access your library'
               : showSignUpSuccessfulModal
-              ? 'You can now log in to your account.'
-              : 'Sign up to start reading'}
+                ? 'You can now log in to your account.'
+                : 'Sign up to start reading'}
           </CardDescription>
-          <CardDescription className="rounded-md bg-red-50 px-2 py-3  text-xs text-red-600 md:px-12">
+          <CardDescription className="rounded-md bg-red-50 px-2 py-3  text-sm text-red-600 md:px-12">
             {isLogin
-              ? 'Your PHCode & Password On Registration.livingseed will also work here.'
-              : 'Your account will also work on Registration.livingseed'}
+              ? 'Your PHCode & Password On registration.livingseed.org will also work here.'
+              : 'Your account will also work on registration.livingseed.org'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -338,7 +306,7 @@ const Auth = () => {
                 <br />
                 <div className="space-y-1">
                   <Button
-                    className="w-full"
+                    className="w-full rounded-full"
                     variant="default"
                     onClick={() => {
                       setShowSignUpSuccessfulModal(false)
@@ -357,7 +325,7 @@ const Auth = () => {
                   <Input
                     id="firstName"
                     type="text"
-                    placeholder="Enter Firstname"
+                    placeholder="Enter firstname"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required={!isLogin}
@@ -368,7 +336,7 @@ const Auth = () => {
                   <Input
                     id="lastName"
                     type="text"
-                    placeholder="Enter Lastname"
+                    placeholder="Enter lastname"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required={!isLogin}
@@ -378,15 +346,19 @@ const Auth = () => {
             )}
             {isLogin && !showSignUpSuccessfulModal && (
               <div className="space-y-1">
-                <Label htmlFor="email">PH-Code</Label>
-                <Input
-                  id="email"
-                  type="text"
-                  placeholder="Enter your PHCode"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+                <Label htmlFor="phcode">PHCode</Label>
+                <div className="relative">
+                  <User className="absolute left-3 z-10 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="phcode"
+                    type="text"
+                    placeholder="Enter your PHCode"
+                    value={phcode}
+                    onChange={(e) => setPhcode(e.target.value)}
+                    required
+                    className="pl-10"
+                  />
+                </div>
               </div>
             )}
             {!isLogin && !showSignUpSuccessfulModal && (
@@ -416,9 +388,8 @@ const Auth = () => {
                 </div>
                 <div className="mt-2 flex flex-col md:flex-row md:items-center md:gap-2">
                   <div
-                    className={`w-full space-y-1 ${
-                      countryOfResidence === '162' ? 'md:w-1/2' : 'md:w-full'
-                    }`}
+                    className={`w-full space-y-1 ${countryOfResidence === '162' ? 'md:w-1/2' : 'md:w-full'
+                      }`}
                   >
                     <Label htmlFor="countryOfResidence">Country</Label>
                     <select
@@ -488,11 +459,10 @@ const Auth = () => {
             )}
             {!showSignUpSuccessfulModal && (
               <div
-                className={`grid  ${
-                  isLogin
-                    ? 'grid-cols-1'
-                    : 'grid-cols-1 md:grid-cols-2 md:gap-2'
-                }`}
+                className={`grid  ${isLogin
+                  ? 'grid-cols-1'
+                  : 'grid-cols-1 md:grid-cols-2 md:gap-2'
+                  }`}
               >
                 <div className="relative">
                   <Label htmlFor="password">Password</Label>
@@ -520,16 +490,35 @@ const Auth = () => {
                   </div>
                 </div>
                 {!isLogin && admin_email && token && (
-                  <div className="">
-                    <Label htmlFor="phcode">PH-Code </Label>
-                    <Input
-                      id="phcode"
-                      type="text"
-                      placeholder="Enter your PH-Code"
-                      value={phcode}
-                      onChange={(e) => setPhcode(e.target.value)}
-                      required
-                    />
+                  // <div className="">
+                  //   <Label htmlFor="phcode">PH-Code </Label>
+                  //   <div className="relative">
+                  //     <User className="absolute left-3 z-10 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  //     <Input
+                  //       id="phcode"
+                  //       type="text"
+                  //       placeholder="Enter your PH-Code"
+                  //       value={phcode}
+                  //       onChange={(e) => setPhcode(e.target.value)}
+                  //       required
+                  //       className='pl-10'
+                  //     />
+                  //   </div>
+                  // </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="phcode">PHCode</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 z-10 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="phcode"
+                        type="text"
+                        placeholder="Enter your PHCode"
+                        value={phcode}
+                        onChange={(e) => setPhcode(e.target.value)}
+                        required
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
                 )}
                 {!isLogin && (
@@ -567,12 +556,12 @@ const Auth = () => {
               <Button
                 variant="outline"
                 type="submit"
-                className="!bg-primary !mt-8 mb-3 w-full !text-white shadow-lg"
+                className="!bg-primary !mt-8 mb-3 w-full !text-white shadow-lg rounded-full"
                 disabled={
                   isSubmitting ||
                   loading ||
                   (!isLogin && password !== confirmPassword) ||
-                  (isLogin && (!email || !password))
+                  (isLogin && (!phcode || !password))
                 }
               >
                 {(isSubmitting || loading) && (
@@ -604,7 +593,7 @@ const Auth = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowRetrieveModal(true)}
+                    onClick={() => navigate('/retrieve-phcode')}
                     className="text-sm text-gray-500 hover:underline"
                   >
                     I forgot my PHCode? Retrieve
@@ -615,391 +604,311 @@ const Auth = () => {
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={showRetrieveModal} onOpenChange={setShowRetrieveModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Retrieve PH Code</DialogTitle>
-            <DialogDescription>
-              Select a method to retrieve your PH Code.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault()
-              setIsSubmitting(true)
-
-              try {
-                const payload: any = { surname }
-
-                if (retrieveMethod === 'phone') {
-                  payload.phoneNumber = phoneNumber
-                }
-
-                if (retrieveMethod === 'email') {
-                  payload.email = email
-                }
-
-                if (retrieveMethod === 'dob') {
-                  payload.day = birthDay
-                  payload.month = birthMonth
-                  payload.year = birthYear
-                }
-
-                const res = await retrievePHCode(payload)
-
-                if (res.success && res.phcode) {
-                  setRetrievedPhCode(res.phcode)
-                  setRetrieveSource(res.source || 'legacy')
-                  setRetrieveMessage(res.message || '')
-                  setShowResultModal(true)
-                  setShowRetrieveModal(false)
-                }
-              } catch (error: any) {
-                toast({
-                  variant: 'destructive',
-                  title: 'Error',
-                  description:
-                    error.response?.data?.message ||
-                    'Failed to retrieve PH Code',
-                })
-              } finally {
-                setIsSubmitting(false)
-              }
-            }}
-            className="space-y-4 py-4"
-          >
-            {/* STEP 1: SELECT METHOD */}
-            {!retrieveMethod && (
-              <div className="space-y-4">
-                <Button
-                  type="button"
-                  onClick={() => setRetrieveMethod('phone')}
-                  className="outline-primary w-full rounded-full outline"
-                >
-                  Retrieve with Phone Number
-                </Button>
-
-                <Button
-                  type="button"
-                  onClick={() => setRetrieveMethod('email')}
-                  className="w-full rounded-full outline"
-                >
-                  Retrieve with Email
-                </Button>
-
-                <Button
-                  type="button"
-                  onClick={() => setRetrieveMethod('dob')}
-                  className="w-full rounded-full outline"
-                >
-                  Retrieve with Date of Birth
-                </Button>
-              </div>
-            )}
-
-            {/* STEP 2: INPUT FORM */}
-            {retrieveMethod && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setRetrieveMethod(null)}
-                  className="text-sm text-gray-500 underline"
-                >
-                  ← Change method
-                </button>
-
-                {/* SURNAME */}
-                <div className="space-y-1">
-                  <Label>Surname</Label>
-                  <Input
-                    placeholder="Enter your surname"
-                    value={surname}
-                    onChange={(e) => setSurname(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* PHONE */}
-                {retrieveMethod === 'phone' && (
-                  <div className="space-y-1">
-                    <Label>Phone Number</Label>
-                    <Input
-                      placeholder="Enter your phone number"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      required
-                    />
-                  </div>
-                )}
-
-                {/* EMAIL */}
-                {retrieveMethod === 'email' && (
-                  <div className="space-y-1">
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                )}
-
-                {/* DOB */}
-                {retrieveMethod === 'dob' && (
-                  <div>
-                    <Label>Date of Birth</Label>
-                    <div className="mt-2 grid grid-cols-3 gap-2">
-                      <Input
-                        placeholder="Day"
-                        type="number"
-                        value={birthDay}
-                        onChange={(e) => setBirthDay(e.target.value)}
-                        required
-                      />
-                      <Input
-                        placeholder="Month"
-                        type="number"
-                        value={birthMonth}
-                        onChange={(e) => setBirthMonth(e.target.value)}
-                        required
-                      />
-                      <Input
-                        placeholder="Year"
-                        type="number"
-                        value={birthYear}
-                        onChange={(e) => setBirthYear(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <Button
-                  variant="default"
-                  type="submit"
-                  className="w-full"
-                  disabled={
-                    isSubmitting ||
-                    !surname ||
-                    (retrieveMethod === 'phone' && !phoneNumber) ||
-                    (retrieveMethod === 'email' && !email) ||
-                    (retrieveMethod === 'dob' &&
-                      (!birthDay || !birthMonth || !birthYear))
-                  }
-                >
-                  {isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Retrieve PH Code
-                </Button>
-              </>
-            )}
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Retrieve PH Code Modal */}
-      {/* <Dialog open={showRetrieveModal} onOpenChange={setShowRetrieveModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Retrieve PH Code</DialogTitle>
-            <DialogDescription>
-              Enter your details to retrieve your PH Code from our system.
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault()
-              setIsSubmitting(true)
-              try {
-                const res = await retrievePHCode({
-                  surname,
-                  phoneNumber,
-                  email,
-                  day: birthDay,
-                  month: birthMonth,
-                  year: birthYear,
-                })
-                if (res.success && res.phcode) {
-                  setRetrievedPhCode(res.phcode)
-                  setRetrieveSource(res.source || 'legacy')
-                  setRetrieveMessage(res.message || '')
-                  setShowResultModal(true)
-                  setShowRetrieveModal(false)
-                }
-              } catch (error: any) {
-                toast({
-                  variant: 'destructive',
-                  title: 'Error',
-                  description:
-                    error.response?.data?.message ||
-                    'Failed to retrieve PH Code',
-                })
-              } finally {
-                setIsSubmitting(false)
-              }
-            }}
-            className="space-y-4 py-4"
-          >
-            <div className="grid grid-cols-2 gap-x-2">
-              <div className="space-y-1">
-                <Label htmlFor="retrieve-surname">Surname</Label>
-                <Input
-                  id="retrieve-surname"
-                  placeholder="Enter your surname"
-                  value={surname}
-                  onChange={(e) => setSurname(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="retrieve-phone">Phone Number</Label>
-                <Input
-                  id="retrieve-phone"
-                  placeholder="Enter your phone number"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="retrieve-email">Email</Label>
-              <Input
-                id="retrieve-email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <div className="mb-2">
-                <Label htmlFor="retrieve-email">Date of Birth</Label>
-              </div>
-
-              <div className="grid grid-cols-3 gap-x-2">
-                <div className="space-y-0">
-                  <Input
-                    id="retrieve-day"
-                    placeholder="day"
-                    value={birthDay}
-                    type="number"
-                    onChange={(e) => setBirthDay(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-0">
-                  <Input
-                    id="retrieve-month"
-                    placeholder="month"
-                    value={birthMonth}
-                    type="number"
-                    onChange={(e) => setBirthMonth(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-0">
-                  <Input
-                    id="retrieve-year"
-                    placeholder="year"
-                    type="number"
-                    value={birthYear}
-                    onChange={(e) => setBirthYear(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-            <br />
-            <Button
-              variant="default"
-              type="submit"
-              className="w-full"
-              disabled={
-                isSubmitting ||
-                !surname ||
-                !phoneNumber ||
-                !email ||
-                !birthDay ||
-                !birthMonth ||
-                !birthYear
-              }
-            >
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Retrieve PH Code
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog> */}
-
-      {/* Result Modal */}
-      <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>PH Code Retrieved</DialogTitle>
-            <DialogDescription>
-              Your PH Code has been successfully retrieved.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center space-y-4 py-4 text-center">
-            <div className="bg-primary/10 border-primary/20 flex w-full items-center justify-between rounded-lg border p-4">
-              <code className="text-primary text-xl font-bold tracking-wider">
-                {retrievedPhCode}
-              </code>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  navigator.clipboard.writeText(retrievedPhCode)
-                  setIsCopied(true)
-                  setTimeout(() => setIsCopied(false), 2000)
-                }}
-              >
-                {isCopied ? (
-                  <Check className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-
-            {retrieveSource === 'signup' && (
-              <p className="rounded-md bg-red-50 p-3 text-sm font-semibold text-red-600">
-                Please login with this PHCode going forward on seedstore and all
-                Peacehouse platforms.
-              </p>
-            )}
-
-            <Button
-              className="w-full"
-              variant="default"
-              onClick={() => {
-                setEmail(retrievedPhCode)
-                setShowResultModal(false)
-                setIsLogin(true)
-                setRetrieveMethod(null)
-                setSurname('')
-                setPhoneNumber('')
-                setBirthDay('')
-                setBirthMonth('')
-                setBirthYear('')
-              }}
-            >
-              Go to Login
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
 
 export default Auth
+
+
+// import { useEffect } from 'react'
+// import { useMachine } from '@xstate/react'
+// import { useNavigate, useSearchParams } from 'react-router-dom'
+// import { Loader2, Eye, EyeOff, User } from 'lucide-react'
+
+// import { authMachine } from '@/components/authMachine'
+// import { useAuth } from '@/hooks/useAuth'
+// import { useToast } from '@/hooks/use-toast'
+
+// import Logo from '@/components/Logo'
+// import { Input } from '@/components/ui/input'
+// import { Label } from '@/components/ui/label'
+// import { Button } from '@/components/ui/button'
+// import {
+//   Card,
+//   CardContent,
+//   CardHeader,
+//   CardTitle,
+//   CardDescription,
+// } from '@/components/ui/card'
+
+// import {
+//   detectPlatform,
+//   getDeviceId,
+//   getDeviceName,
+//   getDeviceLocation,
+// } from '@/utils/platform'
+
+// const Auth = () => {
+//   const navigate = useNavigate()
+//   const { toast } = useToast()
+//   const { login, register, user, token } = useAuth()
+//   const [searchParams] = useSearchParams()
+
+//   const goto = searchParams.get('redirect')
+
+//   const [state, send] = useMachine(authMachine, {
+//     services: {
+//       loginUser: async (context) => {
+//         const deviceName = getDeviceName()
+//         const location = await getDeviceLocation()
+
+//         const res = await login({
+//           phcode: context.phcode,
+//           password: context.password,
+//           platform: detectPlatform(),
+//           deviceId: getDeviceId(),
+//           deviceName,
+//           location,
+//         })
+
+//         return res
+//       },
+
+//       registerUser: async (context) => {
+//         const res: any = await register({
+//           email: context.email,
+//           firstName: context.firstName,
+//           lastName: context.lastName,
+//           phoneNumber: context.phoneNumber,
+//           password: context.password,
+//           countryOfResidence: context.countryOfResidence,
+//           stateOfResidence: context.stateOfResidence,
+//           gender: context.gender,
+//           dateOfBirth: context.dateOfBirth,
+//         })
+
+//         return res
+//       },
+//     },
+//   })
+
+//   // Derived states
+//   const isLogin = state.matches('login')
+//   const isSignup = state.matches('signup')
+//   const isLoading =
+//     state.matches('loggingIn') || state.matches('registering')
+//   const isSuccessSignup = state.matches('successSignup')
+
+//   // Redirect after login
+//   useEffect(() => {
+//     if (user && token) {
+//       if (goto === 'cart') {
+//         navigate('/cart?action=checkout')
+//       } else {
+//         navigate('/#all-books')
+//       }
+//     }
+//   }, [user, token])
+
+//   // Error toast
+//   useEffect(() => {
+//     if (state.context.error) {
+//       toast({
+//         variant: 'destructive',
+//         title: 'Error',
+//         description: state.context.error,
+//       })
+//     }
+//   }, [state.context.error])
+
+//   return (
+//     <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br">
+//       <Card className="w-full max-w-lg shadow-lg">
+//         <CardHeader className="text-center">
+//           <Logo />
+//           <CardTitle className="text-2xl font-bold">
+//             {isSuccessSignup
+//               ? 'Welcome!'
+//               : isLogin
+//                 ? 'Welcome Back'
+//                 : 'Create Account'}
+//           </CardTitle>
+//           <CardDescription>
+//             {isLogin
+//               ? 'Sign in to access your library'
+//               : isSuccessSignup
+//                 ? 'Account created successfully'
+//                 : 'Sign up to start reading'}
+//           </CardDescription>
+//         </CardHeader>
+
+//         <CardContent>
+//           {/* SUCCESS SCREEN */}
+//           {isSuccessSignup && (
+//             <div className="space-y-4 text-center">
+//               <p>Your PHCode:</p>
+//               <b className="text-red-600 text-lg">
+//                 {state.context.phCodeFromSignup}
+//               </b>
+
+//               <Button
+//                 className="w-full"
+//                 onClick={() => send({ type: 'SWITCH_TO_LOGIN' })}
+//               >
+//                 Go to Login
+//               </Button>
+//             </div>
+//           )}
+
+//           {/* FORM */}
+//           {!isSuccessSignup && (
+//             <form
+//               onSubmit={(e) => {
+//                 e.preventDefault()
+//                 send({ type: 'SUBMIT' })
+//               }}
+//               className="space-y-4"
+//             >
+//               {/* LOGIN */}
+//               {isLogin && (
+//                 <>
+//                   <div>
+//                     <Label>PHCode</Label>
+//                     <div className="relative">
+//                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+//                       <Input
+//                         className="pl-10"
+//                         value={state.context.phcode}
+//                         onChange={(e) =>
+//                           send({
+//                             type: 'UPDATE_FIELD',
+//                             field: 'phcode',
+//                             value: e.target.value,
+//                           })
+//                         }
+//                       />
+//                     </div>
+//                   </div>
+
+//                   <div>
+//                     <Label>Password</Label>
+//                     <Input
+//                       type="password"
+//                       value={state.context.password}
+//                       onChange={(e) =>
+//                         send({
+//                           type: 'UPDATE_FIELD',
+//                           field: 'password',
+//                           value: e.target.value,
+//                         })
+//                       }
+//                     />
+//                   </div>
+//                 </>
+//               )}
+
+//               {/* SIGNUP */}
+//               {isSignup && (
+//                 <>
+//                   <Input
+//                     placeholder="First Name"
+//                     value={state.context.firstName}
+//                     onChange={(e) =>
+//                       send({
+//                         type: 'UPDATE_FIELD',
+//                         field: 'firstName',
+//                         value: e.target.value,
+//                       })
+//                     }
+//                   />
+
+//                   <Input
+//                     placeholder="Last Name"
+//                     value={state.context.lastName}
+//                     onChange={(e) =>
+//                       send({
+//                         type: 'UPDATE_FIELD',
+//                         field: 'lastName',
+//                         value: e.target.value,
+//                       })
+//                     }
+//                   />
+
+//                   <Input
+//                     placeholder="Email"
+//                     value={state.context.email}
+//                     onChange={(e) =>
+//                       send({
+//                         type: 'UPDATE_FIELD',
+//                         field: 'email',
+//                         value: e.target.value,
+//                       })
+//                     }
+//                   />
+
+//                   <Input
+//                     placeholder="Phone"
+//                     value={state.context.phoneNumber}
+//                     onChange={(e) =>
+//                       send({
+//                         type: 'UPDATE_FIELD',
+//                         field: 'phoneNumber',
+//                         value: e.target.value,
+//                       })
+//                     }
+//                   />
+
+//                   <Input
+//                     type="date"
+//                     value={state.context.dateOfBirth}
+//                     onChange={(e) =>
+//                       send({
+//                         type: 'UPDATE_FIELD',
+//                         field: 'dateOfBirth',
+//                         value: e.target.value,
+//                       })
+//                     }
+//                   />
+
+//                   <Input
+//                     placeholder="Password"
+//                     type="password"
+//                     value={state.context.password}
+//                     onChange={(e) =>
+//                       send({
+//                         type: 'UPDATE_FIELD',
+//                         field: 'password',
+//                         value: e.target.value,
+//                       })
+//                     }
+//                   />
+//                 </>
+//               )}
+
+//               <Button className="w-full" disabled={isLoading}>
+//                 {isLoading && (
+//                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+//                 )}
+//                 {isLogin ? 'Sign In' : 'Sign Up'}
+//               </Button>
+//             </form>
+//           )}
+
+//           {/* SWITCH LINKS */}
+//           {!isSuccessSignup && (
+//             <div className="text-center mt-4">
+//               {isLogin ? (
+//                 <button
+//                   onClick={() => send({ type: 'SWITCH_TO_SIGNUP' })}
+//                   className="text-primary"
+//                 >
+//                   I don't have an account? Sign up
+//                 </button>
+//               ) : (
+//                 <button
+//                   onClick={() => send({ type: 'SWITCH_TO_LOGIN' })}
+//                   className="text-primary"
+//                 >
+//                   I have an account? Sign in
+//                 </button>
+//               )}
+//             </div>
+//           )}
+//         </CardContent>
+//       </Card>
+//     </div>
+//   )
+// }
+
+// export default Auth

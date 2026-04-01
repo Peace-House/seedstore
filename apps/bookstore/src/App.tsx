@@ -20,6 +20,7 @@ import ResetPassword from "./pages/ResetPassword";
 import ResolvePurchaseIssue from "./pages/ResolvePurchaseIssue";
 import Navigation from "./components/Navigation";
 import { CountryProvider } from "./contexts/CountryContext";
+import RetrievePHCodePage from "./pages/RetrievePHCodePage";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/retrieve-phcode" element={<RetrievePHCodePage />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/cart" element={<Navigation><Cart /></Navigation>} />

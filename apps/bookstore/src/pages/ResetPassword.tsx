@@ -75,7 +75,7 @@ const ResetPassword = () => {
   const handleOtpChange = (index: number, value: string) => {
     // Only allow digits
     const digit = value.replace(/\D/g, '').slice(-1);
-    
+
     const newOtpDigits = [...otpDigits];
     newOtpDigits[index] = digit;
     setOtpDigits(newOtpDigits);
@@ -100,14 +100,14 @@ const ResetPassword = () => {
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
-    
+
     if (pastedData) {
       const newOtpDigits = [...otpDigits];
       for (let i = 0; i < pastedData.length; i++) {
         newOtpDigits[i] = pastedData[i];
       }
       setOtpDigits(newOtpDigits);
-      
+
       // Focus the next empty input or the last one
       const nextEmptyIndex = newOtpDigits.findIndex((d) => !d);
       const focusIndex = nextEmptyIndex === -1 ? OTP_LENGTH - 1 : nextEmptyIndex;
@@ -262,7 +262,7 @@ const ResetPassword = () => {
         //   // Don't fail the whole flow if local sync fails - legacy reset was successful
         //   console.warn('Local password sync failed (non-critical):', syncError);
         // }
-        
+
         toast({
           title: 'Password Reset Successful!',
           description: 'You can now log in with your new password.',
@@ -326,25 +326,22 @@ const ResetPassword = () => {
     <div className="flex items-center justify-center mb-6">
       <div className="flex items-center gap-2">
         <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-            step === 'identity' ? 'bg-primary text-white' : 'bg-primary/20 text-primary'
-          }`}
+          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step === 'identity' ? 'bg-primary text-white' : 'bg-primary/20 text-primary'
+            }`}
         >
           1
         </div>
         <div className={`w-8 h-0.5 ${step !== 'identity' ? 'bg-primary' : 'bg-gray-300'}`} />
         <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-            step === 'otp' ? 'bg-primary text-white' : step === 'password' || step === 'success' ? 'bg-primary/20 text-primary' : 'bg-gray-300 text-gray-500'
-          }`}
+          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step === 'otp' ? 'bg-primary text-white' : step === 'password' || step === 'success' ? 'bg-primary/20 text-primary' : 'bg-gray-300 text-gray-500'
+            }`}
         >
           2
         </div>
         <div className={`w-8 h-0.5 ${step === 'password' || step === 'success' ? 'bg-primary' : 'bg-gray-300'}`} />
         <div
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-            step === 'password' ? 'bg-primary text-white' : step === 'success' ? 'bg-primary/20 text-primary' : 'bg-gray-300 text-gray-500'
-          }`}
+          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step === 'password' ? 'bg-primary text-white' : step === 'success' ? 'bg-primary/20 text-primary' : 'bg-gray-300 text-gray-500'
+            }`}
         >
           3
         </div>
@@ -362,7 +359,7 @@ const ResetPassword = () => {
         backgroundRepeat: 'no-repeat',
       }}
     >
-      <Card className="w-full max-w-md shadow-lg border-[0.5px] border-primary relative">
+      <Card className="w-full max-w-lg shadow-lg border-[0.5px] border-primary relative">
         <button onClick={() => navigate('/auth')} className="absolute top-3 left-3">
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -422,8 +419,8 @@ const ResetPassword = () => {
 
               <Button
                 type="submit"
-                className="w-full mt-6"
-                liquidGlass={false}
+                className="w-full mt-6 rounded-full"
+                variant="default"
                 disabled={isSubmitting || !phcode || !email}
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -472,9 +469,9 @@ const ResetPassword = () => {
 
               <Button
                 type="submit"
-                className="w-full mt-6"
+                className="w-full mt-6 rounded-full"
+                variant="default"
                 disabled={isSubmitting || getOtpValue().length !== OTP_LENGTH || otpTimeLeft === 0}
-                liquidGlass={false}
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Verify Code
@@ -564,7 +561,8 @@ const ResetPassword = () => {
 
               <Button
                 type="submit"
-                className="w-full mt-6"
+                variant="default"
+                className="w-full mt-6 rounded-full"
                 liquidGlass={false}
                 disabled={isSubmitting || !password || !confirmPassword || password !== confirmPassword}
               >
@@ -585,7 +583,8 @@ const ResetPassword = () => {
               </p>
               <Button
                 onClick={() => navigate('/auth')}
-                className="w-full mt-6"
+                className="w-full mt-6 rounded-full"
+                variant="default"
                 liquidGlass={false}
               >
                 Go to Login

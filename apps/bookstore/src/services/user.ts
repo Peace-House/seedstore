@@ -52,12 +52,16 @@ export interface AuthResponse {
 
 
 // Auth APIs
-export const login = async (email_phcode: string, password: string, platform: string = 'web', deviceId: string, deviceName?: string, location?: string): Promise<AuthResponse> => {
-  const isEmail = email_phcode?.includes('@') ? true : false;
-  console.log('isEmail', isEmail);
-  const res = await api.post<AuthResponse>('/users/login', isEmail ? { email: email_phcode, password, platform, deviceId, deviceName, location } : { phcode: email_phcode, password, platform, deviceId, deviceName, location });
+export const login = async (phcode: string, password: string, platform: string = 'web', deviceId: string, deviceName?: string, location?: string): Promise<AuthResponse> => {
+  const res = await api.post<AuthResponse>('/users/login', { phcode, password, platform, deviceId, deviceName, location });
   return res.data;
 };
+// export const login = async (email_phcode: string, password: string, platform: string = 'web', deviceId: string, deviceName?: string, location?: string): Promise<AuthResponse> => {
+//   const isEmail = email_phcode?.includes('@') ? true : false;
+//   console.log('isEmail', isEmail);
+//   const res = await api.post<AuthResponse>('/users/login', isEmail ? { email: email_phcode, password, platform, deviceId, deviceName, location } : { phcode: email_phcode, password, platform, deviceId, deviceName, location });
+//   return res.data;
+// };
 
 export const register = async ({ email, firstName, lastName, password, phoneNumber, countryOfResidence, stateOfResidence, gender, dateOfBirth }: { email: string, firstName: string, lastName: string, password: string, phoneNumber?: string, countryOfResidence: string, stateOfResidence?: string, gender: string, dateOfBirth: string }): Promise<AuthResponse> => {
   const res = await api.post<AuthResponse>('/users/signup', { email, firstName, lastName, password, phoneNumber, countryOfResidence, stateOfResidence, gender, dateOfBirth });
