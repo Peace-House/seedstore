@@ -1,6 +1,6 @@
 import api from './apiService'
 
-export interface GroupPurchaseSeat {
+export interface GroupPurchaseCopy {
   id: string
   groupPurchaseId: string
   phcode: string | null
@@ -14,9 +14,10 @@ export interface GroupPurchase {
   id: string
   buyerId: number
   bookId: number
-  totalSeats: number
-  assignedSeats: number
-  pricePerSeat: number
+  includesBuyer: boolean
+  totalCopies: number
+  assignedCopies: number
+  pricePerCopy: number
   discountPercent: number
   totalPaid: number
   paymentReference: string | null
@@ -30,7 +31,7 @@ export interface GroupPurchase {
     coverImage: string | null
     prices: { currency: string; soft_copy_price: number | null }[]
   }
-  seats: GroupPurchaseSeat[]
+  copies: GroupPurchaseCopy[]
 }
 
 export const checkPHCodes = async (
@@ -42,7 +43,7 @@ export const checkPHCodes = async (
 
 export const setupGroupPurchase = async (params: {
   bookId: number | string
-  totalSeats: number
+  totalCopies: number
   assignNow: boolean
   phcodes?: string[]
   currency?: string
@@ -61,7 +62,7 @@ export const getGroupPurchase = async (id: string): Promise<GroupPurchase> => {
   return res.data
 }
 
-export const assignGroupPurchaseSeats = async (
+export const assignGroupPurchaseCopies = async (
   id: string,
   phcodes: string[],
 ) => {
@@ -82,11 +83,15 @@ export const getCartWithGroupPurchases = async (currency?: string) => {
 }
 
 /**
- * Calculate discount percent based on seat count.
+ * Calculate discount percent based on copy count.
  */
-export function getGroupBuyDiscount(seats: number): number {
-  if (seats >= 50) return 10
-  if (seats >= 25) return 5
+export function getGroupBuyDiscount(
+  copies: number,
+  discount25Plus = 5,
+  discount50Plus = 10,
+): number {
+  if (copies >= 50) return discount50Plus
+  if (copies >= 25) return discount25Plus
   return 0
 }
 

@@ -8,13 +8,30 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import Breadcrumb from '@/components/Breadcrumb'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PageLoader } from '@/components/Loader'
 import LiquidGlassWrapper from '@/components/LiquidGlassWrapper'
 import GroupBuyModal from '@/components/GroupBuyModal'
 import { getCartWithGroupPurchases } from '@/services/groupPurchase'
 import { useQuery } from '@tanstack/react-query'
 import { getAppFeatureSettings } from '@/services/admin'
+
+type GroupPurchaseCopy = {
+  phcode?: string | null
+}
+
+type GroupPurchaseSummary = {
+  id: string
+  bookId: number | string
+  includesBuyer?: boolean
+  buyerOwnsBook?: boolean
+  totalCopies: number
+  discountPercent: number
+  assignedCopies?: number
+  totalPaid?: number
+  pricePerCopy?: number
+  copies?: GroupPurchaseCopy[]
+}
 
 const Cart = () => {
   const { user, loading: authLoading } = useAuth()
@@ -29,11 +46,13 @@ const Cart = () => {
   const [groupBuyBook, setGroupBuyBook] = useState<{
     id: number | string
     title: string
+    buyerOwnsBook?: boolean
     groupPurchase?: {
       id: string
-      totalSeats: number
+      includesBuyer?: boolean
+      totalCopies: number
       discountPercent: number
-      assignedSeats?: number
+      assignedCopies?: number
       phcodes?: string[]
     } | null
   } | null>(null)
@@ -55,15 +74,18 @@ const Cart = () => {
     enabled: !!user,
   })
 
-    const { data: featureSettings } = useQuery({
-      queryKey: ['app-feature-settings'],
-      queryFn: getAppFeatureSettings,
-      staleTime: 60_000,
-    })
-    const groupBuyingEnabled = featureSettings?.group_buying_enabled ?? true
+  const { data: featureSettings } = useQuery({
+    queryKey: ['app-feature-settings'],
+    queryFn: getAppFeatureSettings,
+    staleTime: 60_000,
+  })
+  const groupBuyingEnabled = featureSettings?.group_buying_enabled ?? true
 
   // Backend returns cart object with items array
-  const cartItems = Array.isArray(rawCartItems) ? rawCartItems : []
+  const cartItems = useMemo(
+    () => (Array.isArray(rawCartItems) ? rawCartItems : []),
+    [rawCartItems],
+  )
 
   const handleCheckout = () => {
     if (!user) {
@@ -84,11 +106,103 @@ const Cart = () => {
     }
   }, [user, isCheckout, cartItems.length, navigate])
 
+  const total = cartItems.reduce((sum, item) => {
+    const book = item.book || item
+    const priceInfo = getBookPriceForCountry(
+      book.prices,
+      selectedCountry,
+      'soft_copy',
+      countryCurrencies,
+    )
+    return sum + Number(priceInfo.price)
+  }, 0)
+
+  const groupPurchases = useMemo<GroupPurchaseSummary[]>(
+    () =>
+      Array.isArray(groupSummary?.groupPurchases)
+        ? (groupSummary.groupPurchases as GroupPurchaseSummary[])
+        : [],
+    [groupSummary?.groupPurchases],
+  )
+  const ownedBookIds = useMemo(
+    () =>
+      new Set<number>(
+        Array.isArray(groupSummary?.ownedBookIds)
+          ? groupSummary.ownedBookIds.map((id: unknown) => Number(id))
+          : [],
+      ),
+    [groupSummary?.ownedBookIds],
+  )
+  const groupByBookId = useMemo(
+    () =>
+      new Map<number, GroupPurchaseSummary>(
+        groupPurchases.map((gp) => [Number(gp.bookId), gp]),
+      ),
+    [groupPurchases],
+  )
+  const individualTotal = Number(groupSummary?.individualTotal ?? total)
+  const groupTotal = Number(groupSummary?.groupTotal ?? 0)
+  const grandTotal = Number(groupSummary?.grandTotal ?? total)
   const isGroupSummaryPending =
     !!user &&
     cartItems.length > 0 &&
     (isGroupSummaryLoading || isGroupSummaryFetching)
   const isCartPageLoading = isLoading || isGroupSummaryPending
+
+  useEffect(() => {
+    const groupBuyBookId = searchParams.get('groupBuyBookId')
+    if (!groupBuyBookId || !user || groupBuyBook) return
+
+    const targetBookId = Number(groupBuyBookId)
+    if (!Number.isFinite(targetBookId)) return
+
+    const targetItem = cartItems.find((item) => {
+      const itemBook = item.book || item
+      return Number(itemBook?.id) === targetBookId
+    })
+
+    if (!targetItem) return
+
+    const targetBook = targetItem.book || targetItem
+    const gp = groupByBookId.get(targetBookId)
+
+    setGroupBuyBook({
+      id: targetBook.id,
+      title: targetBook.title,
+      buyerOwnsBook:
+        Boolean(gp?.buyerOwnsBook) || ownedBookIds.has(targetBookId),
+      groupPurchase: gp
+        ? {
+            id: gp.id,
+            includesBuyer: gp.includesBuyer !== false,
+            totalCopies: gp.totalCopies,
+            discountPercent: gp.discountPercent,
+            assignedCopies: gp.assignedCopies,
+            phcodes: Array.isArray(gp.copies)
+              ? gp.copies
+                  .map((copy: GroupPurchaseCopy) =>
+                    typeof copy?.phcode === 'string' ? copy.phcode : '',
+                  )
+                  .filter((p: string) => p.trim().length > 0)
+              : [],
+          }
+        : null,
+    })
+
+    const next = new URLSearchParams(searchParams)
+    next.delete('groupBuyBookId')
+    navigate(next.toString() ? `/cart?${next.toString()}` : '/cart', {
+      replace: true,
+    })
+  }, [
+    searchParams,
+    user,
+    groupBuyBook,
+    cartItems,
+    groupByBookId,
+    ownedBookIds,
+    navigate,
+  ])
 
   if (isCartPageLoading) {
     return (
@@ -101,27 +215,6 @@ const Cart = () => {
     )
   }
 
-  const total = cartItems.reduce((sum, item) => {
-    const book = item.book || item
-    const priceInfo = getBookPriceForCountry(
-      book.prices,
-      selectedCountry,
-      'soft_copy',
-      countryCurrencies,
-    )
-    return sum + Number(priceInfo.price)
-  }, 0)
-
-  const groupPurchases = Array.isArray(groupSummary?.groupPurchases)
-    ? groupSummary.groupPurchases
-    : []
-  const groupByBookId = new Map<number, any>(
-    groupPurchases.map((gp: any) => [Number(gp.bookId), gp]),
-  )
-  const individualTotal = Number(groupSummary?.individualTotal ?? total)
-  const groupTotal = Number(groupSummary?.groupTotal ?? 0)
-  const grandTotal = Number(groupSummary?.grandTotal ?? total)
-
   return (
     <>
       <div className="container mt-8 pb-16">
@@ -131,8 +224,11 @@ const Cart = () => {
             if (!open) setGroupBuyBook(null)
           }}
           book={groupBuyBook}
+          buyerOwnsBook={Boolean(groupBuyBook?.buyerOwnsBook)}
           existingGroupPurchase={groupBuyBook?.groupPurchase || null}
           currency={currencyCode}
+          discount25Plus={featureSettings?.group_buying_discount_25_plus ?? 5}
+          discount50Plus={featureSettings?.group_buying_discount_50_plus ?? 10}
         />
         <Breadcrumb />
         <h1 className="mb-8 text-4xl font-bold">Shopping Cart</h1>
@@ -202,25 +298,26 @@ const Cart = () => {
                           {user && (
                             <div className="mt-3 flex flex-col gap-2">
                               {gp &&
-                                  groupBuyingEnabled &&
-                                  book.allowGroupBuy !== false &&
-                                  (() => {
+                                groupBuyingEnabled &&
+                                book.allowGroupBuy !== false &&
+                                (() => {
                                   const priceInfo = getBookPriceForCountry(
                                     book.prices,
                                     selectedCountry,
                                     'soft_copy',
                                     countryCurrencies,
                                   )
-                                  const pricePerSeat =
-                                    gp.pricePerSeat ?? Number(priceInfo.price)
-                                  const fullTotal = pricePerSeat * gp.totalSeats
+                                  const pricePerCopy =
+                                    gp.pricePerCopy ?? Number(priceInfo.price)
+                                  const fullTotal =
+                                    pricePerCopy * gp.totalCopies
                                   const discountedTotal =
                                     gp.totalPaid ?? fullTotal
                                   const hasDiscount = gp.discountPercent > 0
                                   return (
                                     <div className="flex items-baseline gap-2">
                                       <span className="text-muted-foreground text-xs">
-                                        Group ({gp.totalSeats} users):
+                                        Group ({gp.totalCopies} users):
                                       </span>
                                       {hasDiscount && (
                                         <span className="text-muted-foreground text-xs line-through">
@@ -249,48 +346,64 @@ const Cart = () => {
                                     </div>
                                   )
                                 })()}
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="rounded-full"
-                                  style={{
-                                    fontSize: '13px',
-                                  }}
-                                  variant={'default'}
-                                    disabled={!groupBuyingEnabled || book.allowGroupBuy === false}
+                              {groupBuyingEnabled && (
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="rounded-full"
+                                    style={{
+                                      fontSize: '13px',
+                                    }}
+                                    variant={'default'}
+                                    disabled={
+                                      !groupBuyingEnabled ||
+                                      book.allowGroupBuy === false
+                                    }
                                     onClick={() =>
                                       setGroupBuyBook({
-                                      id: book.id,
-                                      title: book.title,
-                                      groupPurchase: gp
-                                        ? {
-                                            id: gp.id,
-                                            totalSeats: gp.totalSeats,
-                                            discountPercent: gp.discountPercent,
-                                            assignedSeats: gp.assignedSeats,
-                                            phcodes: Array.isArray(gp.seats)
-                                              ? gp.seats
-                                                  .map((seat: any) =>
-                                                    typeof seat?.phcode ===
-                                                    'string'
-                                                      ? seat.phcode
-                                                      : '',
-                                                  )
-                                                  .filter(
-                                                    (p: string) =>
-                                                      p.trim().length > 0,
-                                                  )
-                                              : [],
-                                          }
-                                        : null,
-                                    })
-                                  }
-                                >
-                                  {gp ? 'Edit Group' : 'Buy for a Group'}
-                                </Button>
-                              </div>
-                                {(!groupBuyingEnabled || book.allowGroupBuy === false) && (
+                                        id: book.id,
+                                        title: book.title,
+                                        buyerOwnsBook:
+                                          Boolean(gp?.buyerOwnsBook) ||
+                                          ownedBookIds.has(Number(book.id)),
+                                        groupPurchase: gp
+                                          ? {
+                                              id: gp.id,
+                                              includesBuyer:
+                                                gp.includesBuyer !== false,
+                                              totalCopies: gp.totalCopies,
+                                              discountPercent:
+                                                gp.discountPercent,
+                                              assignedCopies: gp.assignedCopies,
+                                              phcodes: Array.isArray(gp.copies)
+                                                ? gp.copies
+                                                    .map(
+                                                      (
+                                                        copy: GroupPurchaseCopy,
+                                                      ) =>
+                                                        typeof copy?.phcode ===
+                                                        'string'
+                                                          ? copy.phcode
+                                                          : '',
+                                                    )
+                                                    .filter(
+                                                      (p: string) =>
+                                                        p.trim().length > 0,
+                                                    )
+                                                : [],
+                                            }
+                                          : null,
+                                      })
+                                    }
+                                  >
+                                    {gp ? 'Edit Group' : 'Buy for a Group'}
+                                  </Button>
+                                </div>
+                              )}
+                              {groupBuyingEnabled &&
+                                (!groupBuyingEnabled ||
+                                  book.allowGroupBuy === false) && (
                                   <p className="text-muted-foreground text-xs">
                                     Group buying is not available for this item.
                                   </p>

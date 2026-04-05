@@ -22,6 +22,7 @@ import Navigation from './components/Navigation'
 import { CountryProvider } from './contexts/CountryContext'
 import RetrievePHCodePage from './pages/RetrievePHCodePage'
 import ManageGroupBuy from './pages/ManageGroupBuy'
+import ManageLentBooks from './pages/ManageLentBooks'
 
 const queryClient = new QueryClient()
 
@@ -73,6 +74,14 @@ const App = () => (
               }
             />
             <Route path="/manage-group-buy" element={<ManageGroupBuy />} />
+            <Route
+              path="/manage-lent-books"
+              element={
+                <Navigation>
+                  <ManageLentBooks />
+                </Navigation>
+              }
+            />
             <Route
               path="/resolve-purchase"
               element={

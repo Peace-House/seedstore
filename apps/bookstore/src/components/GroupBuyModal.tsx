@@ -17,7 +17,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from './ui/button'
 
-const QUICK_PICK_SEATS = [5, 10, 15, 20, 30, 40, 50]
+const QUICK_PICK_COPIES = [5, 10, 15, 20, 30, 40, 50]
 
 interface GroupBuyModalProps {
   open: boolean
@@ -26,34 +26,47 @@ interface GroupBuyModalProps {
     id: number | string
     title: string
   } | null
+  buyerOwnsBook?: boolean
   existingGroupPurchase?: {
     id: string
-    totalSeats: number
+    includesBuyer?: boolean
+    totalCopies: number
     discountPercent: number
-    assignedSeats?: number
+    assignedCopies?: number
     phcodes?: string[]
   } | null
   currency?: string
+  discount25Plus?: number
+  discount50Plus?: number
 }
 
 const GroupBuyModal = ({
   open,
   onOpenChange,
   book,
+  buyerOwnsBook = false,
   existingGroupPurchase,
   currency,
+  discount25Plus = 5,
+  discount50Plus = 10,
 }: GroupBuyModalProps) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [additionalUsersInput, setAdditionalUsersInput] = useState('1')
+  const includesBuyer = existingGroupPurchase?.includesBuyer ?? !buyerOwnsBook
+  const buyerOffset = includesBuyer ? 1 : 0
 
   useEffect(() => {
     if (!open) return
+    const minimumTotal = includesBuyer ? 2 : 1
     const initialAdditionalUsers = existingGroupPurchase
-      ? Math.max((existingGroupPurchase.totalSeats ?? 2) - 1, 1)
+      ? Math.max(
+          (existingGroupPurchase.totalCopies ?? minimumTotal) - buyerOffset,
+          1,
+        )
       : 1
     setAdditionalUsersInput(String(initialAdditionalUsers))
-  }, [open, existingGroupPurchase])
+  }, [open, existingGroupPurchase, includesBuyer, buyerOffset])
 
   const closeAndReset = () => {
     onOpenChange(false)
@@ -80,7 +93,7 @@ const GroupBuyModal = ({
   const setupMutation = useMutation({
     mutationFn: async (payload: {
       bookId: number | string
-      totalSeats: number
+      totalCopies: number
       assignNow: boolean
       currency?: string
     }) => setupGroupPurchase(payload),
@@ -119,7 +132,7 @@ const GroupBuyModal = ({
 
     setupMutation.mutate({
       bookId: book.id,
-      totalSeats: parsedAdditionalUsers + 1,
+      totalCopies: parsedAdditionalUsers + buyerOffset,
       assignNow: false,
       currency,
     })
@@ -131,8 +144,13 @@ const GroupBuyModal = ({
     Number.isFinite(parsedAdditionalUsers) &&
     Number.isInteger(parsedAdditionalUsers) &&
     parsedAdditionalUsers >= 1
+  const totalUsers = hasValidAdditionalUsers
+    ? parsedAdditionalUsers + buyerOffset
+    : 1
   const discount = getGroupBuyDiscount(
-    hasValidAdditionalUsers ? parsedAdditionalUsers + 1 : 1,
+    totalUsers,
+    discount25Plus,
+    discount50Plus,
   )
 
   return (
@@ -154,7 +172,9 @@ const GroupBuyModal = ({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="additionalUsers">How many other users?</Label>
+            <Label htmlFor="additionalUsers">
+              {includesBuyer ? 'How many other users?' : 'How many users?'}
+            </Label>
             <Input
               id="additionalUsers"
               type="number"
@@ -164,15 +184,15 @@ const GroupBuyModal = ({
               onChange={(e) => setAdditionalUsersInput(e.target.value)}
             />
             <div className="flex flex-wrap gap-2 pt-1">
-              {QUICK_PICK_SEATS.map((seatCount) => {
-                const additionalUsers = seatCount - 1
+              {QUICK_PICK_COPIES.map((copyCount) => {
+                const additionalUsers = copyCount - buyerOffset
                 const isActive = hasValidAdditionalUsers
-                  ? parsedAdditionalUsers + 1 === seatCount
+                  ? parsedAdditionalUsers + buyerOffset === copyCount
                   : false
 
                 return (
                   <Button
-                    key={seatCount}
+                    key={copyCount}
                     type="button"
                     variant={isActive ? 'default' : 'outline'}
                     className="h-8 rounded-full px-3 text-xs"
@@ -180,25 +200,30 @@ const GroupBuyModal = ({
                       setAdditionalUsersInput(String(additionalUsers))
                     }
                   >
-                    {seatCount}
+                    {copyCount}
                   </Button>
                 )
               })}
             </div>
-            <p className="text-muted-foreground text-xs">
-              You are automatically included. Set how many additional people you
-              want to buy for now, then assign seats later from Manage Group
-              Buy.
-            </p>
+            {includesBuyer ? (
+              <p className="text-muted-foreground text-xs">
+                You are automatically included. Set how many additional people
+                you want to buy for now, then assign copies later from Manage
+                Group Buy.
+              </p>
+            ) : (
+              <p className="text-xs text-amber-700">
+                You already have this book, so your account is excluded from
+                this group buy.
+              </p>
+            )}
           </div>
 
           <div className="rounded-md border p-3 text-sm">
             <p>
               Total users:{' '}
-              <strong>
-                {hasValidAdditionalUsers ? parsedAdditionalUsers + 1 : '--'}
-              </strong>{' '}
-              (includes you)
+              <strong>{hasValidAdditionalUsers ? totalUsers : '--'}</strong>{' '}
+              {includesBuyer ? '(includes you)' : '(you are excluded)'}
             </p>
             <p>
               Discount: <strong>{discount}%</strong>

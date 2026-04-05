@@ -1,4 +1,4 @@
-import { BookOpen, GripVertical, Clock, AlertTriangle } from 'lucide-react'
+import { BookOpen, GripVertical, Clock, AlertTriangle, X } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -22,11 +22,14 @@ import {
   createPeerLending,
   getMyPeerLends,
   getPeerLendingConfig,
+  returnPeerLending,
   revokePeerLending,
 } from '@/services/peerLending'
 import { useToast } from '@/hooks/use-toast'
 
 const LIBRARY_ORDER_KEY = 'library_book_order'
+const LIBRARY_PURCHASE_BANNER_DISMISSED_KEY =
+  'library_purchase_banner_dismissed'
 
 const Library = () => {
   const { user, loading } = useAuth()
@@ -50,10 +53,14 @@ const Library = () => {
   const [shareBook, setShareBook] = useState<Book | null>(null)
   const [recipient, setRecipient] = useState('')
   const [durationDays, setDurationDays] = useState(1)
+  const [showPurchaseBanner, setShowPurchaseBanner] = useState(() => {
+    return (
+      localStorage.getItem(LIBRARY_PURCHASE_BANNER_DISMISSED_KEY) !== 'true'
+    )
+  })
 
   // State for ordered books and drag-and-drop
   const [orderedBooks, setOrderedBooks] = useState<Book[]>([])
-  const [borrowedBooks, setBorrowedBooks] = useState<Book[]>([])
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
   const [now, setNow] = useState(new Date())
@@ -106,6 +113,25 @@ const Library = () => {
     },
   })
 
+  const returnMutation = useMutation({
+    mutationFn: (id: string) => returnPeerLending(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['peer-lending-my-lends'] })
+      queryClient.invalidateQueries({ queryKey: ['library'] })
+      toast({ title: 'Book returned successfully' })
+    },
+    onError: (error: any) => {
+      toast({
+        variant: 'destructive',
+        title: 'Unable to return book',
+        description:
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          'Please try again.',
+      })
+    },
+  })
+
   // Update "now" every minute for countdowns
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000)
@@ -115,17 +141,11 @@ const Library = () => {
   // Load saved order from localStorage and apply to books
   useEffect(() => {
     if (purchasedBooks && Array.isArray(purchasedBooks)) {
-      // Split library into purchased and borrowed
-      const borrowed = purchasedBooks.filter((b) => b.isBorrowed)
-      const purchased = purchasedBooks.filter((b) => !b.isBorrowed)
-
-      setBorrowedBooks(borrowed)
-
       const savedOrder = localStorage.getItem(LIBRARY_ORDER_KEY)
       if (savedOrder) {
         try {
           const orderIds: (number | string)[] = JSON.parse(savedOrder)
-          const sorted = [...purchased].sort((a, b) => {
+          const sorted = [...purchasedBooks].sort((a, b) => {
             const indexA = orderIds.indexOf(a.id)
             const indexB = orderIds.indexOf(b.id)
             if (indexA === -1 && indexB === -1) return 0
@@ -135,10 +155,10 @@ const Library = () => {
           })
           setOrderedBooks(sorted)
         } catch {
-          setOrderedBooks([...purchased])
+          setOrderedBooks([...purchasedBooks])
         }
       } else {
-        setOrderedBooks([...purchased])
+        setOrderedBooks([...purchasedBooks])
       }
     }
   }, [purchasedBooks])
@@ -262,6 +282,17 @@ const Library = () => {
     return `${hours}h left`
   }
 
+  const dismissPurchaseBanner = () => {
+    localStorage.setItem(LIBRARY_PURCHASE_BANNER_DISMISSED_KEY, 'true')
+    setShowPurchaseBanner(false)
+  }
+
+  const getPeerLendRecordId = (book: Book) => {
+    if (book.borrowingSource !== 'PEER') return null
+    if (!book.orderId?.startsWith('peerlend:')) return null
+    return book.orderId.split(':')[1] || null
+  }
+
   // Group books into shelves (8 books per shelf on large, 6 on md, 4 on tablet, 2 on mobile)
   // Using 8 as the max for grouping, CSS will handle responsive display
   const booksPerShelf = 8
@@ -352,126 +383,51 @@ const Library = () => {
             <h1 className="text-primary text-4xl font-bold">My Library</h1>
             <div className="flex items-center gap-4">
               <Button
-                variant="default"
+                variant="outline"
+                className="rounded-full"
                 onClick={() => navigate('/manage-group-buy')}
               >
                 Manage Group Buy
               </Button>
-              {orderedBooks && orderedBooks.length > 0 && (
-                <p className="text-muted-foreground hidden text-sm md:block">
-                  <GripVertical className="mr-1 inline h-4 w-4" />
-                  Drag books to rearrange
-                </p>
-              )}
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => navigate('/manage-lent-books')}
+              >
+                Manage Lent Books
+              </Button>
             </div>
           </div>
-
-          {/* Borrowed Books Section */}
-          {borrowedBooks.length > 0 && (
-            <div className="mb-12">
-              <h2 className="text-primary mb-6 flex items-center gap-2 text-2xl font-bold">
-                <Clock className="h-6 w-6" />
-                Borrowed Books
-              </h2>
-              <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {borrowedBooks.map((book) => (
-                  <div key={book.id} className="group space-y-3">
-                    <div
-                      className="relative aspect-[2/3] cursor-pointer overflow-hidden rounded-lg shadow-md transition-all group-hover:shadow-xl"
-                      onClick={() => handleReadNow(book.id, book.orderId!)}
-                    >
-                      {book.coverImage ? (
-                        <img
-                          src={book.coverImage}
-                          alt={book.title}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="bg-muted flex h-full w-full items-center justify-center p-4 text-center text-xs font-bold">
-                          {book.title}
-                        </div>
-                      )}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                        <BookOpen className="h-10 w-10 text-white" />
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-1 bg-black/60 p-2 text-[10px] text-white backdrop-blur-sm">
-                        <Clock className="h-3 w-3" />
-                        {getTimeRemaining(book.expiresAt!)}
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="line-clamp-1 text-sm font-bold">
-                        {book.title}
-                      </h3>
-                      <p className="text-muted-foreground text-xs">
-                        {book.author}
-                      </p>
-                      {book.lenderName && (
-                        <p className="text-muted-foreground text-xs">
-                          Borrowed from {book.lenderName}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {myLends.filter((lend) => lend.status === 'ACTIVE').length > 0 && (
-            <div className="mb-8 rounded-xl border border-orange-200 bg-white/70 p-4">
-              <h2 className="text-primary mb-3 text-xl font-bold">
-                Active Shared Access
-              </h2>
-              <div className="space-y-3">
-                {myLends
-                  .filter((lend) => lend.status === 'ACTIVE')
-                  .map((lend) => (
-                    <div
-                      key={lend.id}
-                      className="flex flex-col justify-between gap-3 rounded-lg border border-orange-100 bg-white p-3 md:flex-row md:items-center"
-                    >
-                      <div>
-                        <p className="font-semibold">{lend.book?.title}</p>
-                        <p className="text-muted-foreground text-sm">
-                          Shared with {lend.borrower?.firstName}{' '}
-                          {lend.borrower?.lastName} until{' '}
-                          {new Date(lend.endAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Button
-                        variant="default"
-                        className="rounded-full"
-                        disabled={revokeMutation.isPending}
-                        onClick={() => revokeMutation.mutate(lend.id)}
-                      >
-                        Take Back
-                      </Button>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
 
           {/* Purchase issue awareness banner */}
-          <div className="mb-6 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-semibold text-amber-900">
-                Paid for a book but can&apos;t see it here?
-              </p>
-              <p className="text-sm text-amber-900/80">
-                Use our self-service tool to resolve missing book purchases in a
-                few steps.
-              </p>
+          {showPurchaseBanner && (
+            <div className="relative mb-6 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 pr-12 md:flex-row md:items-center md:justify-between">
+              <button
+                type="button"
+                aria-label="Close purchase help banner"
+                className="absolute top-3 right-3 rounded-full p-1 text-amber-900/70 transition hover:bg-amber-100 hover:text-amber-900"
+                onClick={dismissPurchaseBanner}
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div>
+                <p className="font-semibold text-amber-900">
+                  Paid for a book but can&apos;t see it here?
+                </p>
+                <p className="text-sm text-amber-900/80">
+                  Use our self-service tool to resolve missing book purchases in
+                  a few steps.
+                </p>
+              </div>
+              <Button
+                variant="link"
+                className="hover:bg-primary w-full border-amber-400 text-amber-900 md:w-auto"
+                onClick={() => navigate('/resolve-purchase')}
+              >
+                Resolve
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              className="hover:bg-primary w-full border-amber-400 text-amber-900 md:w-auto"
-              onClick={() => navigate('/resolve-purchase')}
-            >
-              Resolve book purchase
-            </Button>
-          </div>
+          )}
 
           {!orderedBooks || orderedBooks.length === 0 ? (
             <div className="border-primary/20 rounded-xl border-2 border-dashed bg-white/30 py-16 text-center">
@@ -482,6 +438,14 @@ const Library = () => {
             </div>
           ) : (
             <div className="space-y-0">
+              <div className="flex justify-end">
+                {orderedBooks && orderedBooks.length > 0 && (
+                  <p className="text-muted-foreground hidden text-sm md:block">
+                    <GripVertical className="mr-1 inline h-4 w-4" />
+                    Drag books to rearrange
+                  </p>
+                )}
+              </div>
               {shelves.map((shelfBooks, shelfIndex) => (
                 <div key={shelfIndex} className="relative">
                   {/* Books on the shelf */}
@@ -496,6 +460,8 @@ const Library = () => {
                       const isDragging = draggedIndex === globalIndex
                       const isDragOver =
                         hoverIndex === globalIndex && !isDragging
+                      const isBorrowed = Boolean(book.isBorrowed)
+                      const peerLendRecordId = getPeerLendRecordId(book)
                       const activeLendForBook = myLends.find(
                         (lend) =>
                           lend.status === 'ACTIVE' &&
@@ -602,8 +568,19 @@ const Library = () => {
                               <BookOpen className="h-6 w-6 text-white drop-shadow-lg md:h-8 md:w-8" />
                             </div>
 
+                            {isBorrowed && (
+                              <div className="absolute top-1 left-1 rounded-full bg-red-600 px-2 py-0.5 text-[12px] font-semibold text-white shadow-sm shadow-white">
+                                Borrowed
+                              </div>
+                            )}
                             {isLentOutNoAccess && (
-                              <div className="bg-black/65 absolute inset-x-0 bottom-0 p-2 text-center text-[10px] font-semibold text-white backdrop-blur-sm">
+                              <div className="absolute top-1 left-1 rounded-full  bg-red-600 px-2 py-0.5 text-[12px] font-semibold text-white shadow-sm shadow-white">
+                                Lent Out
+                              </div>
+                            )}
+
+                            {isLentOutNoAccess && (
+                              <div className="bg-black/65 absolute inset-x-0 bottom-0 p-2 text-left text-[13px] font-semibold text-white backdrop-blur-sm">
                                 Lent out until{' '}
                                 {new Date(
                                   activeLendForBook!.endAt,
@@ -611,29 +588,62 @@ const Library = () => {
                               </div>
                             )}
 
-                            {!!lendingConfig?.peer_lending_enabled && (
-                              <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  style={{
-                                    color: 'red',
-                                    cursor: 'pointer',
-                                  }}
-                                  className="text-primary h-7 cursor-pointer rounded-full bg-white px-2 text-xs text-red-700 outline outline-red-700 hover:bg-white/90"
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    setShareBook(book)
-                                    setDurationDays(1)
-                                    setRecipient('')
-                                    setShareOpen(true)
-                                  }}
-                                >
-                                  Lend Book
-                                </Button>
+                            {isBorrowed && book.expiresAt && (
+                              <div className="absolute bottom-0 left-0 right-0 gap-1 bg-black/60 p-2 text-[10px] text-white backdrop-blur-sm">
+                                <p className="flex items-center gap-1 text-sm">
+                                  <Clock className="h-3 w-3" />
+                                  {getTimeRemaining(book.expiresAt)}
+                                </p>
+                                {book.lenderName ? (
+                                  <p className="text-xs">
+                                    Borrowed from {book.lenderName}
+                                  </p>
+                                ) : null}
+                                {peerLendRecordId ? (
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    className="mt-1 h-7 w-full rounded-full border-white/80 px-2 text-[11px] text-white"
+                                    disabled={returnMutation.isPending}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      returnMutation.mutate(peerLendRecordId)
+                                    }}
+                                  >
+                                    {returnMutation.isPending
+                                      ? 'Returning...'
+                                      : 'Return Book'}
+                                  </Button>
+                                ) : null}
                               </div>
                             )}
+
+                            {!!lendingConfig?.peer_lending_enabled &&
+                              !activeLendForBook &&
+                              !isBorrowed && (
+                                <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    style={{
+                                      color: 'red',
+                                      cursor: 'pointer',
+                                    }}
+                                    className="text-primary h-7 cursor-pointer rounded-full bg-white px-2 text-xs text-red-700 outline outline-red-700 hover:bg-white/90"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      setShareBook(book)
+                                      setDurationDays(1)
+                                      setRecipient('')
+                                      setShareOpen(true)
+                                    }}
+                                  >
+                                    Lend Book
+                                  </Button>
+                                </div>
+                              )}
                           </div>
 
                           {/* Book bottom shadow on shelf */}

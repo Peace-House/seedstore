@@ -22,6 +22,10 @@ const GroupBuyingManagement = () => {
   const [groupBuyingEnabled, setGroupBuyingEnabled] = useState(true)
   const [initialGroupBuyingEnabled, setInitialGroupBuyingEnabled] =
     useState(true)
+  const [discount25Plus, setDiscount25Plus] = useState(5)
+  const [discount50Plus, setDiscount50Plus] = useState(10)
+  const [initialDiscount25Plus, setInitialDiscount25Plus] = useState(5)
+  const [initialDiscount50Plus, setInitialDiscount50Plus] = useState(10)
 
   const [books, setBooks] = useState<GroupBuyBookSetting[]>([])
   const [loadingBooks, setLoadingBooks] = useState(false)
@@ -32,6 +36,9 @@ const GroupBuyingManagement = () => {
   const [modified, setModified] = useState<Record<string, boolean>>({})
 
   const hasFeatureChanges = groupBuyingEnabled !== initialGroupBuyingEnabled
+  const hasDiscountChanges =
+    discount25Plus !== initialDiscount25Plus ||
+    discount50Plus !== initialDiscount50Plus
 
   const hasBookChanges = useMemo(
     () => Object.keys(modified).length > 0,
@@ -45,6 +52,12 @@ const GroupBuyingManagement = () => {
       const enabled = settings.group_buying_enabled ?? true
       setGroupBuyingEnabled(enabled)
       setInitialGroupBuyingEnabled(enabled)
+      const discount25 = settings.group_buying_discount_25_plus ?? 5
+      const discount50 = settings.group_buying_discount_50_plus ?? 10
+      setDiscount25Plus(discount25)
+      setDiscount50Plus(discount50)
+      setInitialDiscount25Plus(discount25)
+      setInitialDiscount50Plus(discount50)
     } catch {
       toast({
         variant: 'destructive',
@@ -101,6 +114,34 @@ const GroupBuyingManagement = () => {
         variant: 'destructive',
         title: 'Save failed',
         description: 'Could not update group buying feature setting.',
+      })
+    } finally {
+      setSavingFeature(false)
+    }
+  }
+
+  const saveDiscounts = async () => {
+    setSavingFeature(true)
+    try {
+      const updated = await updateAppFeatureSettings({
+        group_buying_discount_25_plus: discount25Plus,
+        group_buying_discount_50_plus: discount50Plus,
+      })
+      const discount25 = updated.group_buying_discount_25_plus ?? 5
+      const discount50 = updated.group_buying_discount_50_plus ?? 10
+      setDiscount25Plus(discount25)
+      setDiscount50Plus(discount50)
+      setInitialDiscount25Plus(discount25)
+      setInitialDiscount50Plus(discount50)
+      toast({
+        title: 'Saved',
+        description: 'Group buying discounts updated.',
+      })
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Save failed',
+        description: 'Could not update group buying discounts.',
       })
     } finally {
       setSavingFeature(false)
@@ -177,6 +218,69 @@ const GroupBuyingManagement = () => {
             </Button>
           </div>
         </div>
+
+        {groupBuyingEnabled && (
+          <div className="px-4">
+            <div className="space-y-4 rounded-lg border p-4">
+              <div>
+                <p className="font-medium">Discount</p>
+                <p className="text-muted-foreground text-sm">
+                  Configure discount percentages applied to group purchases.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">25+ copies (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    value={discount25Plus}
+                    onChange={(e) =>
+                      setDiscount25Plus(Number(e.target.value || 0))
+                    }
+                    disabled={loadingFeature || savingFeature}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">50+ copies (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    value={discount50Plus}
+                    onChange={(e) =>
+                      setDiscount50Plus(Number(e.target.value || 0))
+                    }
+                    disabled={loadingFeature || savingFeature}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={saveDiscounts}
+                  disabled={
+                    loadingFeature ||
+                    savingFeature ||
+                    !hasDiscountChanges ||
+                    discount25Plus < 0 ||
+                    discount50Plus < 0 ||
+                    discount25Plus > 100 ||
+                    discount50Plus > 100
+                  }
+                >
+                  {savingFeature ? 'Saving...' : 'Save Discounts'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {groupBuyingEnabled && (
           <>

@@ -442,16 +442,6 @@ const LendingManagement = () => {
               <TabsTrigger value="settings">Lending Settings</TabsTrigger>
               <TabsTrigger value="borrows">Active Borrows</TabsTrigger>
             </TabsList>
-
-            {activeTab === 'settings' && (
-              <Button
-                onClick={handleSave}
-                disabled={saving || Object.keys(modifiedSettings).length === 0}
-                size="sm"
-              >
-                {saving ? 'Saving...' : 'Save All Changes'}
-              </Button>
-            )}
           </div>
 
           <TabsContent value="settings" className="mt-0">
@@ -501,7 +491,7 @@ const LendingManagement = () => {
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <div className="space-y-1">
                           <label className="text-sm font-medium">
-                            Max lend duration (days)
+                            How long can a user lend a book? (days)
                           </label>
                           <Input
                             type="number"
@@ -520,7 +510,7 @@ const LendingManagement = () => {
                         </div>
                         <div className="space-y-1">
                           <label className="text-sm font-medium">
-                            Max books borrowed concurrently per user
+                            How many books can a user borrow concurrently?
                           </label>
                           <Input
                             type="number"
@@ -541,7 +531,8 @@ const LendingManagement = () => {
                         </div>
                         <div className="space-y-1">
                           <label className="text-sm font-medium">
-                            Max books from same lender
+                            How many books can a user borrow from the same
+                            lender?
                           </label>
                           <Input
                             type="number"
@@ -558,7 +549,7 @@ const LendingManagement = () => {
                             }
                           />
                         </div>
-                        <div className="space-y-1">
+                        {/* <div className="space-y-1">
                           <label className="text-sm font-medium">
                             Max lends per book
                           </label>
@@ -572,14 +563,15 @@ const LendingManagement = () => {
                                 Math.max(1, Number(e.target.value || 1)),
                               )
                             }
-                            disabled={
-                              featureConfigLoading || featureConfigSaving
-                            }
+                            disabled={true}
+                            // disabled={
+                            //   featureConfigLoading || featureConfigSaving
+                            // }
                           />
-                        </div>
+                        </div> */}
                       </div>
 
-                      <div className="flex items-center justify-between rounded-lg border p-3">
+                      {/* <div className="flex items-center justify-between rounded-lg border p-3">
                         <div>
                           <p className="font-medium">
                             Allow lender access during lend
@@ -598,7 +590,7 @@ const LendingManagement = () => {
                           }
                           disabled={featureConfigLoading || featureConfigSaving}
                         />
-                      </div>
+                      </div> */}
                     </div>
 
                     <div className="flex justify-end">
@@ -619,22 +611,42 @@ const LendingManagement = () => {
                   </CardContent>
                 </Card>
               </div>
-
-              <h3 className="mb-3 text-sm font-semibold">
-                Seedstore book-level lending settings
-              </h3>
             </div>
-            <AdminTable
-              admins={books}
-              loading={loading}
-              page={page}
-              pageSize={pageSize}
-              total={total}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-              columns={columns}
-              renderActions={undefined}
-            />
+            {initialFeatureConfig.seedstore_lending_enabled === true && (
+              <>
+                <br />
+                <br />
+                <h1 className="mb-3 pl-3 text-xl font-semibold">
+                  Seedstore book-level lending settings
+                </h1>
+                <AdminTable
+                  admins={books}
+                  loading={loading}
+                  page={page}
+                  pageSize={pageSize}
+                  total={total}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                  columns={columns}
+                  renderActions={undefined}
+                />
+
+                {/* {activeTab === 'settings' && ( */}
+                <div className="flex justify-end px-3">
+                  <Button
+                    onClick={handleSave}
+                    variant="default"
+                    disabled={
+                      saving || Object.keys(modifiedSettings).length === 0
+                    }
+                    size="sm"
+                  >
+                    {saving ? 'Saving...' : 'Save All Changes'}
+                  </Button>
+                </div>
+              </>
+            )}
+            {/* )} */}
           </TabsContent>
 
           <TabsContent value="borrows" className="mt-0">

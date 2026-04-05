@@ -2,7 +2,15 @@ import { z } from 'zod'
 import { useEffect, useState } from 'react'
 import { getCountries, getStates } from '@/services/location'
 import { useToast } from '@/hooks/use-toast'
-import { ChevronLeft, Loader2, Eye, EyeOff, User, Lock } from 'lucide-react'
+import {
+  ChevronLeft,
+  Loader2,
+  Eye,
+  EyeOff,
+  User,
+  Lock,
+  Copy,
+} from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import Logo from '@/components/Logo'
@@ -202,13 +210,24 @@ const Auth = () => {
           gender,
           dateOfBirth,
         })
+        const legacyPhCode = res?.user?.phcode?.trim()
+        if (!legacyPhCode) {
+          toast({
+            variant: 'destructive',
+            title: 'Signup failed',
+            description:
+              'Your account was created, but PHCode was missing. Please contact support.',
+          })
+          return
+        }
+        setPhCode(legacyPhCode)
+        setPhcode(legacyPhCode)
+        setShowSignUpSuccessfulModal(true)
+        setIsLogin(false)
         toast({
           title: 'Account Created!',
           description: 'You can now log in to your account.',
         })
-        setIsLogin(true)
-        const legacy_phcode = res?.PHCode
-        setPhCode(legacy_phcode)
       }
     } catch (error: unknown) {
       console.error('Authentication error:', error)
@@ -236,6 +255,20 @@ const Auth = () => {
       })
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleCopyPhCode = async () => {
+    if (!PhCode) return
+    try {
+      await navigator.clipboard.writeText(PhCode)
+      toast({ title: 'PHCode copied' })
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Copy failed',
+        description: 'Could not copy PHCode. Please copy it manually.',
+      })
     }
   }
 
@@ -299,8 +332,18 @@ const Auth = () => {
                     <ul className="grid list-disc gap-2 pl-5">
                       <li>
                         You have been assigned the PHCode:{' '}
-                        <b className="text-red-600 ">{PhCode}</b> Please Copy
-                        and Keep it in a Safe Place
+                        <b className="text-red-600 ">{PhCode}</b>. Please copy
+                        and keep it in a safe place.
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2 h-auto px-2 py-1 text-xs"
+                          onClick={handleCopyPhCode}
+                        >
+                          <Copy className="mr-1 h-3.5 w-3.5" />
+                          Copy
+                        </Button>
                       </li>
                       <li>
                         You will be required to login with this PHCode and

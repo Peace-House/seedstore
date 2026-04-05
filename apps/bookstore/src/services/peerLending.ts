@@ -16,7 +16,7 @@ export interface PeerLendingRecord {
   borrowerId: number
   startAt: string
   endAt: string
-  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED'
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'RETURNED'
   lenderHasAccess: boolean
   book: {
     id: number
@@ -55,6 +55,11 @@ export const createPeerLending = async (payload: {
 
 export const revokePeerLending = async (id: string) => {
   const res = await api.post(`/lending/${id}/revoke`)
+  return res.data
+}
+
+export const returnPeerLending = async (id: string) => {
+  const res = await api.post(`/lending/${id}/return`)
   return res.data
 }
 

@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import {
-  assignGroupPurchaseSeats,
+  assignGroupPurchaseCopies,
   checkPHCodes,
   getMyGroupPurchases,
 } from '@/services/groupPurchase'
@@ -32,15 +32,15 @@ const ManageGroupBuy = () => {
 
   const assignMutation = useMutation({
     mutationFn: async ({ id, phcodes }: { id: string; phcodes: string[] }) =>
-      assignGroupPurchaseSeats(id, phcodes),
+      assignGroupPurchaseCopies(id, phcodes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group-purchases'] })
-      toast({ title: 'Seats assigned successfully' })
+      toast({ title: 'Copies assigned successfully' })
     },
     onError: (error: any) => {
       toast({
         variant: 'destructive',
-        title: 'Seat assignment failed',
+        title: 'Copy assignment failed',
         description:
           error?.response?.data?.error || error?.message || 'Please try again',
       })
@@ -103,7 +103,13 @@ const ManageGroupBuy = () => {
   return (
     <Navigation>
       <div className="container mt-8 space-y-6 pb-16">
-        <Breadcrumb />
+        <Breadcrumb
+          routes={[
+            { label: 'Home', path: '/' },
+            { label: 'Library', path: '/library' },
+            { label: 'Manage Group Buy' },
+          ]}
+        />
         <h1 className="text-3xl font-bold">Manage Group Buy</h1>
 
         {isLoading ? <p>Loading...</p> : null}
@@ -118,24 +124,29 @@ const ManageGroupBuy = () => {
 
         <div className="space-y-4">
           {items.map((gp) => {
-            const remaining = gp.totalSeats - gp.assignedSeats
+            const remaining = gp.totalCopies - gp.assignedCopies
             const isPaid = gp.status === 'PAID' || gp.status === 'COMPLETED'
             const editable = isPaid && remaining > 0
             const localDraft = drafts[gp.id] ?? ['']
             const localChecks = checks[gp.id] ?? {}
 
             return (
-              <LiquidGlassWrapper key={gp.id}>
+              <LiquidGlassWrapper
+                key={gp.id}
+                style={{
+                  border: '0.5px solid green',
+                }}
+              >
                 <CardContent className="space-y-4 p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h2 className="text-lg font-semibold">{gp.book.title}</h2>
                       <p className="text-muted-foreground text-sm">
-                        Status: {gp.status} · Seats: {gp.assignedSeats}/
-                        {gp.totalSeats} assigned
+                        Status: {gp.status} · Copies: {gp.assignedCopies}/
+                        {gp.totalCopies} assigned
                       </p>
                       <p className="text-muted-foreground text-sm">
-                        Remaining seats: {remaining}
+                        Remaining copies: {remaining}
                       </p>
                     </div>
                     <div className="text-right text-sm">
@@ -151,7 +162,7 @@ const ManageGroupBuy = () => {
                   {editable ? (
                     <div className="space-y-2">
                       <p className="text-sm">
-                        Assign PH-Codes to remaining seats
+                        Assign PH-Codes to remaining copies
                       </p>
                       {localDraft.map((code, idx) => {
                         const key = code.trim()
@@ -237,8 +248,8 @@ const ManageGroupBuy = () => {
                   ) : (
                     <p className="text-muted-foreground text-sm">
                       {gp.status === 'PENDING'
-                        ? 'Complete payment first, then seats can be assigned.'
-                        : 'All seats are already assigned.'}
+                        ? 'Complete payment first, then copies can be assigned.'
+                        : 'All copies are already assigned.'}
                     </p>
                   )}
                 </CardContent>

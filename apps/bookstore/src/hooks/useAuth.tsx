@@ -1,24 +1,25 @@
-
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import * as userApi from '../services';
-import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+import * as userApi from '../services'
+import { toast } from 'sonner'
 
 export interface User {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber?: string;
-  phcode?: string;
-  isAdmin: boolean;
-  role: string;
-  createdAt: string;
-  preferredDisplayCountry?: string | null;
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  phoneNumber?: string
+  phcode?: string
+  isAdmin: boolean
+  role: string
+  createdAt: string
+  preferredDisplayCountry?: string | null
 }
 export const useAuth = () => {
-  const queryClient = useQueryClient();
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const queryClient = useQueryClient()
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem('auth_token'),
+  )
 
   // Fetch current user
   const {
@@ -28,55 +29,74 @@ export const useAuth = () => {
   } = useQuery({
     queryKey: ['authUser', token],
     queryFn: async () => {
-      if (!token) return null;
-      return await userApi.getCurrentUser();
+      if (!token) return null
+      return await userApi.getCurrentUser()
     },
     enabled: !!token,
-  });
+  })
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (payload: { phcode: string; password: string; platform?: string; deviceId: string; deviceName?: string; location?: string }) => {
-      return await userApi.login(payload.phcode, payload.password, payload.platform || 'web', payload.deviceId, payload.deviceName, payload.location);
+    mutationFn: async (payload: {
+      phcode: string
+      password: string
+      platform?: string
+      deviceId: string
+      deviceName?: string
+      location?: string
+    }) => {
+      return await userApi.login(
+        payload.phcode,
+        payload.password,
+        payload.platform || 'web',
+        payload.deviceId,
+        payload.deviceName,
+        payload.location,
+      )
     },
     onSuccess: (data) => {
-      setToken(data.token);
-      localStorage.setItem('auth_token', data.token);
-      queryClient.invalidateQueries({ queryKey: ['authUser'] });
+      setToken(data.token)
+      localStorage.setItem('auth_token', data.token)
+      queryClient.invalidateQueries({ queryKey: ['authUser'] })
     },
     onError: () => {
-      setToken(null);
-      localStorage.removeItem('auth_token');
+      setToken(null)
+      localStorage.removeItem('auth_token')
     },
-  });
+  })
 
   // Register mutation
   const registerMutation = useMutation({
-    mutationFn: async (payload: { email: string; firstName: string; lastName: string; password: string; phoneNumber?: string, countryOfResidence: string, stateOfResidence?: string, gender: string, dateOfBirth: string }) => {
-      return await userApi.register({ ...payload });
+    mutationFn: async (payload: {
+      email: string
+      firstName: string
+      lastName: string
+      password: string
+      phoneNumber?: string
+      countryOfResidence: string
+      stateOfResidence?: string
+      gender: string
+      dateOfBirth: string
+    }) => {
+      return await userApi.register({ ...payload })
     },
-    onSuccess: (data) => {
-      setToken(data.token);
-      localStorage.setItem('auth_token', data.token);
-      queryClient.invalidateQueries({ queryKey: ['authUser'] });
+    onError: () => {
+      setToken(null)
+      localStorage.removeItem('auth_token')
     },
-    onError: (error) => {
-      setToken(null);
-      localStorage.removeItem('auth_token');
-    },
-  });
+  })
 
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await userApi.logout();
+      await userApi.logout()
     },
     onSuccess: () => {
-      setToken(null);
-      localStorage.removeItem('auth_token');
-      queryClient.invalidateQueries({ queryKey: ['authUser'] });
+      setToken(null)
+      localStorage.removeItem('auth_token')
+      queryClient.invalidateQueries({ queryKey: ['authUser'] })
     },
-  });
+  })
 
   return {
     user,
@@ -86,5 +106,5 @@ export const useAuth = () => {
     register: registerMutation.mutateAsync,
     signOut: logoutMutation.mutateAsync,
     refetchUser,
-  };
-};
+  }
+}

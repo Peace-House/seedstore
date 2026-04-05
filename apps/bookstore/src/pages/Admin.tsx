@@ -199,10 +199,10 @@ const Admin = () => {
 
         {/* Desktop Sidebar */}
         <LiquidGlassWrapper
-          liquidGlass={true}
+          liquidGlass={false}
           className={`sticky top-0 z-20 hidden h-[98vh] flex-col !shadow-md transition-all duration-200 md:flex ${
             sidebarOpen ? 'w-56' : 'w-16'
-          } m-2`}
+          } !bg-primary/10 m-2`}
         >
           <Logo withText={sidebarOpen} />
 
