@@ -4,7 +4,9 @@ export interface AppFeatureSettings {
   peer_lending_enabled: boolean
   seedstore_lending_enabled: boolean
   group_buying_enabled: boolean
+  group_buying_discount_25_plus_copies: number
   group_buying_discount_25_plus: number
+  group_buying_discount_50_plus_copies: number
   group_buying_discount_50_plus: number
 }
 
@@ -94,8 +96,14 @@ export const getAppFeatureSettings = async (): Promise<AppFeatureSettings> => {
     peer_lending_enabled: !!res.data?.peer_lending_enabled,
     seedstore_lending_enabled: !!res.data?.seedstore_lending_enabled,
     group_buying_enabled: !!res.data?.group_buying_enabled,
+    group_buying_discount_25_plus_copies: Number(
+      res.data?.group_buying_discount_25_plus_copies ?? 25,
+    ),
     group_buying_discount_25_plus: Number(
       res.data?.group_buying_discount_25_plus ?? 5,
+    ),
+    group_buying_discount_50_plus_copies: Number(
+      res.data?.group_buying_discount_50_plus_copies ?? 50,
     ),
     group_buying_discount_50_plus: Number(
       res.data?.group_buying_discount_50_plus ?? 10,
@@ -111,8 +119,14 @@ export const updateAppFeatureSettings = async (
     peer_lending_enabled: !!res.data?.peer_lending_enabled,
     seedstore_lending_enabled: !!res.data?.seedstore_lending_enabled,
     group_buying_enabled: !!res.data?.group_buying_enabled,
+    group_buying_discount_25_plus_copies: Number(
+      res.data?.group_buying_discount_25_plus_copies ?? 25,
+    ),
     group_buying_discount_25_plus: Number(
       res.data?.group_buying_discount_25_plus ?? 5,
+    ),
+    group_buying_discount_50_plus_copies: Number(
+      res.data?.group_buying_discount_50_plus_copies ?? 50,
     ),
     group_buying_discount_50_plus: Number(
       res.data?.group_buying_discount_50_plus ?? 10,

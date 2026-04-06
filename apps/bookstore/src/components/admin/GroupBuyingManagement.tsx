@@ -24,8 +24,14 @@ const GroupBuyingManagement = () => {
     useState(true)
   const [discount25Plus, setDiscount25Plus] = useState(5)
   const [discount50Plus, setDiscount50Plus] = useState(10)
+  const [discount25PlusCopies, setDiscount25PlusCopies] = useState(25)
+  const [discount50PlusCopies, setDiscount50PlusCopies] = useState(50)
   const [initialDiscount25Plus, setInitialDiscount25Plus] = useState(5)
   const [initialDiscount50Plus, setInitialDiscount50Plus] = useState(10)
+  const [initialDiscount25PlusCopies, setInitialDiscount25PlusCopies] =
+    useState(25)
+  const [initialDiscount50PlusCopies, setInitialDiscount50PlusCopies] =
+    useState(50)
 
   const [books, setBooks] = useState<GroupBuyBookSetting[]>([])
   const [loadingBooks, setLoadingBooks] = useState(false)
@@ -37,6 +43,8 @@ const GroupBuyingManagement = () => {
 
   const hasFeatureChanges = groupBuyingEnabled !== initialGroupBuyingEnabled
   const hasDiscountChanges =
+    discount25PlusCopies !== initialDiscount25PlusCopies ||
+    discount50PlusCopies !== initialDiscount50PlusCopies ||
     discount25Plus !== initialDiscount25Plus ||
     discount50Plus !== initialDiscount50Plus
 
@@ -54,10 +62,18 @@ const GroupBuyingManagement = () => {
       setInitialGroupBuyingEnabled(enabled)
       const discount25 = settings.group_buying_discount_25_plus ?? 5
       const discount50 = settings.group_buying_discount_50_plus ?? 10
+      const discount25Copies =
+        settings.group_buying_discount_25_plus_copies ?? 25
+      const discount50Copies =
+        settings.group_buying_discount_50_plus_copies ?? 50
       setDiscount25Plus(discount25)
       setDiscount50Plus(discount50)
+      setDiscount25PlusCopies(discount25Copies)
+      setDiscount50PlusCopies(discount50Copies)
       setInitialDiscount25Plus(discount25)
       setInitialDiscount50Plus(discount50)
+      setInitialDiscount25PlusCopies(discount25Copies)
+      setInitialDiscount50PlusCopies(discount50Copies)
     } catch {
       toast({
         variant: 'destructive',
@@ -124,18 +140,28 @@ const GroupBuyingManagement = () => {
     setSavingFeature(true)
     try {
       const updated = await updateAppFeatureSettings({
+        group_buying_discount_25_plus_copies: discount25PlusCopies,
         group_buying_discount_25_plus: discount25Plus,
+        group_buying_discount_50_plus_copies: discount50PlusCopies,
         group_buying_discount_50_plus: discount50Plus,
       })
       const discount25 = updated.group_buying_discount_25_plus ?? 5
       const discount50 = updated.group_buying_discount_50_plus ?? 10
+      const discount25Copies =
+        updated.group_buying_discount_25_plus_copies ?? 25
+      const discount50Copies =
+        updated.group_buying_discount_50_plus_copies ?? 50
       setDiscount25Plus(discount25)
       setDiscount50Plus(discount50)
+      setDiscount25PlusCopies(discount25Copies)
+      setDiscount50PlusCopies(discount50Copies)
       setInitialDiscount25Plus(discount25)
       setInitialDiscount50Plus(discount50)
+      setInitialDiscount25PlusCopies(discount25Copies)
+      setInitialDiscount50PlusCopies(discount50Copies)
       toast({
         title: 'Saved',
-        description: 'Group buying discounts updated.',
+        description: 'Group buying discount settings updated.',
       })
     } catch {
       toast({
@@ -231,7 +257,25 @@ const GroupBuyingManagement = () => {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">25+ copies (%)</label>
+                  <label className="text-sm font-medium">
+                    First discount threshold (copies)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    value={discount25PlusCopies}
+                    onChange={(e) =>
+                      setDiscount25PlusCopies(Number(e.target.value || 1))
+                    }
+                    disabled={loadingFeature || savingFeature}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">
+                    First discount (%)
+                  </label>
                   <input
                     type="number"
                     min={0}
@@ -246,7 +290,25 @@ const GroupBuyingManagement = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">50+ copies (%)</label>
+                  <label className="text-sm font-medium">
+                    Second discount threshold (copies)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    value={discount50PlusCopies}
+                    onChange={(e) =>
+                      setDiscount50PlusCopies(Number(e.target.value || 1))
+                    }
+                    disabled={loadingFeature || savingFeature}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">
+                    Second discount (%)
+                  </label>
                   <input
                     type="number"
                     min={0}
@@ -269,6 +331,9 @@ const GroupBuyingManagement = () => {
                     loadingFeature ||
                     savingFeature ||
                     !hasDiscountChanges ||
+                    discount25PlusCopies < 1 ||
+                    discount50PlusCopies < 1 ||
+                    discount50PlusCopies <= discount25PlusCopies ||
                     discount25Plus < 0 ||
                     discount50Plus < 0 ||
                     discount25Plus > 100 ||
@@ -278,6 +343,10 @@ const GroupBuyingManagement = () => {
                   {savingFeature ? 'Saving...' : 'Save Discounts'}
                 </Button>
               </div>
+
+              <p className="text-muted-foreground text-xs">
+                The second discount threshold must be greater than the first.
+              </p>
             </div>
           </div>
         )}

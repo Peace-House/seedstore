@@ -36,7 +36,9 @@ interface GroupBuyModalProps {
     phcodes?: string[]
   } | null
   currency?: string
+  discount25PlusCopies?: number
   discount25Plus?: number
+  discount50PlusCopies?: number
   discount50Plus?: number
 }
 
@@ -47,7 +49,9 @@ const GroupBuyModal = ({
   buyerOwnsBook = false,
   existingGroupPurchase,
   currency,
+  discount25PlusCopies = 25,
   discount25Plus = 5,
+  discount50PlusCopies = 50,
   discount50Plus = 10,
 }: GroupBuyModalProps) => {
   const { toast } = useToast()
@@ -149,7 +153,9 @@ const GroupBuyModal = ({
     : 1
   const discount = getGroupBuyDiscount(
     totalUsers,
+    discount25PlusCopies,
     discount25Plus,
+    discount50PlusCopies,
     discount50Plus,
   )
 

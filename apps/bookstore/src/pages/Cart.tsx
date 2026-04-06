@@ -227,7 +227,13 @@ const Cart = () => {
           buyerOwnsBook={Boolean(groupBuyBook?.buyerOwnsBook)}
           existingGroupPurchase={groupBuyBook?.groupPurchase || null}
           currency={currencyCode}
+          discount25PlusCopies={
+            featureSettings?.group_buying_discount_25_plus_copies ?? 25
+          }
           discount25Plus={featureSettings?.group_buying_discount_25_plus ?? 5}
+          discount50PlusCopies={
+            featureSettings?.group_buying_discount_50_plus_copies ?? 50
+          }
           discount50Plus={featureSettings?.group_buying_discount_50_plus ?? 10}
         />
         <Breadcrumb />

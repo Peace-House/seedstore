@@ -87,11 +87,13 @@ export const getCartWithGroupPurchases = async (currency?: string) => {
  */
 export function getGroupBuyDiscount(
   copies: number,
+  discount25PlusCopies = 25,
   discount25Plus = 5,
+  discount50PlusCopies = 50,
   discount50Plus = 10,
 ): number {
-  if (copies >= 50) return discount50Plus
-  if (copies >= 25) return discount25Plus
+  if (copies >= discount50PlusCopies) return discount50Plus
+  if (copies >= discount25PlusCopies) return discount25Plus
   return 0
 }
 
