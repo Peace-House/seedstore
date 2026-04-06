@@ -356,18 +356,22 @@ const NewsletterManagement = () => {
       filters.emailVerified === undefined
         ? 'all'
         : filters.emailVerified
-          ? 'true'
-          : 'false',
+        ? 'true'
+        : 'false',
     )
     setPromotionOptedIn(
       filters.promotionOptedIn === undefined
         ? 'all'
         : filters.promotionOptedIn
-          ? 'true'
-          : 'false',
+        ? 'true'
+        : 'false',
     )
     setHasPhcode(
-      filters.hasPhcode === undefined ? 'all' : filters.hasPhcode ? 'true' : 'false',
+      filters.hasPhcode === undefined
+        ? 'all'
+        : filters.hasPhcode
+        ? 'true'
+        : 'false',
     )
     setSelectedUserIds(filters.userIds || [])
     setPastedEmailsInput((filters.pastedEmails || []).join('\n'))
@@ -799,8 +803,8 @@ const NewsletterManagement = () => {
                           campaign.status === 'PAUSED'
                             ? 'destructive'
                             : campaign.status === 'DRAFT'
-                              ? 'outline'
-                              : 'secondary'
+                            ? 'outline'
+                            : 'secondary'
                         }
                       >
                         {campaign.status}
@@ -1073,7 +1077,10 @@ const NewsletterManagement = () => {
                       : 'All genres'}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="max-h-64 w-72 overflow-y-auto" align="start">
+                <DropdownMenuContent
+                  className="max-h-64 w-72 overflow-y-auto"
+                  align="start"
+                >
                   {genreOptions.length > 0 ? (
                     genreOptions.map((genre) => (
                       <DropdownMenuCheckboxItem
@@ -1087,7 +1094,7 @@ const NewsletterManagement = () => {
                       </DropdownMenuCheckboxItem>
                     ))
                   ) : (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    <div className="text-muted-foreground px-2 py-1.5 text-sm">
                       No genres available
                     </div>
                   )}
@@ -1113,7 +1120,10 @@ const NewsletterManagement = () => {
                       : 'All countries'}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="max-h-64 w-72 overflow-y-auto" align="start">
+                <DropdownMenuContent
+                  className="max-h-64 w-72 overflow-y-auto"
+                  align="start"
+                >
                   <div className="p-2">
                     <Input
                       value={countrySearch}
@@ -1136,7 +1146,7 @@ const NewsletterManagement = () => {
                       </DropdownMenuCheckboxItem>
                     ))
                   ) : (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    <div className="text-muted-foreground px-2 py-1.5 text-sm">
                       No countries match your search
                     </div>
                   )}
@@ -1294,7 +1304,8 @@ const NewsletterManagement = () => {
             <CardTitle className="text-lg">Email Composer</CardTitle>
             {editingDraftId && (
               <p className="text-muted-foreground text-sm">
-                Editing draft campaign: <span className="font-medium">{editingDraftId}</span>
+                Editing draft campaign:{' '}
+                <span className="font-medium">{editingDraftId}</span>
               </p>
             )}
           </CardHeader>
@@ -1465,9 +1476,13 @@ const NewsletterManagement = () => {
                 <Eye className="mr-2 h-4 w-4" />
                 {isPreviewing ? 'Preparing preview...' : 'Preview Recipients'}
               </Button>
-              {editingDraftId && (
+              {editingDraftId ? (
                 <Button variant="ghost" onClick={resetComposerAndFilters}>
                   Cancel Editing
+                </Button>
+              ) : (
+                <Button variant="ghost" onClick={resetComposerAndFilters}>
+                  Discard
                 </Button>
               )}
               <Button
@@ -1479,8 +1494,8 @@ const NewsletterManagement = () => {
                 {isSavingDraft
                   ? 'Saving...'
                   : editingDraftId
-                    ? 'Update Draft'
-                    : 'Save Draft'}
+                  ? 'Update Draft'
+                  : 'Save Draft'}
               </Button>
               <Button
                 variant="destructive"
