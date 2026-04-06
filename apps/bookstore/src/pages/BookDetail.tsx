@@ -58,17 +58,26 @@ const BookDetail = () => {
     },
   })
 
-  const { data: eligibility } = useQuery({
-    queryKey: ['borrow-eligibility', id],
-    queryFn: () => getBorrowEligibility(id!),
-    enabled: !!id && !!user && !!book?.isLendable,
-  })
-
   const { data: featureSettings } = useQuery({
     queryKey: ['app-feature-settings'],
     queryFn: getAppFeatureSettings,
-    staleTime: 60_000,
+    // staleTime: 60_000,
   })
+
+  console.log('Feature Settings:', featureSettings)
+
+  const { data: eligibility } = useQuery({
+    queryKey: ['borrow-eligibility', id],
+    queryFn: () => getBorrowEligibility(id!),
+    enabled:
+      !!id &&
+      !!user &&
+      !!book?.isLendable &&
+      (featureSettings?.seedstore_lending_enabled ?? true),
+  })
+
+  const seedstoreLendingEnabled =
+    featureSettings?.seedstore_lending_enabled ?? true
   const groupBuyingEnabled = featureSettings?.group_buying_enabled ?? true
 
   // Check if book is in user's library (purchased or added as free)
@@ -359,7 +368,7 @@ const BookDetail = () => {
                   Add to Cart
                 </Button>
 
-                {book.isLendable && (
+                {seedstoreLendingEnabled && book.isLendable && (
                   <Button
                     size="lg"
                     variant="outline"
@@ -373,7 +382,7 @@ const BookDetail = () => {
               </div>
             )}
 
-            {book && (
+            {seedstoreLendingEnabled && book && (
               <BorrowModal
                 book={book}
                 eligibility={eligibility}

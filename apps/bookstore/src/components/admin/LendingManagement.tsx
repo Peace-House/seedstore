@@ -488,7 +488,7 @@ const LendingManagement = () => {
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                         <div className="space-y-1">
                           <label className="text-sm font-medium">
                             How long can a user lend a book? (days)
