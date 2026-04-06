@@ -391,6 +391,7 @@ export interface NewsletterPreviewFilters {
   userIds?: number[]
   pastedEmails?: string[]
   excludeEmails?: string[]
+  searchTerm?: string
   page?: number
   pageSize?: number
 }

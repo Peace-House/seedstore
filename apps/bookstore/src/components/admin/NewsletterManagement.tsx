@@ -149,6 +149,10 @@ const NewsletterManagement = () => {
   const [sendConfirmOpen, setSendConfirmOpen] = useState(false)
   const [previewData, setPreviewData] =
     useState<NewsletterPreviewResponse | null>(null)
+  const [previewPage, setPreviewPage] = useState(1)
+  const [previewPageSize, setPreviewPageSize] = useState(25)
+  const [previewSearch, setPreviewSearch] = useState('')
+  const [previewSearchInput, setPreviewSearchInput] = useState('')
   const [excludedRecipientEmails, setExcludedRecipientEmails] = useState<
     string[]
   >([])
@@ -276,6 +280,22 @@ const NewsletterManagement = () => {
   const editorHtml = editor?.getHTML() || '<p></p>'
 
   const previewRecipientCount = previewData?.total || 0
+  const totalPreviewPages = Math.max(
+    1,
+    Math.ceil(
+      previewRecipientCount / (previewData?.pageSize || previewPageSize),
+    ),
+  )
+
+  const previewPageNumbers = useMemo(() => {
+    const start = Math.max(1, previewPage - 2)
+    const end = Math.min(totalPreviewPages, start + 4)
+    const adjustedStart = Math.max(1, end - 4)
+    return Array.from(
+      { length: end - adjustedStart + 1 },
+      (_, i) => adjustedStart + i,
+    )
+  }, [previewPage, totalPreviewPages])
 
   const buildFilters = (
     extra?: Partial<NewsletterPreviewFilters>,
@@ -419,23 +439,55 @@ const NewsletterManagement = () => {
     setSelectedUserIds([])
     setPreviewData(null)
     setPreviewOpen(false)
+    setPreviewPage(1)
+    setPreviewPageSize(25)
+    setPreviewSearch('')
+    setPreviewSearchInput('')
     setEditingDraftId(null)
     editor?.commands.setContent(DEFAULT_NEWSLETTER_HTML)
   }
 
-  const handlePreviewRecipients = async () => {
+  const fetchPreviewRecipients = async (
+    page: number,
+    pageSize: number,
+    searchTerm: string,
+  ) => {
     try {
       setIsPreviewing(true)
       const data = await previewNewsletterRecipients(
-        buildFilters({ page: 1, pageSize: 50 }),
+        buildFilters({
+          page,
+          pageSize,
+          searchTerm: searchTerm.trim() || undefined,
+        }),
       )
       setPreviewData(data)
+      setPreviewPage(data.page)
+      setPreviewPageSize(data.pageSize)
+      setPreviewSearch(searchTerm)
       setPreviewOpen(true)
     } catch (error) {
       toast.error('Failed to preview recipients')
     } finally {
       setIsPreviewing(false)
     }
+  }
+
+  const handlePreviewRecipients = async () => {
+    await fetchPreviewRecipients(1, previewPageSize, previewSearch)
+  }
+
+  const handlePreviewSearchSubmit = async () => {
+    await fetchPreviewRecipients(1, previewPageSize, previewSearchInput)
+  }
+
+  const handlePreviewPageChange = async (nextPage: number) => {
+    const clamped = Math.min(Math.max(1, nextPage), totalPreviewPages)
+    await fetchPreviewRecipients(clamped, previewPageSize, previewSearch)
+  }
+
+  const handlePreviewPageSizeChange = async (size: number) => {
+    await fetchPreviewRecipients(1, size, previewSearch)
   }
 
   const handleRemoveRecipientFromPreview = (email: string) => {
@@ -1498,7 +1550,8 @@ const NewsletterManagement = () => {
               <EditorContent editor={editor} />
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {/* <div className="flex flex-wrap gap-2"> */}
               <Button
                 style={{
                   border: '1px solid green',
@@ -1539,8 +1592,11 @@ const NewsletterManagement = () => {
                   ? 'Update Draft'
                   : 'Save Draft'}
               </Button>
+            </div>
+            <div>
               <Button
                 variant="default"
+                className="w-full"
                 onClick={() => setSendConfirmOpen(true)}
                 disabled={isSending}
               >
@@ -1580,7 +1636,7 @@ const NewsletterManagement = () => {
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Recipient Preview</DialogTitle>
             <DialogDescription>
@@ -1588,10 +1644,59 @@ const NewsletterManagement = () => {
               {previewData?.total || 0}
             </DialogDescription>
           </DialogHeader>
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="w-full md:max-w-md">
+              <Label>Search recipients</Label>
+              <div className="mt-1 flex gap-2">
+                <Input
+                  className="rounded-full"
+                  value={previewSearchInput}
+                  onChange={(e) => setPreviewSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handlePreviewSearchSubmit()
+                    }
+                  }}
+                  placeholder="Search by email, name, or ID"
+                />
+                <Button
+                  variant="default"
+                  onClick={handlePreviewSearchSubmit}
+                  disabled={isPreviewing}
+                  className="rounded-full"
+                >
+                  Search
+                </Button>
+              </div>
+            </div>
+
+            <div className="w-full md:w-52">
+              <Label>Items per page</Label>
+              <Select
+                value={String(previewPageSize)}
+                onValueChange={(value) =>
+                  handlePreviewPageSizeChange(Number(value))
+                }
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 25, 50, 100, 200, 300, 400, 500, 1000].map((size) => (
+                    <SelectItem key={size} value={String(size)}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="max-h-[420px] overflow-y-auto rounded-md border">
             <table className="w-full text-sm">
               <thead className="bg-muted/80 sticky top-0">
                 <tr>
+                  <th className="px-3 py-2 text-left">S/N</th>
                   <th className="px-3 py-2 text-left">Email</th>
                   <th className="px-3 py-2 text-left">Name</th>
                   <th className="px-3 py-2 text-left">Source</th>
@@ -1601,6 +1706,9 @@ const NewsletterManagement = () => {
               <tbody>
                 {(previewData?.recipients || []).map((recipient, index) => (
                   <tr key={`${recipient.email}-${index}`} className="border-t">
+                    <td className="px-3 py-2 font-medium">
+                      {(previewPage - 1) * previewPageSize + index + 1}
+                    </td>
                     <td className="px-3 py-2">{recipient.email}</td>
                     <td className="px-3 py-2">
                       {recipient.firstName || recipient.lastName
@@ -1620,7 +1728,7 @@ const NewsletterManagement = () => {
                         onClick={() =>
                           handleRemoveRecipientFromPreview(recipient.email)
                         }
-                        className="rounded-full text-red-600 hover:bg-red-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                        className="z-0 rounded-full text-xs text-red-600 hover:bg-red-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
                       >
                         Remove
                       </Button>
@@ -1631,7 +1739,7 @@ const NewsletterManagement = () => {
                   <tr>
                     <td
                       className="text-muted-foreground px-3 py-6 text-center"
-                      colSpan={4}
+                      colSpan={5}
                     >
                       No recipients found with current filters.
                     </td>
@@ -1639,6 +1747,56 @@ const NewsletterManagement = () => {
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-muted-foreground text-xs">
+              Page {previewPage} of {totalPreviewPages}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePreviewPageChange(1)}
+                disabled={isPreviewing || previewPage <= 1}
+              >
+                First
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePreviewPageChange(previewPage - 1)}
+                disabled={isPreviewing || previewPage <= 1}
+              >
+                Previous
+              </Button>
+              {previewPageNumbers.map((pageNumber) => (
+                <Button
+                  key={pageNumber}
+                  variant={pageNumber === previewPage ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handlePreviewPageChange(pageNumber)}
+                  disabled={isPreviewing}
+                >
+                  {pageNumber}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePreviewPageChange(previewPage + 1)}
+                disabled={isPreviewing || previewPage >= totalPreviewPages}
+              >
+                Next
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePreviewPageChange(totalPreviewPages)}
+                disabled={isPreviewing || previewPage >= totalPreviewPages}
+              >
+                Last
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
