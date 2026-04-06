@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   CreditCard,
+  Mail,
 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -33,6 +34,7 @@ import LiquidGlassWrapper from '@/components/LiquidGlassWrapper'
 import PricingManagement from '@/components/admin/PricingManagement'
 import LendingManagement from '@/components/admin/LendingManagement'
 import GroupBuyingManagement from '@/components/admin/GroupBuyingManagement'
+import NewsletterManagement from '@/components/admin/NewsletterManagement'
 import { Library } from 'lucide-react'
 
 const Admin = () => {
@@ -84,6 +86,11 @@ const Admin = () => {
     },
     { value: 'admins', label: 'Users', icon: <Users className="h-5 w-5" /> },
     { value: 'logs', label: 'Logs', icon: <List className="h-5 w-5" /> },
+    {
+      value: 'newsletter',
+      label: 'Newsletter',
+      icon: <Mail className="h-5 w-5" />,
+    },
   ]
 
   useEffect(() => {
@@ -298,6 +305,7 @@ const Admin = () => {
           {tab === 'converter' && <EPUBConverter />}
           {tab === 'admins' && <AdminManagement />}
           {tab === 'logs' && <AdminLogs />}
+          {tab === 'newsletter' && <NewsletterManagement />}
         </main>
       </div>
     </>
