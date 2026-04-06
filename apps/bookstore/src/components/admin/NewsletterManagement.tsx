@@ -27,6 +27,7 @@ import {
   RefreshCcw,
   Save,
   Trash2,
+  Pencil,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -71,6 +72,7 @@ import {
   resumeNewsletterCampaign,
   sendNewsletter,
   saveNewsletterDraft,
+  updateNewsletterDraft,
   sendNewsletterDraft,
   deleteNewsletterDraft,
   type NewsletterCampaign,
@@ -86,6 +88,8 @@ import {
 
 const TOOLBAR_BUTTON_CLASS =
   'rounded-md border px-2 py-1 text-sm transition-colors hover:bg-muted'
+const DEFAULT_NEWSLETTER_HTML =
+  '<p>Dear Valued User,</p><p></p><p>We trust you are well.</p><p></p><p>Warm regards,<br/>The Livingseed Team</p>'
 
 function getApiErrorMessage(error: unknown, fallback: string) {
   if (
@@ -148,6 +152,7 @@ const NewsletterManagement = () => {
   const [isPreviewing, setIsPreviewing] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null)
   const [failedDialogOpen, setFailedDialogOpen] = useState(false)
   const [selectedCampaign, setSelectedCampaign] =
     useState<NewsletterCampaign | null>(null)
@@ -178,8 +183,7 @@ const NewsletterManagement = () => {
         },
       }),
     ],
-    content:
-      '<p>Dear Valued User,</p><p></p><p>We trust you are well.</p><p></p><p>Warm regards,<br/>The Livingseed Team</p>',
+    content: DEFAULT_NEWSLETTER_HTML,
     editorProps: {
       attributes: {
         class:
@@ -308,6 +312,107 @@ const NewsletterManagement = () => {
     return filters
   }
 
+  const populateFormFromDraft = (
+    campaign: NewsletterCampaignDetails,
+    filters: NewsletterPreviewFilters,
+  ) => {
+    setTargetMode(filters.targetMode ?? 'all')
+    setEmailsPerMinute(
+      String(filters.emailsPerMinute ?? campaign.emailsPerMinute ?? 20),
+    )
+    setSubject(campaign.subject || '')
+    setDateFrom(filters.dateFrom || '')
+    setDateTo(filters.dateTo || '')
+    setActiveInDays(
+      filters.activeInDays !== undefined ? String(filters.activeInDays) : '',
+    )
+    setInactiveInDays(
+      filters.inactiveInDays !== undefined
+        ? String(filters.inactiveInDays)
+        : '',
+    )
+    setReaderLevel(filters.readerLevel || '')
+    setRecentBuyerDays(
+      filters.recentBuyerDays !== undefined
+        ? String(filters.recentBuyerDays)
+        : '',
+    )
+    setMinSpending(
+      filters.minSpending !== undefined ? String(filters.minSpending) : '',
+    )
+    setCartAbandonersOnly(filters.cartAbandonersOnly === true)
+    setMultiBuyersOnly(filters.multiBuyersOnly === true)
+    setFreeContentOnly(filters.freeContentOnly === true)
+    setBookId(filters.bookId !== undefined ? String(filters.bookId) : '')
+    setBookReadingStatus(filters.bookReadingStatus || '')
+    setSelectedGenres(filters.genres || [])
+    setMultiGenreOnly(filters.multiGenreOnly === true)
+    setPeerLenderOnly(filters.peerLenderOnly === true)
+    setPeerBorrowerOnly(filters.peerBorrowerOnly === true)
+    setGroupBuyerOnly(filters.groupBuyerOnly === true)
+    setSelectedCountries(filters.countries || [])
+    setPlatform(filters.platform || 'all')
+    setEmailVerified(
+      filters.emailVerified === undefined
+        ? 'all'
+        : filters.emailVerified
+          ? 'true'
+          : 'false',
+    )
+    setPromotionOptedIn(
+      filters.promotionOptedIn === undefined
+        ? 'all'
+        : filters.promotionOptedIn
+          ? 'true'
+          : 'false',
+    )
+    setHasPhcode(
+      filters.hasPhcode === undefined ? 'all' : filters.hasPhcode ? 'true' : 'false',
+    )
+    setSelectedUserIds(filters.userIds || [])
+    setPastedEmailsInput((filters.pastedEmails || []).join('\n'))
+    setManualSearch('')
+    setPreviewData(null)
+    editor?.commands.setContent(campaign.html || '<p></p>')
+  }
+
+  const resetComposerAndFilters = () => {
+    setTargetMode('all')
+    setEmailsPerMinute('20')
+    setSubject('')
+    setDateFrom('')
+    setDateTo('')
+    setActiveInDays('')
+    setInactiveInDays('')
+    setReaderLevel('')
+    setRecentBuyerDays('')
+    setMinSpending('')
+    setCartAbandonersOnly(false)
+    setMultiBuyersOnly(false)
+    setFreeContentOnly(false)
+    setBookId('')
+    setBookReadingStatus('')
+    setSelectedGenres([])
+    setMultiGenreOnly(false)
+    setPeerLenderOnly(false)
+    setPeerBorrowerOnly(false)
+    setGroupBuyerOnly(false)
+    setSelectedCountries([])
+    setCountrySearch('')
+    setIsCountryDropdownOpen(false)
+    setPlatform('all')
+    setEmailVerified('all')
+    setPromotionOptedIn('all')
+    setHasPhcode('all')
+    setPastedEmailsInput('')
+    setManualSearch('')
+    setSelectedUserIds([])
+    setPreviewData(null)
+    setPreviewOpen(false)
+    setEditingDraftId(null)
+    editor?.commands.setContent(DEFAULT_NEWSLETTER_HTML)
+  }
+
   const handlePreviewRecipients = async () => {
     try {
       setIsPreviewing(true)
@@ -386,12 +491,21 @@ const NewsletterManagement = () => {
 
     try {
       setIsSavingDraft(true)
-      await saveNewsletterDraft({
+      const payload = {
         ...buildFilters(),
         subject: subject.trim(),
         html: editor.getHTML(),
-      })
-      toast.success('Draft saved')
+      }
+
+      if (editingDraftId) {
+        await updateNewsletterDraft(editingDraftId, payload)
+        toast.success('Draft updated')
+      } else {
+        const response = await saveNewsletterDraft(payload)
+        setEditingDraftId(response.campaignId)
+        toast.success('Draft saved')
+      }
+
       await refetchCampaigns()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to save draft'))
@@ -407,6 +521,9 @@ const NewsletterManagement = () => {
       toast.success(
         `Draft sent — queued for ${response.queuedCount} recipients`,
       )
+      if (editingDraftId === campaignId) {
+        setEditingDraftId(null)
+      }
       await refetchCampaigns()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to send draft'))
@@ -420,6 +537,9 @@ const NewsletterManagement = () => {
       setCampaignActionId(campaignId)
       await deleteNewsletterDraft(campaignId)
       toast.success('Draft deleted')
+      if (editingDraftId === campaignId) {
+        setEditingDraftId(null)
+      }
       await refetchCampaigns()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to delete draft'))
@@ -472,6 +592,28 @@ const NewsletterManagement = () => {
       .extendMarkRange('link')
       .setLink({ href: url.trim() })
       .run()
+  }
+
+  const handleEditDraft = async (campaignId: string) => {
+    try {
+      setCampaignActionId(campaignId)
+      const { campaign } = await getNewsletterCampaignDetails(campaignId)
+
+      if (campaign.status !== 'DRAFT') {
+        toast.error('Only drafts can be edited')
+        return
+      }
+
+      const filters = (campaign.filters || {}) as NewsletterPreviewFilters
+      populateFormFromDraft(campaign, filters)
+      setEditingDraftId(campaignId)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      toast.success('Draft loaded into editor')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to load draft'))
+    } finally {
+      setCampaignActionId(null)
+    }
   }
 
   const openFailedRecipients = async (campaign: NewsletterCampaign) => {
@@ -678,6 +820,15 @@ const NewsletterManagement = () => {
                       <div className="flex flex-wrap gap-2">
                         {campaign.status === 'DRAFT' ? (
                           <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={campaignActionId === campaign.id}
+                              onClick={() => handleEditDraft(campaign.id)}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </Button>
                             <Button
                               variant="default"
                               size="sm"
@@ -1141,6 +1292,11 @@ const NewsletterManagement = () => {
         <Card className="xl:col-span-5">
           <CardHeader>
             <CardTitle className="text-lg">Email Composer</CardTitle>
+            {editingDraftId && (
+              <p className="text-muted-foreground text-sm">
+                Editing draft campaign: <span className="font-medium">{editingDraftId}</span>
+              </p>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -1309,13 +1465,22 @@ const NewsletterManagement = () => {
                 <Eye className="mr-2 h-4 w-4" />
                 {isPreviewing ? 'Preparing preview...' : 'Preview Recipients'}
               </Button>
+              {editingDraftId && (
+                <Button variant="ghost" onClick={resetComposerAndFilters}>
+                  Cancel Editing
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={handleSaveDraft}
                 disabled={isSavingDraft}
               >
                 <Save className="mr-2 h-4 w-4" />
-                {isSavingDraft ? 'Saving...' : 'Save Draft'}
+                {isSavingDraft
+                  ? 'Saving...'
+                  : editingDraftId
+                    ? 'Update Draft'
+                    : 'Save Draft'}
               </Button>
               <Button
                 variant="destructive"

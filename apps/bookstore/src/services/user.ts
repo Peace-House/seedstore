@@ -420,6 +420,7 @@ export interface NewsletterCampaign {
 
 export interface NewsletterCampaignDetails extends NewsletterCampaign {
   html: string
+  filters?: NewsletterPreviewFilters
 }
 
 export interface NewsletterFailureRecipient {
