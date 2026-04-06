@@ -590,7 +590,7 @@ const Library = () => {
 
                             {isBorrowed && book.expiresAt && (
                               <div className="absolute bottom-0 left-0 right-0 gap-1 bg-black/60 p-2 text-[10px] text-white backdrop-blur-sm">
-                                <p className="flex items-center gap-1 text-sm">
+                                <p className="flex items-center gap-1 text-lg">
                                   <Clock className="h-3 w-3" />
                                   {getTimeRemaining(book.expiresAt)}
                                 </p>
