@@ -127,6 +127,8 @@ const NewsletterManagement = () => {
   const [peerBorrowerOnly, setPeerBorrowerOnly] = useState(false)
   const [groupBuyerOnly, setGroupBuyerOnly] = useState(false)
   const [selectedCountries, setSelectedCountries] = useState<string[]>([])
+  const [countrySearch, setCountrySearch] = useState('')
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false)
   const [platform, setPlatform] = useState<'web' | 'mobile' | 'all'>('all')
   const [emailVerified, setEmailVerified] = useState<'all' | 'true' | 'false'>(
     'all',
@@ -229,6 +231,18 @@ const NewsletterManagement = () => {
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [countriesWithUsers])
+
+  const filteredCountryOptions = useMemo(() => {
+    const search = countrySearch.trim().toLowerCase()
+    if (!search) return countryOptions
+
+    return countryOptions.filter((country) => {
+      return (
+        country.name.toLowerCase().includes(search) ||
+        country.id.toLowerCase().includes(search)
+      )
+    })
+  }, [countryOptions, countrySearch])
 
   const filteredUsers = useMemo(() => {
     const search = manualSearch.trim().toLowerCase()
@@ -932,7 +946,15 @@ const NewsletterManagement = () => {
 
             <div className="space-y-2">
               <Label>Countries</Label>
-              <DropdownMenu>
+              <DropdownMenu
+                open={isCountryDropdownOpen}
+                onOpenChange={(open) => {
+                  setIsCountryDropdownOpen(open)
+                  if (!open) {
+                    setCountrySearch('')
+                  }
+                }}
+              >
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full justify-between">
                     {selectedCountries.length > 0
@@ -941,17 +963,32 @@ const NewsletterManagement = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="max-h-64 w-72 overflow-y-auto" align="start">
-                  {countryOptions.map((country) => (
-                    <DropdownMenuCheckboxItem
-                      key={country.id}
-                      checked={selectedCountries.includes(country.id)}
-                      onCheckedChange={(checked) =>
-                        toggleCountry(country.id, checked === true)
-                      }
-                    >
-                      {country.name} ({country.userCount})
-                    </DropdownMenuCheckboxItem>
-                  ))}
+                  <div className="p-2">
+                    <Input
+                      value={countrySearch}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      placeholder="Search countries..."
+                    />
+                  </div>
+                  {filteredCountryOptions.length > 0 ? (
+                    filteredCountryOptions.map((country) => (
+                      <DropdownMenuCheckboxItem
+                        key={country.id}
+                        checked={selectedCountries.includes(country.id)}
+                        onSelect={(e) => e.preventDefault()}
+                        onCheckedChange={(checked) =>
+                          toggleCountry(country.id, checked === true)
+                        }
+                      >
+                        {country.name} ({country.userCount})
+                      </DropdownMenuCheckboxItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      No countries match your search
+                    </div>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
