@@ -201,6 +201,24 @@ const LendingManagement = () => {
     )
   }
 
+  const allVisibleLendable =
+    books.length > 0 && books.every((b) => !!b.isLendable)
+
+  const handleToggleAllVisibleLendable = (checked: boolean) => {
+    setBooks((prev) => prev.map((b) => ({ ...b, isLendable: checked })))
+
+    setModifiedSettings((prev) => {
+      const next = { ...prev }
+      books.forEach((book) => {
+        next[String(book.id)] = {
+          ...(next[String(book.id)] || {}),
+          isLendable: checked,
+        }
+      })
+      return next
+    })
+  }
+
   const handleSave = async () => {
     const updates = Object.entries(modifiedSettings).map(([id, settings]) => ({
       id,
@@ -270,7 +288,21 @@ const LendingManagement = () => {
       sortKey: 'title',
     },
     {
-      label: 'Lendable',
+      label: (
+        <div
+          className="inline-flex items-center gap-2"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <span>Lendable</span>
+          <Switch
+            checked={allVisibleLendable}
+            onCheckedChange={handleToggleAllVisibleLendable}
+            aria-label="Toggle all lendable settings on this page"
+            className="data-[state=unchecked]:bg-black/40"
+          />
+        </div>
+      ),
       render: (book: Book) => (
         <Switch
           checked={!!book.isLendable}
