@@ -45,6 +45,12 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -54,6 +60,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   getNewsletterBooks,
+  getNewsletterCountries,
   getNewsletterCampaignDetails,
   getNewsletterCampaigns,
   getNewsletterCampaignFailures,
@@ -70,6 +77,7 @@ import {
   type NewsletterCampaignDetails,
   type NewsletterFailureRecipient,
   type NewsletterBookReadingStatus,
+  type NewsletterCountryOption,
   type NewsletterPreviewFilters,
   type NewsletterPreviewResponse,
   type NewsletterReaderLevel,
@@ -113,12 +121,12 @@ const NewsletterManagement = () => {
   const [bookReadingStatus, setBookReadingStatus] = useState<
     NewsletterBookReadingStatus | ''
   >('')
-  const [genresInput, setGenresInput] = useState('')
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([])
   const [multiGenreOnly, setMultiGenreOnly] = useState(false)
   const [peerLenderOnly, setPeerLenderOnly] = useState(false)
   const [peerBorrowerOnly, setPeerBorrowerOnly] = useState(false)
   const [groupBuyerOnly, setGroupBuyerOnly] = useState(false)
-  const [countriesInput, setCountriesInput] = useState('')
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([])
   const [platform, setPlatform] = useState<'web' | 'mobile' | 'all'>('all')
   const [emailVerified, setEmailVerified] = useState<'all' | 'true' | 'false'>(
     'all',
@@ -183,6 +191,11 @@ const NewsletterManagement = () => {
     queryFn: getNewsletterBooks,
   })
 
+  const { data: countriesWithUsers = [] } = useQuery({
+    queryKey: ['newsletter-countries-with-users'],
+    queryFn: getNewsletterCountries,
+  })
+
   const { data: usersPage } = useQuery({
     queryKey: ['newsletter-users'],
     queryFn: async () => getUsers(1, 250),
@@ -197,6 +210,26 @@ const NewsletterManagement = () => {
   const campaigns = campaignsData?.campaigns || []
 
   const users = useMemo(() => usersPage?.users || [], [usersPage?.users])
+  const genreOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        books
+          .map((book) => book.genre?.trim())
+          .filter((genre): genre is string => Boolean(genre)),
+      ),
+    ).sort((a, b) => a.localeCompare(b))
+  }, [books])
+
+  const countryOptions = useMemo(() => {
+    return countriesWithUsers
+      .map((country: NewsletterCountryOption) => ({
+        id: country.id,
+        name: country.name,
+        userCount: country.userCount,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [countriesWithUsers])
+
   const filteredUsers = useMemo(() => {
     const search = manualSearch.trim().toLowerCase()
     if (!search) return users
@@ -226,16 +259,6 @@ const NewsletterManagement = () => {
   const buildFilters = (
     extra?: Partial<NewsletterPreviewFilters>,
   ): NewsletterPreviewFilters => {
-    const genres = genresInput
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean)
-
-    const countries = countriesInput
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean)
-
     const filters: NewsletterPreviewFilters = {
       targetMode,
       emailsPerMinute: emailsPerMinute ? Number(emailsPerMinute) : undefined,
@@ -251,12 +274,12 @@ const NewsletterManagement = () => {
       freeContentOnly,
       bookId: bookId ? Number(bookId) : undefined,
       bookReadingStatus: bookReadingStatus || undefined,
-      genres,
+      genres: selectedGenres,
       multiGenreOnly,
       peerLenderOnly,
       peerBorrowerOnly,
       groupBuyerOnly,
-      countries,
+      countries: selectedCountries,
       platform,
       emailVerified:
         emailVerified === 'all' ? undefined : emailVerified === 'true',
@@ -389,6 +412,24 @@ const NewsletterManagement = () => {
     } finally {
       setCampaignActionId(null)
     }
+  }
+
+  const toggleGenre = (genre: string, checked: boolean) => {
+    setSelectedGenres((prev) => {
+      if (checked) {
+        return Array.from(new Set([...prev, genre]))
+      }
+      return prev.filter((value) => value !== genre)
+    })
+  }
+
+  const toggleCountry = (country: string, checked: boolean) => {
+    setSelectedCountries((prev) => {
+      if (checked) {
+        return Array.from(new Set([...prev, country]))
+      }
+      return prev.filter((value) => value !== country)
+    })
   }
 
   const handleToggleUser = (userId: number, checked: boolean) => {
@@ -858,21 +899,61 @@ const NewsletterManagement = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Genres (comma separated)</Label>
-              <Input
-                placeholder="Faith, Leadership, Family"
-                value={genresInput}
-                onChange={(e) => setGenresInput(e.target.value)}
-              />
+              <Label>Genres</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    {selectedGenres.length > 0
+                      ? `${selectedGenres.length} selected`
+                      : 'All genres'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-64 w-72 overflow-y-auto" align="start">
+                  {genreOptions.length > 0 ? (
+                    genreOptions.map((genre) => (
+                      <DropdownMenuCheckboxItem
+                        key={genre}
+                        checked={selectedGenres.includes(genre)}
+                        onCheckedChange={(checked) =>
+                          toggleGenre(genre, checked === true)
+                        }
+                      >
+                        {genre}
+                      </DropdownMenuCheckboxItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      No genres available
+                    </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <div className="space-y-2">
-              <Label>Countries (comma separated)</Label>
-              <Input
-                placeholder="Nigeria, Kenya, Ghana"
-                value={countriesInput}
-                onChange={(e) => setCountriesInput(e.target.value)}
-              />
+              <Label>Countries</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    {selectedCountries.length > 0
+                      ? `${selectedCountries.length} selected`
+                      : 'All countries'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-64 w-72 overflow-y-auto" align="start">
+                  {countryOptions.map((country) => (
+                    <DropdownMenuCheckboxItem
+                      key={country.id}
+                      checked={selectedCountries.includes(country.id)}
+                      onCheckedChange={(checked) =>
+                        toggleCountry(country.id, checked === true)
+                      }
+                    >
+                      {country.name} ({country.userCount})
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

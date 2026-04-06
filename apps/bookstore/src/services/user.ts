@@ -438,11 +438,26 @@ export interface NewsletterBookOption {
   genre?: string
 }
 
+export interface NewsletterCountryOption {
+  id: string
+  name: string
+  userCount: number
+}
+
 export const getNewsletterBooks = async (): Promise<NewsletterBookOption[]> => {
   const res = await api.get<{ books: NewsletterBookOption[] }>(
     '/admin/newsletter/books',
   )
   return res.data.books
+}
+
+export const getNewsletterCountries = async (): Promise<
+  NewsletterCountryOption[]
+> => {
+  const res = await api.get<{ countries: NewsletterCountryOption[] }>(
+    '/admin/newsletter/countries',
+  )
+  return res.data.countries
 }
 
 export const previewNewsletterRecipients = async (
