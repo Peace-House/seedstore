@@ -390,6 +390,7 @@ export interface NewsletterPreviewFilters {
   hasPhcode?: boolean
   userIds?: number[]
   pastedEmails?: string[]
+  excludeEmails?: string[]
   page?: number
   pageSize?: number
 }

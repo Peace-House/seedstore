@@ -149,6 +149,9 @@ const NewsletterManagement = () => {
   const [sendConfirmOpen, setSendConfirmOpen] = useState(false)
   const [previewData, setPreviewData] =
     useState<NewsletterPreviewResponse | null>(null)
+  const [excludedRecipientEmails, setExcludedRecipientEmails] = useState<
+    string[]
+  >([])
   const [isPreviewing, setIsPreviewing] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
@@ -306,6 +309,7 @@ const NewsletterManagement = () => {
       hasPhcode: hasPhcode === 'all' ? undefined : hasPhcode === 'true',
       userIds: targetMode === 'manual' ? selectedUserIds : undefined,
       pastedEmails: targetMode === 'pasted-emails' ? pastedEmails : undefined,
+      excludeEmails: excludedRecipientEmails,
       ...extra,
     }
 
@@ -375,6 +379,7 @@ const NewsletterManagement = () => {
     )
     setSelectedUserIds(filters.userIds || [])
     setPastedEmailsInput((filters.pastedEmails || []).join('\n'))
+    setExcludedRecipientEmails(filters.excludeEmails || [])
     setManualSearch('')
     setPreviewData(null)
     editor?.commands.setContent(campaign.html || '<p></p>')
@@ -409,6 +414,7 @@ const NewsletterManagement = () => {
     setPromotionOptedIn('all')
     setHasPhcode('all')
     setPastedEmailsInput('')
+    setExcludedRecipientEmails([])
     setManualSearch('')
     setSelectedUserIds([])
     setPreviewData(null)
@@ -430,6 +436,27 @@ const NewsletterManagement = () => {
     } finally {
       setIsPreviewing(false)
     }
+  }
+
+  const handleRemoveRecipientFromPreview = (email: string) => {
+    const normalized = email.trim().toLowerCase()
+    if (!normalized) return
+
+    setExcludedRecipientEmails((prev) =>
+      prev.includes(normalized) ? prev : [...prev, normalized],
+    )
+
+    setPreviewData((prev) => {
+      if (!prev) return prev
+      const nextRecipients = prev.recipients.filter(
+        (recipient) => recipient.email.toLowerCase() !== normalized,
+      )
+      return {
+        ...prev,
+        total: Math.max(0, prev.total - 1),
+        recipients: nextRecipients,
+      }
+    })
   }
 
   const handleSendNewsletter = async () => {
@@ -1472,16 +1499,30 @@ const NewsletterManagement = () => {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Button onClick={handlePreviewRecipients} disabled={isPreviewing}>
+              <Button
+                style={{
+                  border: '1px solid green',
+                }}
+                onClick={handlePreviewRecipients}
+                disabled={isPreviewing}
+              >
                 <Eye className="mr-2 h-4 w-4" />
                 {isPreviewing ? 'Preparing preview...' : 'Preview Recipients'}
               </Button>
               {editingDraftId ? (
-                <Button variant="ghost" onClick={resetComposerAndFilters}>
+                <Button
+                  variant="ghost"
+                  onClick={resetComposerAndFilters}
+                  className="!bg-slate-300 hover:!bg-slate-300/80 hover:!text-black"
+                >
                   Cancel Editing
                 </Button>
               ) : (
-                <Button variant="ghost" onClick={resetComposerAndFilters}>
+                <Button
+                  variant="ghost"
+                  onClick={resetComposerAndFilters}
+                  className="!bg-slate-300 hover:!bg-slate-300/80 hover:!text-black"
+                >
                   Discard
                 </Button>
               )}
@@ -1489,6 +1530,7 @@ const NewsletterManagement = () => {
                 variant="outline"
                 onClick={handleSaveDraft}
                 disabled={isSavingDraft}
+                className="!bg-black !text-white hover:!bg-black/90"
               >
                 <Save className="mr-2 h-4 w-4" />
                 {isSavingDraft
@@ -1498,7 +1540,7 @@ const NewsletterManagement = () => {
                   : 'Save Draft'}
               </Button>
               <Button
-                variant="destructive"
+                variant="default"
                 onClick={() => setSendConfirmOpen(true)}
                 disabled={isSending}
               >
@@ -1553,6 +1595,7 @@ const NewsletterManagement = () => {
                   <th className="px-3 py-2 text-left">Email</th>
                   <th className="px-3 py-2 text-left">Name</th>
                   <th className="px-3 py-2 text-left">Source</th>
+                  <th className="px-3 py-2 text-left">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -1569,13 +1612,26 @@ const NewsletterManagement = () => {
                     <td className="px-3 py-2">
                       <Badge variant="outline">{recipient.source}</Badge>
                     </td>
+                    <td className="px-3 py-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleRemoveRecipientFromPreview(recipient.email)
+                        }
+                        className="rounded-full text-red-600 hover:bg-red-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                      >
+                        Remove
+                      </Button>
+                    </td>
                   </tr>
                 ))}
                 {!previewData?.recipients?.length && (
                   <tr>
                     <td
                       className="text-muted-foreground px-3 py-6 text-center"
-                      colSpan={3}
+                      colSpan={4}
                     >
                       No recipients found with current filters.
                     </td>
