@@ -25,6 +25,8 @@ import {
   PauseCircle,
   PlayCircle,
   RefreshCcw,
+  Save,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -61,6 +63,9 @@ import {
   resendNewsletterCampaignFailures,
   resumeNewsletterCampaign,
   sendNewsletter,
+  saveNewsletterDraft,
+  sendNewsletterDraft,
+  deleteNewsletterDraft,
   type NewsletterCampaign,
   type NewsletterCampaignDetails,
   type NewsletterFailureRecipient,
@@ -121,6 +126,7 @@ const NewsletterManagement = () => {
   const [promotionOptedIn, setPromotionOptedIn] = useState<
     'all' | 'true' | 'false'
   >('all')
+  const [hasPhcode, setHasPhcode] = useState<'all' | 'true' | 'false'>('all')
   const [pastedEmailsInput, setPastedEmailsInput] = useState('')
   const [manualSearch, setManualSearch] = useState('')
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([])
@@ -131,6 +137,7 @@ const NewsletterManagement = () => {
     useState<NewsletterPreviewResponse | null>(null)
   const [isPreviewing, setIsPreviewing] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [failedDialogOpen, setFailedDialogOpen] = useState(false)
   const [selectedCampaign, setSelectedCampaign] =
     useState<NewsletterCampaign | null>(null)
@@ -255,6 +262,7 @@ const NewsletterManagement = () => {
         emailVerified === 'all' ? undefined : emailVerified === 'true',
       promotionOptedIn:
         promotionOptedIn === 'all' ? undefined : promotionOptedIn === 'true',
+      hasPhcode: hasPhcode === 'all' ? undefined : hasPhcode === 'true',
       userIds: targetMode === 'manual' ? selectedUserIds : undefined,
       pastedEmails: targetMode === 'pasted-emails' ? pastedEmails : undefined,
       ...extra,
@@ -315,6 +323,71 @@ const NewsletterManagement = () => {
       toast.error('Failed to queue newsletter')
     } finally {
       setIsSending(false)
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    if (!subject.trim()) {
+      toast.error('Please enter an email subject')
+      return
+    }
+
+    if (!editor || editor.isEmpty) {
+      toast.error('Please add email content before saving')
+      return
+    }
+
+    const configuredRate = Number(emailsPerMinute)
+    if (
+      !Number.isInteger(configuredRate) ||
+      configuredRate < 1 ||
+      configuredRate > 30
+    ) {
+      toast.error('Emails per minute must be an integer between 1 and 30')
+      return
+    }
+
+    try {
+      setIsSavingDraft(true)
+      await saveNewsletterDraft({
+        ...buildFilters(),
+        subject: subject.trim(),
+        html: editor.getHTML(),
+      })
+      toast.success('Draft saved')
+      await refetchCampaigns()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to save draft'))
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
+  const handleSendDraft = async (campaignId: string) => {
+    try {
+      setCampaignActionId(campaignId)
+      const response = await sendNewsletterDraft(campaignId)
+      toast.success(
+        `Draft sent — queued for ${response.queuedCount} recipients`,
+      )
+      await refetchCampaigns()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to send draft'))
+    } finally {
+      setCampaignActionId(null)
+    }
+  }
+
+  const handleDeleteDraft = async (campaignId: string) => {
+    try {
+      setCampaignActionId(campaignId)
+      await deleteNewsletterDraft(campaignId)
+      toast.success('Draft deleted')
+      await refetchCampaigns()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to delete draft'))
+    } finally {
+      setCampaignActionId(null)
     }
   }
 
@@ -528,7 +601,9 @@ const NewsletterManagement = () => {
                         variant={
                           campaign.status === 'PAUSED'
                             ? 'destructive'
-                            : 'secondary'
+                            : campaign.status === 'DRAFT'
+                              ? 'outline'
+                              : 'secondary'
                         }
                       >
                         {campaign.status}
@@ -546,35 +621,62 @@ const NewsletterManagement = () => {
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={campaignActionId === campaign.id}
-                          onClick={() =>
-                            campaign.status === 'PAUSED'
-                              ? handleResumeCampaign(campaign.id)
-                              : handlePauseCampaign(campaign.id)
-                          }
-                        >
-                          {campaign.status === 'PAUSED' ? (
-                            <PlayCircle className="mr-2 h-4 w-4" />
-                          ) : (
-                            <PauseCircle className="mr-2 h-4 w-4" />
-                          )}
-                          {campaign.status === 'PAUSED' ? 'Resume' : 'Pause'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={
-                            campaign.failedCount < 1 ||
-                            isLoadingFailures ||
-                            campaignActionId === campaign.id
-                          }
-                          onClick={() => openFailedRecipients(campaign)}
-                        >
-                          View failed
-                        </Button>
+                        {campaign.status === 'DRAFT' ? (
+                          <>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              disabled={campaignActionId === campaign.id}
+                              onClick={() => handleSendDraft(campaign.id)}
+                            >
+                              <Send className="mr-2 h-4 w-4" />
+                              Send
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={campaignActionId === campaign.id}
+                              onClick={() => handleDeleteDraft(campaign.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={campaignActionId === campaign.id}
+                              onClick={() =>
+                                campaign.status === 'PAUSED'
+                                  ? handleResumeCampaign(campaign.id)
+                                  : handlePauseCampaign(campaign.id)
+                              }
+                            >
+                              {campaign.status === 'PAUSED' ? (
+                                <PlayCircle className="mr-2 h-4 w-4" />
+                              ) : (
+                                <PauseCircle className="mr-2 h-4 w-4" />
+                              )}
+                              {campaign.status === 'PAUSED'
+                                ? 'Resume'
+                                : 'Pause'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                campaign.failedCount < 1 ||
+                                isLoadingFailures ||
+                                campaignActionId === campaign.id
+                              }
+                              onClick={() => openFailedRecipients(campaign)}
+                            >
+                              View failed
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -831,6 +933,25 @@ const NewsletterManagement = () => {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label>PHCode status</Label>
+              <Select
+                value={hasPhcode}
+                onValueChange={(value) =>
+                  setHasPhcode(value as 'all' | 'true' | 'false')
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="true">With PHCode</SelectItem>
+                  <SelectItem value="false">Without PHCode</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox
@@ -1069,6 +1190,14 @@ const NewsletterManagement = () => {
               <Button onClick={handlePreviewRecipients} disabled={isPreviewing}>
                 <Eye className="mr-2 h-4 w-4" />
                 {isPreviewing ? 'Preparing preview...' : 'Preview Recipients'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {isSavingDraft ? 'Saving...' : 'Save Draft'}
               </Button>
               <Button
                 variant="destructive"

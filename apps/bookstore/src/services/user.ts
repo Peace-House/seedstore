@@ -387,6 +387,7 @@ export interface NewsletterPreviewFilters {
   platform?: 'web' | 'mobile' | 'all'
   emailVerified?: boolean
   promotionOptedIn?: boolean
+  hasPhcode?: boolean
   userIds?: number[]
   pastedEmails?: string[]
   page?: number
@@ -405,7 +406,7 @@ export interface NewsletterCampaign {
   id: string
   subject: string
   emailsPerMinute: number
-  status: 'ACTIVE' | 'PAUSED'
+  status: 'DRAFT' | 'ACTIVE' | 'PAUSED'
   smtpRateLimitWarning: boolean
   smtpRateLimitWarningMessage?: string | null
   smtpRateLimitWarningAt?: string | null
@@ -543,6 +544,47 @@ export const resumeNewsletterCampaign = async (
 ): Promise<{ message: string; campaignId: string }> => {
   const res = await api.post<{ message: string; campaignId: string }>(
     `/admin/newsletter/campaigns/${campaignId}/resume`,
+  )
+  return res.data
+}
+
+export const saveNewsletterDraft = async (
+  payload: NewsletterPreviewFilters & { subject: string; html: string },
+): Promise<{ message: string; campaignId: string }> => {
+  const res = await api.post<{ message: string; campaignId: string }>(
+    '/admin/newsletter/draft',
+    payload,
+  )
+  return res.data
+}
+
+export const updateNewsletterDraft = async (
+  campaignId: string,
+  payload: NewsletterPreviewFilters & { subject: string; html: string },
+): Promise<{ message: string; campaignId: string }> => {
+  const res = await api.put<{ message: string; campaignId: string }>(
+    `/admin/newsletter/campaigns/${campaignId}/draft`,
+    payload,
+  )
+  return res.data
+}
+
+export const sendNewsletterDraft = async (
+  campaignId: string,
+): Promise<{ message: string; campaignId: string; queuedCount: number }> => {
+  const res = await api.post<{
+    message: string
+    campaignId: string
+    queuedCount: number
+  }>(`/admin/newsletter/campaigns/${campaignId}/send-draft`)
+  return res.data
+}
+
+export const deleteNewsletterDraft = async (
+  campaignId: string,
+): Promise<{ message: string; campaignId: string }> => {
+  const res = await api.delete<{ message: string; campaignId: string }>(
+    `/admin/newsletter/campaigns/${campaignId}/draft`,
   )
   return res.data
 }
