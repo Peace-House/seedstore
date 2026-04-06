@@ -29,6 +29,7 @@ import LiquidGlassWrapper from '@/components/LiquidGlassWrapper'
 import { useLibrary } from '@/hooks/useLibrary'
 import BorrowModal from '@/components/BorrowModal'
 import { useState } from 'react'
+import { getAppFeatureSettings } from '@/services/admin'
 
 const reader_route = import.meta.env.VITE_BOOKREADER_URL!
 
@@ -62,6 +63,13 @@ const BookDetail = () => {
     queryFn: () => getBorrowEligibility(id!),
     enabled: !!id && !!user && !!book?.isLendable,
   })
+
+  const { data: featureSettings } = useQuery({
+    queryKey: ['app-feature-settings'],
+    queryFn: getAppFeatureSettings,
+    staleTime: 60_000,
+  })
+  const groupBuyingEnabled = featureSettings?.group_buying_enabled ?? true
 
   // Check if book is in user's library (purchased or added as free)
   const isPurchased =
@@ -106,7 +114,7 @@ const BookDetail = () => {
   }
 
   const handleBuyForGroup = () => {
-    if (!book) return
+    if (!book || !groupBuyingEnabled || book.allowGroupBuy === false) return
 
     const openGroupBuyInCart = () => {
       navigate(`/cart?groupBuyBookId=${book.id}`)
@@ -273,7 +281,7 @@ const BookDetail = () => {
             })()}
 
             {isPurchased ? (
-              <div className="flex flex-col gap-4 md:flex-row md:items-center">
+              <div className="flex flex-col gap-4">
                 <Button
                   size="lg"
                   className="w-full"
@@ -284,21 +292,30 @@ const BookDetail = () => {
                   Read Now
                 </Button>
 
-                <Button
-                  size="lg"
-                  className="w-full"
-                  liquidGlass={true}
-                  onClick={handleBuyForGroup}
-                  disabled={isAddingToCart}
-                  variant="outline"
-                >
-                  {isAddingToCart ? (
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  ) : (
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                  )}
-                  Buy for a Group
-                </Button>
+                {groupBuyingEnabled && (
+                  <>
+                    <Button
+                      size="lg"
+                      className="w-full"
+                      liquidGlass={true}
+                      onClick={handleBuyForGroup}
+                      disabled={isAddingToCart || book.allowGroupBuy === false}
+                      variant="outline"
+                    >
+                      {isAddingToCart ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <ShoppingCart className="mr-2 h-5 w-5" />
+                      )}
+                      Buy for a Group
+                    </Button>
+                    {book.allowGroupBuy === false && (
+                      <p className="text-muted-foreground text-xs">
+                        Group buying is not available for this item.
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             ) : getBookPriceForCountry(
                 book.prices,
