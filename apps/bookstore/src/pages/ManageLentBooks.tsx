@@ -65,7 +65,7 @@ const ManageLentBooks = () => {
         border: '0.5px solid green',
       }}
     >
-      <CardContent className="flex flex-col justify-between gap-3 p-4 md:flex-row md:items-center">
+      <CardContent className="flex flex-col justify-between gap-3 p-4 md:flex-row md:items-center ">
         <div>
           <p className="font-semibold">{lend.book?.title}</p>
           <p className="text-muted-foreground text-sm">
@@ -75,7 +75,9 @@ const ManageLentBooks = () => {
             {showAction ? 'Active until' : 'Ended on'}{' '}
             {new Date(lend.endAt).toLocaleDateString()}
           </p>
-          <p className="text-muted-foreground text-xs">Status: {lend.status}</p>
+          <p className="text-muted-foreground text-xs">
+            Status: {lend.status === 'REVOKED' ? 'RECALLED' : lend.status}
+          </p>
         </div>
 
         {showAction ? (
@@ -117,7 +119,7 @@ const ManageLentBooks = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-4 space-y-3 md:grid-cols-3 lg:grid-cols-4">
                 {activeLends.map((lend) => renderLendCard(lend, true))}
               </div>
             )}
@@ -132,7 +134,7 @@ const ManageLentBooks = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-4 space-y-3 md:grid-cols-4 lg:grid-cols-6">
                 {pastLends.map((lend) => renderLendCard(lend, false))}
               </div>
             )}
