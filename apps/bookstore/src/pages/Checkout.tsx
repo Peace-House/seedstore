@@ -7,12 +7,9 @@ import { useCountry } from '@/hooks/useCountry'
 import { getBookPriceForCountry } from '@/utils/pricing'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Loader2,
   CreditCard,
-  Smartphone,
   ArrowLeft,
   Check,
   Apple,
@@ -22,7 +19,6 @@ import { useToast } from '@/hooks/use-toast'
 import {
   initiatePaystackPayment,
   initiateFlutterwavePayment,
-  initiateMtnMomoPayment,
   PaymentMethod,
 } from '@/services/payment'
 import { getCartWithGroupPurchases } from '@/services/groupPurchase'
@@ -40,7 +36,6 @@ const Checkout = () => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
     null,
   )
-  const [phoneNumber, setPhoneNumber] = useState('')
 
   const cartItems = Array.isArray(rawCartItems) ? rawCartItems : []
 
@@ -135,47 +130,6 @@ const Checkout = () => {
     },
   })
 
-  // MTN MoMo checkout mutation
-  const mtnMomoMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('Login Required')
-      if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty')
-      if (!phoneNumber) throw new Error('Phone number is required')
-
-      return await initiateMtnMomoPayment({
-        amount: payableTotal,
-        currency: currencyCode,
-        phone: phoneNumber,
-        payerMessage: `Payment for ${cartItems.length} book(s) from Livingseed`,
-        payeeNote: `Order from ${user.email}`,
-      })
-    },
-    onSuccess: (data) => {
-      // Store referenceId for status checking
-      if (data?.referenceId) {
-        navigate(
-          `/payment-callback?method=mtnmomo&reference=${data.referenceId}`,
-        )
-      } else {
-        toast({
-          title: 'Payment Initiated',
-          description: 'Please check your phone to approve the payment.',
-        })
-      }
-    },
-    onError: (error: unknown) => {
-      const errMsg =
-        error instanceof Error
-          ? error.message
-          : 'Failed to initiate MTN MoMo payment'
-      toast({
-        variant: 'destructive',
-        title: 'Payment Failed',
-        description: errMsg,
-      })
-    },
-  })
-
   const flutterwaveMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Login Required')
@@ -262,25 +216,12 @@ const Checkout = () => {
     } else if (selectedMethod === 'applepay') {
       // Apple Pay uses Paystack with apple_pay channel
       paystackMutation.mutate(['apple_pay'])
-    } else if (selectedMethod === 'mtnmomo') {
-      if (!phoneNumber) {
-        toast({
-          variant: 'destructive',
-          title: 'Phone Number Required',
-          description: 'Please enter your MTN Mobile Money phone number.',
-        })
-        return
-      }
-      mtnMomoMutation.mutate()
     } else if (selectedMethod === 'flutterwave') {
       flutterwaveMutation.mutate()
     }
   }
 
-  const isPending =
-    paystackMutation.isPending ||
-    mtnMomoMutation.isPending ||
-    flutterwaveMutation.isPending
+  const isPending = paystackMutation.isPending || flutterwaveMutation.isPending
 
   if (isLoading || authLoading) {
     return (
@@ -415,59 +356,8 @@ const Checkout = () => {
                   money, USSD, wallets, and local payment methods.
                 </p>
               </button>
-
-              {/* MTN MoMo Option */}
-              {currencyCode === 'NGN' && (
-                <div className="border-border bg-muted/30 relative cursor-not-allowed rounded-xl border-2 p-6 opacity-60">
-                  <div className="absolute top-3 right-3 rounded-full bg-amber-500 px-2 py-1 text-xs font-semibold text-white">
-                    Coming Soon
-                  </div>
-                  <div className="mb-3 flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FFCC00]/10">
-                      <Smartphone className="h-6 w-6 text-[#FFCC00]" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold">
-                        MTN Mobile Money
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        Pay with MoMo
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    Pay directly from your MTN Mobile Money wallet
-                  </p>
-                </div>
-              )}
             </div>
           </LiquidGlassWrapper>
-
-          {/* MTN MoMo Phone Input */}
-          {selectedMethod === 'mtnmomo' && (
-            <LiquidGlassWrapper className="p-6">
-              <h2 className="mb-4 text-xl font-bold">
-                MTN Mobile Money Details
-              </h2>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    placeholder="e.g. 256771234567"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="max-w-md"
-                  />
-                  <p className="text-muted-foreground text-xs">
-                    Enter your MTN Mobile Money registered phone number with
-                    country code (e.g., 256 for Uganda)
-                  </p>
-                </div>
-              </div>
-            </LiquidGlassWrapper>
-          )}
         </div>
 
         {/* Order Summary */}
@@ -531,11 +421,7 @@ const Checkout = () => {
               size="lg"
               liquidGlass={false}
               onClick={handleProceedToPayment}
-              disabled={
-                isPending ||
-                !selectedMethod ||
-                (selectedMethod === 'mtnmomo' && !phoneNumber)
-              }
+              disabled={isPending || !selectedMethod}
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isPending
@@ -548,7 +434,7 @@ const Checkout = () => {
                       ? 'Flutterwave'
                       : selectedMethod === 'applepay'
                       ? 'Apple Pay'
-                      : 'MTN MoMo'
+                      : 'Payment Provider'
                   }`
                 : 'Select Payment Method'}
             </Button>

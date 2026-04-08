@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   verifyPaystackPayment,
-  verifyMtnMomoPayment,
   verifyFlutterwavePayment,
 } from '@/services/payment'
 import { useToast } from '@/hooks/use-toast'
@@ -44,41 +43,7 @@ const PaymentCallback = () => {
 
     const verifyPayment = async () => {
       try {
-        if (method === 'mtnmomo') {
-          // MTN MoMo verification with polling
-          const res = await verifyMtnMomoPayment(reference)
-
-          if (res.status === 'SUCCESSFUL') {
-            setStatus('success')
-            toast({
-              title: 'Payment Successful',
-              description: 'Your order has been processed.',
-            })
-            setTimeout(() => navigate('/library'), 2000)
-          } else if (res.status === 'FAILED') {
-            setStatus('failed')
-            toast({
-              variant: 'destructive',
-              title: 'Payment Failed',
-              description: 'Your payment was not successful. Please try again.',
-            })
-          } else if (res.status === 'PENDING') {
-            setStatus('pending')
-            // Poll again if still pending (max 10 attempts)
-            if (pollingCount < 10) {
-              setTimeout(() => {
-                setPollingCount((prev) => prev + 1)
-              }, 5000) // Poll every 5 seconds
-            } else {
-              toast({
-                variant: 'destructive',
-                title: 'Payment Timeout',
-                description:
-                  'Payment verification timed out. Please check your MTN MoMo app.',
-              })
-            }
-          }
-        } else if (method === 'flutterwave') {
+        if (method === 'flutterwave') {
           const res = await verifyFlutterwavePayment(reference)
 
           if (
@@ -176,9 +141,9 @@ const PaymentCallback = () => {
           <Loader2 className="mb-4 h-16 w-16 animate-spin text-yellow-500" />
           <h2 className="mb-2 text-2xl font-bold">Awaiting Payment Approval</h2>
           <p className="text-muted-foreground mb-4">
-            {method === 'mtnmomo'
-              ? 'Please check your MTN MoMo app and approve the payment request.'
-              : 'Your payment is being confirmed. Please wait while we keep checking the status.'}
+            {
+              'Your payment is being confirmed. Please wait while we keep checking the status.'
+            }
           </p>
           <p className="text-muted-foreground text-sm">
             Checking status... ({pollingCount + 1}/10)
