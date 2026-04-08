@@ -1,22 +1,37 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { verifyPaystackPayment, verifyMtnMomoPayment } from '@/services/payment'
+import {
+  verifyPaystackPayment,
+  verifyMtnMomoPayment,
+  verifyFlutterwavePayment,
+} from '@/services/payment'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const PaymentCallback = () => {
   const [searchParams] = useSearchParams()
-  const reference = searchParams.get('reference')
+  const reference = searchParams.get('reference') || searchParams.get('tx_ref')
   const method = searchParams.get('method')
+  const callbackStatus = searchParams.get('status')?.toLowerCase()
   const navigate = useNavigate()
   const { toast } = useToast()
   const [status, setStatus] = useState<
-    'verifying' | 'success' | 'failed' | 'pending'
+    'verifying' | 'success' | 'failed' | 'pending' | 'cancelled'
   >('verifying')
   const [pollingCount, setPollingCount] = useState(0)
 
   useEffect(() => {
+    if (method === 'flutterwave' && callbackStatus === 'cancelled') {
+      setStatus('cancelled')
+      toast({
+        variant: 'destructive',
+        title: 'Payment Cancelled',
+        description: 'You cancelled the Flutterwave payment.',
+      })
+      return
+    }
+
     if (!reference) {
       toast({
         variant: 'destructive',
@@ -63,6 +78,43 @@ const PaymentCallback = () => {
               })
             }
           }
+        } else if (method === 'flutterwave') {
+          const res = await verifyFlutterwavePayment(reference)
+
+          if (
+            res.status === 'successful' ||
+            res.status === 'completed' ||
+            res.status === 'succeeded'
+          ) {
+            setStatus('success')
+            toast({
+              title: 'Payment Successful',
+              description: 'Your order has been processed.',
+            })
+            setTimeout(() => navigate('/library'), 2000)
+          } else if (res.status === 'pending') {
+            setStatus('pending')
+            if (pollingCount < 10) {
+              setTimeout(() => {
+                setPollingCount((prev) => prev + 1)
+              }, 5000)
+            } else {
+              toast({
+                variant: 'destructive',
+                title: 'Payment Pending',
+                description:
+                  'Your payment is still pending confirmation. Please wait a little longer or contact support.',
+              })
+            }
+          } else {
+            setStatus('failed')
+            toast({
+              variant: 'destructive',
+              title: 'Payment Failed',
+              description:
+                res.message || 'Verification failed. Please contact support.',
+            })
+          }
         } else {
           // Paystack verification
           const res = await verifyPaystackPayment(reference)
@@ -101,7 +153,7 @@ const PaymentCallback = () => {
     }
 
     verifyPayment()
-  }, [reference, method, navigate, toast, pollingCount])
+  }, [reference, method, callbackStatus, navigate, toast, pollingCount])
 
   return (
     <div className="container flex min-h-[60vh] flex-col items-center justify-center py-16">
@@ -124,7 +176,9 @@ const PaymentCallback = () => {
           <Loader2 className="mb-4 h-16 w-16 animate-spin text-yellow-500" />
           <h2 className="mb-2 text-2xl font-bold">Awaiting Payment Approval</h2>
           <p className="text-muted-foreground mb-4">
-            Please check your MTN MoMo app and approve the payment request.
+            {method === 'mtnmomo'
+              ? 'Please check your MTN MoMo app and approve the payment request.'
+              : 'Your payment is being confirmed. Please wait while we keep checking the status.'}
           </p>
           <p className="text-muted-foreground text-sm">
             Checking status... ({pollingCount + 1}/10)
@@ -168,6 +222,24 @@ const PaymentCallback = () => {
             <Button onClick={() => navigate('/cart')}>Back to Cart</Button>
             <Button variant="outline" onClick={() => navigate('/checkout')}>
               Try Again
+            </Button>
+          </div>
+        </>
+      )}
+
+      {status === 'cancelled' && (
+        <>
+          <XCircle className="mb-4 h-16 w-16 text-orange-500" />
+          <h2 className="mb-2 text-2xl font-bold">Payment Cancelled</h2>
+          <p className="text-muted-foreground mb-4">
+            Your Flutterwave payment was cancelled. No charge was completed.
+          </p>
+          <div className="flex gap-4">
+            <Button onClick={() => navigate('/checkout')}>
+              Back to Checkout
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/cart')}>
+              Back to Cart
             </Button>
           </div>
         </>

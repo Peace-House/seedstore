@@ -1,6 +1,6 @@
 import api from './apiService'
 
-export type PaymentMethod = 'paystack' | 'mtnmomo' | 'applepay'
+export type PaymentMethod = 'paystack' | 'mtnmomo' | 'applepay' | 'flutterwave'
 
 export interface PaystackMetadataCartItem {
   bookId: number | string
@@ -43,6 +43,43 @@ export const initiatePaystackPayment = async ({
 
 export const verifyPaystackPayment = async (reference: string) => {
   const res = await api.get(`/payment/verify_paystack?reference=${reference}`)
+  return res.data
+}
+
+export const initiateFlutterwavePayment = async ({
+  amount,
+  email,
+  fullName,
+  phoneNumber,
+  redirect_url,
+  payment_options,
+  currency,
+  metadata,
+}: {
+  amount: number
+  email: string
+  fullName?: string
+  phoneNumber?: string
+  redirect_url: string
+  payment_options?: string
+  currency?: string
+  metadata?: PaystackMetadata
+}) => {
+  const res = await api.post('/payment/initiate_flutterwave', {
+    amount,
+    email,
+    fullName,
+    phoneNumber,
+    redirect_url,
+    payment_options,
+    currency,
+    metadata,
+  })
+  return res.data
+}
+
+export const verifyFlutterwavePayment = async (txRef: string) => {
+  const res = await api.get(`/payment/verify_flutterwave?tx_ref=${txRef}`)
   return res.data
 }
 

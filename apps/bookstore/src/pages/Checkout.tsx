@@ -16,10 +16,12 @@ import {
   ArrowLeft,
   Check,
   Apple,
+  Wallet,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   initiatePaystackPayment,
+  initiateFlutterwavePayment,
   initiateMtnMomoPayment,
   PaymentMethod,
 } from '@/services/payment'
@@ -174,6 +176,66 @@ const Checkout = () => {
     },
   })
 
+  const flutterwaveMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Login Required')
+      if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty')
+
+      const cartItemsMetadata = cartItems.map((item) => {
+        const book = (item as any).book || item
+        const priceInfo = getBookPriceForCountry(
+          book.prices,
+          selectedCountry,
+          'soft_copy',
+          countryCurrencies,
+        )
+        return {
+          bookId: book.id,
+          title: book.title,
+          price: Number(priceInfo.price),
+        }
+      })
+
+      return await initiateFlutterwavePayment({
+        amount: payableTotal,
+        email: user.email,
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
+        phoneNumber: user.phoneNumber,
+        redirect_url: `${window.location.origin}/payment-callback?method=flutterwave`,
+        payment_options:
+          'card,banktransfer,ussd,mobilemoney,account,applepay,googlepay,nqr',
+        currency: currencyCode,
+        metadata: {
+          userId: user.id,
+          cartItems: cartItemsMetadata,
+        },
+      })
+    },
+    onSuccess: (data) => {
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Payment Failed',
+          description:
+            data?.message || 'Failed to initiate Flutterwave payment',
+        })
+      }
+    },
+    onError: (error: unknown) => {
+      const errMsg =
+        error instanceof Error
+          ? error.message
+          : 'Failed to initiate Flutterwave payment'
+      toast({
+        variant: 'destructive',
+        title: 'Payment Failed',
+        description: errMsg,
+      })
+    },
+  })
+
   const handleProceedToPayment = () => {
     if (!user) {
       toast({
@@ -210,10 +272,15 @@ const Checkout = () => {
         return
       }
       mtnMomoMutation.mutate()
+    } else if (selectedMethod === 'flutterwave') {
+      flutterwaveMutation.mutate()
     }
   }
 
-  const isPending = paystackMutation.isPending || mtnMomoMutation.isPending
+  const isPending =
+    paystackMutation.isPending ||
+    mtnMomoMutation.isPending ||
+    flutterwaveMutation.isPending
 
   if (isLoading || authLoading) {
     return (
@@ -316,6 +383,36 @@ const Checkout = () => {
                 </div>
                 <p className="text-muted-foreground text-xs">
                   Pay quickly with Apple Pay on supported devices
+                </p>
+              </button>
+
+              <button
+                onClick={() => setSelectedMethod('flutterwave')}
+                className={`relative rounded-xl border-2 p-6 text-left transition-all ${
+                  selectedMethod === 'flutterwave'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                {selectedMethod === 'flutterwave' && (
+                  <div className="bg-primary absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full">
+                    <Check className="h-4 w-4 text-white" />
+                  </div>
+                )}
+                <div className="mb-3 flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FB9129]/10">
+                    <Wallet className="h-6 w-6 text-[#FB9129]" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">Flutterwave</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Cards, Bank Transfer, Mobile Money, Wallets
+                    </p>
+                  </div>
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  Use Flutterwave checkout for cards, bank payments, mobile
+                  money, USSD, wallets, and local payment methods.
                 </p>
               </button>
 
@@ -447,6 +544,8 @@ const Checkout = () => {
                 ? `Pay with ${
                     selectedMethod === 'paystack'
                       ? 'Paystack'
+                      : selectedMethod === 'flutterwave'
+                      ? 'Flutterwave'
                       : selectedMethod === 'applepay'
                       ? 'Apple Pay'
                       : 'MTN MoMo'
