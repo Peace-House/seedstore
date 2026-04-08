@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
@@ -45,12 +45,71 @@ const Checkout = () => {
       cc.country.toLowerCase() === selectedCountry.toLowerCase(),
   )
   const currencyCode = currencyInfo?.currency || 'NGN'
+  const normalizedCurrencyCode = currencyCode.toUpperCase()
 
-  const { data: groupSummary } = useQuery({
+  const availableMethods: PaymentMethod[] = useMemo(
+    () =>
+      normalizedCurrencyCode === 'USD'
+        ? ['applepay', 'flutterwave']
+        : normalizedCurrencyCode === 'NGN'
+        ? ['paystack', 'flutterwave']
+        : ['flutterwave'],
+    [normalizedCurrencyCode],
+  )
+
+  const getItemBook = (
+    item: unknown,
+  ): {
+    id: number | string
+    title: string
+    prices:
+      | {
+          country?: string | null
+          currency: string
+          soft_copy_price: number
+          hard_copy_price: number
+        }[]
+      | undefined
+  } => {
+    const source = item as { book?: unknown }
+    const book =
+      source.book && typeof source.book === 'object'
+        ? source.book
+        : (item as object)
+
+    return book as {
+      id: number | string
+      title: string
+      prices:
+        | {
+            country?: string | null
+            currency: string
+            soft_copy_price: number
+            hard_copy_price: number
+          }[]
+        | undefined
+    }
+  }
+
+  useEffect(() => {
+    if (selectedMethod && !availableMethods.includes(selectedMethod)) {
+      setSelectedMethod(availableMethods[0] ?? null)
+      return
+    }
+
+    if (!selectedMethod && availableMethods.length > 0) {
+      setSelectedMethod(availableMethods[0])
+    }
+  }, [availableMethods, selectedMethod])
+
+  const { data: groupSummary, isLoading: isGroupSummaryLoading } = useQuery({
     queryKey: ['group-cart-summary', user?.id, currencyCode],
     queryFn: () => getCartWithGroupPurchases(currencyCode),
     enabled: !!user,
   })
+
+  const isComputingGroupSummary =
+    !!user && isGroupSummaryLoading && !groupSummary
 
   const total = cartItems.reduce((sum, item) => {
     const book = item.book || item
@@ -82,7 +141,7 @@ const Checkout = () => {
 
       // Build metadata so the backend/webhook can reliably create orders
       const cartItemsMetadata = cartItems.map((item) => {
-        const book = (item as any).book || item
+        const book = getItemBook(item)
         const priceInfo = getBookPriceForCountry(
           book.prices,
           selectedCountry,
@@ -131,12 +190,12 @@ const Checkout = () => {
   })
 
   const flutterwaveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (paymentOptions?: string) => {
       if (!user) throw new Error('Login Required')
       if (!cartItems || cartItems.length === 0) throw new Error('Cart is empty')
 
       const cartItemsMetadata = cartItems.map((item) => {
-        const book = (item as any).book || item
+        const book = getItemBook(item)
         const priceInfo = getBookPriceForCountry(
           book.prices,
           selectedCountry,
@@ -157,6 +216,7 @@ const Checkout = () => {
         phoneNumber: user.phoneNumber,
         redirect_url: `${window.location.origin}/payment-callback?method=flutterwave`,
         payment_options:
+          paymentOptions ||
           'card,banktransfer,ussd,mobilemoney,account,applepay,googlepay,nqr',
         currency: currencyCode,
         metadata: {
@@ -201,11 +261,9 @@ const Checkout = () => {
     }
 
     if (selectedMethod === 'paystack') {
-      // paystackMutation.mutate([]);
       paystackMutation.mutate([
         'card',
         'bank',
-        'apple_pay',
         'ussd',
         'qr',
         'mobile_money',
@@ -214,10 +272,10 @@ const Checkout = () => {
         'payattitude',
       ])
     } else if (selectedMethod === 'applepay') {
-      // Apple Pay uses Paystack with apple_pay channel
-      paystackMutation.mutate(['apple_pay'])
+      // Apple Pay is routed through Flutterwave as an applepay-only checkout.
+      flutterwaveMutation.mutate('applepay')
     } else if (selectedMethod === 'flutterwave') {
-      flutterwaveMutation.mutate()
+      flutterwaveMutation.mutate(undefined)
     }
   }
 
@@ -245,6 +303,22 @@ const Checkout = () => {
     )
   }
 
+  if (isComputingGroupSummary) {
+    return (
+      <div className="container mt-8 pb-16">
+        <Breadcrumb />
+        <Card className="border-none bg-transparent shadow-none">
+          <CardContent className="py-16 text-center">
+            <PageLoader />
+            <p className="text-muted-foreground mt-4 text-sm">
+              Calculating your group-buy savings...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="container mt-8 pb-16">
       <Breadcrumb />
@@ -263,99 +337,101 @@ const Checkout = () => {
           <LiquidGlassWrapper className="p-6">
             <h2 className="mb-4 text-xl font-bold">Select Payment Method</h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {/* Paystack Option */}
-              <button
-                onClick={() => setSelectedMethod('paystack')}
-                className={`relative rounded-xl border-2 p-6 text-left transition-all ${
-                  selectedMethod === 'paystack'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                {selectedMethod === 'paystack' && (
-                  <div className="bg-primary absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full">
-                    <Check className="h-4 w-4 text-white" />
+              {availableMethods.includes('paystack') && (
+                <button
+                  onClick={() => setSelectedMethod('paystack')}
+                  className={`relative rounded-xl border-2 p-6 text-left transition-all ${
+                    selectedMethod === 'paystack'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  {selectedMethod === 'paystack' && (
+                    <div className="bg-primary absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                  <div className="mb-3 flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#00C3F7]/10">
+                      <CreditCard className="h-6 w-6 text-[#00C3F7]" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Paystack</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Card, Bank Transfer, USSD
+                      </p>
+                    </div>
                   </div>
-                )}
-                <div className="mb-3 flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#00C3F7]/10">
-                    <CreditCard className="h-6 w-6 text-[#00C3F7]" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Paystack</h3>
-                    <p className="text-muted-foreground text-sm">
-                      {currencyCode === 'USD'
-                        ? 'Card'
-                        : 'Card, Bank Transfer, USSD'}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  {currencyCode === 'USD'
-                    ? 'Pay securely with your debit/credit card'
-                    : 'Pay securely with your debit/credit card, bank transfer, or USSD'}
-                </p>
-              </button>
+                  <p className="text-muted-foreground text-xs">
+                    Pay securely with your debit/credit card, bank transfer, or
+                    USSD
+                  </p>
+                </button>
+              )}
 
-              {/* Apple Pay Option */}
-              <button
-                onClick={() => setSelectedMethod('applepay')}
-                className={`relative rounded-xl border-2 p-6 text-left transition-all ${
-                  selectedMethod === 'applepay'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                {selectedMethod === 'applepay' && (
-                  <div className="bg-primary absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full">
-                    <Check className="h-4 w-4 text-white" />
+              {availableMethods.includes('applepay') && (
+                <button
+                  onClick={() => setSelectedMethod('applepay')}
+                  className={`relative rounded-xl border-2 p-6 text-left transition-all ${
+                    selectedMethod === 'applepay'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  {selectedMethod === 'applepay' && (
+                    <div className="bg-primary absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                  <div className="mb-3 flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black">
+                      <Apple className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Apple Pay</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Fast & secure checkout
+                      </p>
+                    </div>
                   </div>
-                )}
-                <div className="mb-3 flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black">
-                    <Apple className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Apple Pay</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Fast & secure checkout
-                    </p>
-                  </div>
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  Pay quickly with Apple Pay on supported devices
-                </p>
-              </button>
+                  <p className="text-muted-foreground text-xs">
+                    Pay quickly with Apple Pay via Flutterwave on supported
+                    devices
+                  </p>
+                </button>
+              )}
 
-              <button
-                onClick={() => setSelectedMethod('flutterwave')}
-                className={`relative rounded-xl border-2 p-6 text-left transition-all ${
-                  selectedMethod === 'flutterwave'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                {selectedMethod === 'flutterwave' && (
-                  <div className="bg-primary absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full">
-                    <Check className="h-4 w-4 text-white" />
+              {availableMethods.includes('flutterwave') && (
+                <button
+                  onClick={() => setSelectedMethod('flutterwave')}
+                  className={`relative rounded-xl border-2 p-6 text-left transition-all ${
+                    selectedMethod === 'flutterwave'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  {selectedMethod === 'flutterwave' && (
+                    <div className="bg-primary absolute top-3 right-3 flex h-6 w-6 items-center justify-center rounded-full">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                  <div className="mb-3 flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FB9129]/10">
+                      <Wallet className="h-6 w-6 text-[#FB9129]" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Flutterwave</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Cards, Bank Transfer, Mobile Money, Wallets
+                      </p>
+                    </div>
                   </div>
-                )}
-                <div className="mb-3 flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FB9129]/10">
-                    <Wallet className="h-6 w-6 text-[#FB9129]" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Flutterwave</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Cards, Bank Transfer, Mobile Money, Wallets
-                    </p>
-                  </div>
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  Use Flutterwave checkout for cards, bank payments, mobile
-                  money, USSD, wallets, and local payment methods.
-                </p>
-              </button>
+                  <p className="text-muted-foreground text-xs">
+                    Use Flutterwave checkout for cards, bank payments, mobile
+                    money, USSD, wallets, and local payment methods.
+                  </p>
+                </button>
+              )}
             </div>
           </LiquidGlassWrapper>
         </div>

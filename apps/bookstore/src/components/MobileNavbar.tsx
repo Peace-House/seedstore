@@ -35,6 +35,7 @@ const MobileNavbar = () => {
     selectedCurrency,
     countryCurrencies,
   } = useCountry()
+  const isCheckoutPage = location.pathname.startsWith('/checkout')
 
   const handleSignOut = async () => {
     await signOut()
@@ -115,40 +116,41 @@ const MobileNavbar = () => {
             <Button onClick={() => navigate('/auth')}>Sign In</Button>
           )}
 
-          {/* Country Selector */}
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                liquidGlass={false}
-                className="flex w-max items-center gap-1 rounded-full !bg-none px-2 text-xs hover:bg-transparent hover:text-black"
-              >
-                <Globe className="h-4 w-4" />
-                <span className="text-[10px]">{selectedCurrency}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              side="top"
-              sideOffset={8}
-              className="max-h-60 min-w-[160px] overflow-y-auto rounded"
-              onCloseAutoFocus={(e) => e.preventDefault()}
-            >
-              {countryCurrencies.map((cc) => (
-                <DropdownMenuItem
-                  key={cc.id}
-                  onClick={() => setSelectedCountry(cc.country)}
-                  className={
-                    selectedCountry === cc.country
-                      ? 'bg-primary/10 font-medium'
-                      : ''
-                  }
+          {!isCheckoutPage && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  liquidGlass={false}
+                  className="flex w-max items-center gap-1 rounded-full !bg-none px-2 text-xs hover:bg-transparent hover:text-black"
                 >
-                  {cc.country} ({cc.currency})
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <Globe className="h-4 w-4" />
+                  <span className="text-[10px]">{selectedCurrency}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                side="top"
+                sideOffset={8}
+                className="max-h-60 min-w-[160px] overflow-y-auto rounded"
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
+                {countryCurrencies.map((cc) => (
+                  <DropdownMenuItem
+                    key={cc.id}
+                    onClick={() => setSelectedCountry(cc.country)}
+                    className={
+                      selectedCountry === cc.country
+                        ? 'bg-primary/10 font-medium'
+                        : ''
+                    }
+                  >
+                    {cc.country} ({cc.currency})
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </nav>

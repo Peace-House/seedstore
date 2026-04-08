@@ -22,12 +22,13 @@ import {
 } from './ui/dropdown-menu'
 import Logo from './Logo'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Input } from './ui/input'
 
 const Navbar = () => {
   const [search, setSearch] = useState('')
   const navigateTo = useNavigate()
+  const location = useLocation()
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const { cartCount } = useCart()
@@ -39,6 +40,7 @@ const Navbar = () => {
   } = useCountry()
 
   const isAdmin = user && (user.role === 'admin' || user.isAdmin)
+  const isCheckoutPage = location.pathname.startsWith('/checkout')
 
   const handleSignOut = async () => {
     await signOut()
@@ -168,41 +170,45 @@ const Navbar = () => {
               Sign In
             </Button>
           )}
-          {/* separator */}
-          <div className="h-6 border-l border-gray-300"></div>
-          {/* Country Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex w-max items-center gap-1 rounded-full px-2 text-xs hover:bg-transparent hover:text-black"
-              >
-                <Globe className="h-4 w-4" />
-                <span className="text-[10px]">{selectedCountry}</span>
-                <span className="text-muted-foreground text-[10px]">
-                  ({selectedCurrency})
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="max-h-60 overflow-y-auto rounded"
-            >
-              {countryCurrencies.map((cc) => (
-                <DropdownMenuItem
-                  key={cc.id}
-                  onClick={() => setSelectedCountry(cc.country)}
-                  className={
-                    selectedCountry === cc.country
-                      ? 'bg-primary/10 font-medium'
-                      : ''
-                  }
+          {!isCheckoutPage && (
+            <>
+              {/* separator */}
+              <div className="h-6 border-l border-gray-300"></div>
+              {/* Country Selector */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="flex w-max items-center gap-1 rounded-full px-2 text-xs hover:bg-transparent hover:text-black"
+                  >
+                    <Globe className="h-4 w-4" />
+                    <span className="text-[10px]">{selectedCountry}</span>
+                    <span className="text-muted-foreground text-[10px]">
+                      ({selectedCurrency})
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="max-h-60 overflow-y-auto rounded"
                 >
-                  {cc.country} ({cc.currency})
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  {countryCurrencies.map((cc) => (
+                    <DropdownMenuItem
+                      key={cc.id}
+                      onClick={() => setSelectedCountry(cc.country)}
+                      className={
+                        selectedCountry === cc.country
+                          ? 'bg-primary/10 font-medium'
+                          : ''
+                      }
+                    >
+                      {cc.country} ({cc.currency})
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
         </div>
       </div>
     </nav>
