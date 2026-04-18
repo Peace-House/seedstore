@@ -8,6 +8,10 @@ import { useToast } from '@/hooks/use-toast'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+/** Flutterwave pending: at most this many verify API calls (initial + follow-ups). */
+const MAX_FLUTTERWAVE_PENDING_CHECKS = 3
+const FLUTTERWAVE_PENDING_RECHECK_MS = 3000
+
 const PaymentCallback = () => {
   const [searchParams] = useSearchParams()
   const reference = searchParams.get('reference') || searchParams.get('tx_ref')
@@ -18,7 +22,8 @@ const PaymentCallback = () => {
   const [status, setStatus] = useState<
     'verifying' | 'success' | 'failed' | 'pending' | 'cancelled'
   >('verifying')
-  const [pollingCount, setPollingCount] = useState(0)
+  const [flutterwavePendingCheckIndex, setFlutterwavePendingCheckIndex] =
+    useState(0)
 
   useEffect(() => {
     if (method === 'flutterwave' && callbackStatus === 'cancelled') {
@@ -59,10 +64,12 @@ const PaymentCallback = () => {
             setTimeout(() => navigate('/library'), 2000)
           } else if (res.status === 'pending') {
             setStatus('pending')
-            if (pollingCount < 10) {
+            const canRetry =
+              flutterwavePendingCheckIndex < MAX_FLUTTERWAVE_PENDING_CHECKS - 1
+            if (canRetry) {
               setTimeout(() => {
-                setPollingCount((prev) => prev + 1)
-              }, 5000)
+                setFlutterwavePendingCheckIndex((i) => i + 1)
+              }, FLUTTERWAVE_PENDING_RECHECK_MS)
             } else {
               toast({
                 variant: 'destructive',
@@ -118,7 +125,14 @@ const PaymentCallback = () => {
     }
 
     verifyPayment()
-  }, [reference, method, callbackStatus, navigate, toast, pollingCount])
+  }, [
+    reference,
+    method,
+    callbackStatus,
+    navigate,
+    toast,
+    flutterwavePendingCheckIndex,
+  ])
 
   return (
     <div className="container flex min-h-[60vh] flex-col items-center justify-center py-16">
@@ -146,7 +160,8 @@ const PaymentCallback = () => {
             }
           </p>
           <p className="text-muted-foreground text-sm">
-            Checking status... ({pollingCount + 1}/10)
+            Checking status... ({flutterwavePendingCheckIndex + 1}/
+            {MAX_FLUTTERWAVE_PENDING_CHECKS})
           </p>
           <p className="mt-4 max-w-md text-center text-sm text-yellow-600">
             🔔 Do not close this page or navigate away until the process
