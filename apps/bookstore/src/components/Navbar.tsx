@@ -142,7 +142,7 @@ const Navbar = () => {
                   <User className="mr-2 h-4 w-4" />
                   Manage Group Buy
                 </DropdownMenuItem>
-                {user.role !== 'user' && (
+                {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/admin')}>
