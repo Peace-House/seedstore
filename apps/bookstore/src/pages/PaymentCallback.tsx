@@ -5,7 +5,7 @@ import {
   verifyFlutterwavePayment,
 } from '@/services/payment'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 /** Flutterwave pending: at most this many verify API calls (initial + follow-ups). */
@@ -20,7 +20,12 @@ const PaymentCallback = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [status, setStatus] = useState<
-    'verifying' | 'success' | 'failed' | 'pending' | 'cancelled'
+    | 'verifying'
+    | 'success'
+    | 'failed'
+    | 'pending'
+    | 'pending_exhausted'
+    | 'cancelled'
   >('verifying')
   const [flutterwavePendingCheckIndex, setFlutterwavePendingCheckIndex] =
     useState(0)
@@ -71,11 +76,12 @@ const PaymentCallback = () => {
                 setFlutterwavePendingCheckIndex((i) => i + 1)
               }, FLUTTERWAVE_PENDING_RECHECK_MS)
             } else {
+              setStatus('pending_exhausted')
               toast({
                 variant: 'destructive',
                 title: 'Payment Pending',
                 description:
-                  'Your payment is still pending confirmation. Please wait a little longer or contact support.',
+                  'We could not confirm your payment after several checks. It may still complete—check your library shortly or contact support with your reference.',
               })
             }
           } else {
@@ -202,6 +208,33 @@ const PaymentCallback = () => {
             <Button onClick={() => navigate('/cart')}>Back to Cart</Button>
             <Button variant="outline" onClick={() => navigate('/checkout')}>
               Try Again
+            </Button>
+          </div>
+        </>
+      )}
+
+      {status === 'pending_exhausted' && (
+        <>
+          <AlertCircle className="mb-4 h-16 w-16 text-yellow-500" />
+          <h2 className="mb-2 text-2xl font-bold">Still confirming</h2>
+          <p className="text-muted-foreground mb-4 max-w-md text-center">
+            We could not confirm this payment right away. If you were charged,
+            your order may still appear in your library within a few minutes.
+            You can also try checkout again or reach out to support with your
+            payment reference.
+          </p>
+          {reference ? (
+            <p className="text-muted-foreground mb-6 font-mono text-xs break-all">
+              Reference: {reference}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button onClick={() => navigate('/library')}>My Library</Button>
+            <Button variant="outline" onClick={() => navigate('/cart')}>
+              Cart
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/checkout')}>
+              Checkout
             </Button>
           </div>
         </>
