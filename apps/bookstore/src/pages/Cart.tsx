@@ -532,7 +532,7 @@ const Cart = () => {
                       </li>
                       <li>
                         Click country at the top right corner to change to your
-                        preferred cunnrency
+                        preferred currency
                       </li>
                     </ul>
                   </div>
