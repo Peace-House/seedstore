@@ -411,7 +411,7 @@ const Auth = () => {
                     type="text"
                     placeholder="Enter your PHCode"
                     value={phcode}
-                    onChange={(e) => setPhcode(e.target.value)}
+                    onChange={(e) => setPhcode(e.target.value.toUpperCase())}
                     required
                     className="pl-10"
                   />
@@ -634,7 +634,9 @@ const Auth = () => {
                         type="text"
                         placeholder="Enter your PHCode"
                         value={phcode}
-                        onChange={(e) => setPhcode(e.target.value)}
+                        onChange={(e) =>
+                          setPhcode(e.target.value.toUpperCase())
+                        }
                         required
                         className="pl-10"
                       />

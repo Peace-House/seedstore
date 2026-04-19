@@ -119,7 +119,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
         location: location || 'Reader App',
       }
     : {
-        phcode: email, // If not email, treat as phcode
+        phcode: email.trim().toUpperCase(), // If not email, treat as phcode
         password,
         platform: platform || detectPlatform(),
         deviceId: deviceId || getDeviceId(),

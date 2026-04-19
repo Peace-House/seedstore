@@ -58,7 +58,7 @@ export const login = async (
   location?: string,
 ): Promise<AuthResponse> => {
   const res = await api.post<AuthResponse>('/users/login', {
-    phcode,
+    phcode: phcode.trim().toUpperCase(),
     password,
     platform,
     deviceId,

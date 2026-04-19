@@ -8,6 +8,16 @@ export interface GroupPurchaseCopy {
   assignedAt: string | null
   notified: boolean
   createdAt: string
+  /** Resolved from SeedStore user when available (from manage / list API). */
+  assigneeName?: string | null
+}
+
+export type PhCodeCheckResult = {
+  phcode: string
+  exists: boolean
+  displayName?: string | null
+  /** True when a SeedStore account exists for this PH code (library grant target). */
+  seedStoreLinked?: boolean
 }
 
 export interface GroupPurchase {
@@ -36,7 +46,7 @@ export interface GroupPurchase {
 
 export const checkPHCodes = async (
   phcodes: string[],
-): Promise<{ results: { phcode: string; exists: boolean }[] }> => {
+): Promise<{ results: PhCodeCheckResult[] }> => {
   const res = await api.post('/group-purchase/check-phcodes', { phcodes })
   return res.data
 }
