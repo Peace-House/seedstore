@@ -146,8 +146,50 @@ const Cart = () => {
     [groupPurchases],
   )
   const individualTotal = Number(groupSummary?.individualTotal ?? total)
-  const groupTotal = Number(groupSummary?.groupTotal ?? 0)
   const grandTotal = Number(groupSummary?.grandTotal ?? total)
+
+  /** Each cart line counts as 1 copy unless it has a group purchase, then `totalCopies`. */
+  const orderSummaryItemCount = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
+      const book = item.book || item
+      const gp = groupByBookId.get(Number(book.id))
+      if (gp) return sum + gp.totalCopies
+      return sum + 1
+    }, 0)
+  }, [cartItems, groupByBookId])
+
+  /** List-price subtotal for all cart lines (group buys at full sticker: copies × list price per copy). */
+  const itemsSubtotalBeforeDiscount = useMemo(() => {
+    if (!user) return total
+    let groupFullSticker = 0
+    for (const item of cartItems) {
+      const book = item.book || item
+      const gp = groupByBookId.get(Number(book.id))
+      if (!gp) continue
+      const priceInfo = getBookPriceForCountry(
+        book.prices,
+        selectedCountry,
+        'soft_copy',
+        countryCurrencies,
+      )
+      const pricePerCopy = Number(gp.pricePerCopy ?? priceInfo.price)
+      groupFullSticker += pricePerCopy * gp.totalCopies
+    }
+    return individualTotal + groupFullSticker
+  }, [
+    user,
+    total,
+    cartItems,
+    groupByBookId,
+    individualTotal,
+    selectedCountry,
+    countryCurrencies,
+  ])
+
+  const groupBuyDiscountAmount = useMemo(() => {
+    const raw = itemsSubtotalBeforeDiscount - grandTotal
+    return raw > 0.01 ? raw : 0
+  }, [itemsSubtotalBeforeDiscount, grandTotal])
   /** True while group totals are missing (first load) — full-page loader only. */
   const isGroupSummaryInitialLoad =
     !!user && cartItems.length > 0 && isGroupSummaryLoading
@@ -488,21 +530,21 @@ const Cart = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        Items ({cartItems.length})
+                        Items ({orderSummaryItemCount})
                       </span>
                       <span className="font-semibold">
                         {selectedSymbol}
-                        {individualTotal.toLocaleString()}
+                        {itemsSubtotalBeforeDiscount.toLocaleString()}
                       </span>
                     </div>
-                    {groupTotal > 0 ? (
+                    {groupBuyDiscountAmount > 0 ? (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">
-                          Group buys
+                          Group buy discount
                         </span>
-                        <span className="text-primary font-semibold">
-                          {selectedSymbol}
-                          {groupTotal.toLocaleString()}
+                        <span className="font-semibold text-green-700 dark:text-green-400">
+                          −{selectedSymbol}
+                          {groupBuyDiscountAmount.toLocaleString()}
                         </span>
                       </div>
                     ) : null}
