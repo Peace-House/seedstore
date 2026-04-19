@@ -5,7 +5,7 @@ import { getBookPriceForCountry } from '@/utils/pricing'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Trash2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import Breadcrumb from '@/components/Breadcrumb'
 import { useEffect, useMemo, useState } from 'react'
@@ -42,7 +42,12 @@ const Cart = () => {
 
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { cartItems: rawCartItems, isLoading, removeFromCart } = useCart()
+  const {
+    cartItems: rawCartItems,
+    isLoading,
+    removeFromCart,
+    isRemovingFromCart,
+  } = useCart()
   const [groupBuyBook, setGroupBuyBook] = useState<{
     id: number | string
     title: string
@@ -143,11 +148,15 @@ const Cart = () => {
   const individualTotal = Number(groupSummary?.individualTotal ?? total)
   const groupTotal = Number(groupSummary?.groupTotal ?? 0)
   const grandTotal = Number(groupSummary?.grandTotal ?? total)
-  const isGroupSummaryPending =
+  /** True while group totals are missing (first load) — full-page loader only. */
+  const isGroupSummaryInitialLoad =
+    !!user && cartItems.length > 0 && isGroupSummaryLoading
+  /** True during first load or refetch (e.g. after delete) — block checkout until totals match cart. */
+  const isGroupSummaryRecalculating =
     !!user &&
     cartItems.length > 0 &&
     (isGroupSummaryLoading || isGroupSummaryFetching)
-  const isCartPageLoading = isLoading || isGroupSummaryPending
+  const isCartPageLoading = isLoading || isGroupSummaryInitialLoad
 
   useEffect(() => {
     const groupBuyBookId = searchParams.get('groupBuyBookId')
@@ -420,6 +429,10 @@ const Cart = () => {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-busy={isDeleting}
+                          aria-label={
+                            isDeleting ? 'Removing from cart' : 'Remove from cart'
+                          }
                           onClick={() => {
                             const id = String(book.id)
                             setDeletingBookIds((prev) => new Set(prev).add(id))
@@ -438,13 +451,15 @@ const Cart = () => {
                           }}
                           disabled={isDeleting}
                         >
-                          <Trash2 className="h-5 w-5" />
+                          {isDeleting ? (
+                            <Loader2
+                              className="text-muted-foreground h-5 w-5 animate-spin"
+                              aria-hidden
+                            />
+                          ) : (
+                            <Trash2 className="h-5 w-5" aria-hidden />
+                          )}
                         </Button>
-                        {isDeleting ? (
-                          <span className="bg-muted text-muted-foreground rounded-full px-2 py-1 text-[10px] font-medium">
-                            Deleting...
-                          </span>
-                        ) : null}
                       </CardContent>
                     </Card>
                     <hr className="border-gray-100" />
@@ -504,7 +519,11 @@ const Cart = () => {
                     size="lg"
                     liquidGlass={false}
                     onClick={handleCheckout}
-                    disabled={cartItems.length === 0 || isGroupSummaryPending}
+                    disabled={
+                      cartItems.length === 0 ||
+                      isRemovingFromCart ||
+                      isGroupSummaryRecalculating
+                    }
                   >
                     Proceed to Checkout
                   </Button>
