@@ -318,7 +318,7 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleAuth} className={isLogin ? "space-y-0" : "space-y-4"}>
             {showSignUpSuccessfulModal && (
               <>
                 <div>
@@ -402,7 +402,7 @@ const Auth = () => {
               </div>
             )}
             {isLogin && !showSignUpSuccessfulModal && (
-              <div className="space-y-1">
+              <div className="space-y-0">
                 <Label htmlFor="phcode">PHCode</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -579,7 +579,7 @@ const Auth = () => {
               <div
                 className={`grid  ${
                   isLogin
-                    ? 'grid-cols-1'
+                    ? 'grid-cols-1 gap-0'
                     : 'grid-cols-1 md:grid-cols-2 md:gap-2'
                 }`}
               >
@@ -672,11 +672,14 @@ const Auth = () => {
                 )}
               </div>
             )}
+            {isLogin && (
+              <br />
+            )}
             {!showSignUpSuccessfulModal && (
               <Button
                 variant="outline"
                 type="submit"
-                className="!bg-primary !mt-8 mb-3 w-full rounded-full !text-white shadow-lg"
+                className="!bg-primary !mt-8 mb-4 w-full rounded-full !text-white shadow-lg"
                 disabled={
                   isSubmitting ||
                   loading ||
