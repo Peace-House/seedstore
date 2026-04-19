@@ -552,7 +552,7 @@ export function useTextToSpeech(): [TTSState, TTSControls] {
     }
   }, [speakChunk])
 
-  const speak = useCallback((text: string, startFromChunk: number = 0) => {
+  const speak = useCallback((text: string, startFromChunk = 0) => {
     if (!isSupported || !text.trim()) return
 
     // Stop any current speech
