@@ -1,10 +1,20 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Button } from './ui/button';
-import { BookOpen, ShoppingCart, User, LogOut, LayoutDashboard, Home, ChevronLeft, Settings, Globe } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useCart } from '@/hooks/useCart';
-import { useCountry } from '@/hooks/useCountry';
-import { Badge } from './ui/badge';
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Button } from './ui/button'
+import {
+  BookOpen,
+  ShoppingCart,
+  User,
+  LogOut,
+  LayoutDashboard,
+  Home,
+  ChevronLeft,
+  Settings,
+  Globe,
+} from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import { useCart } from '@/hooks/useCart'
+import { useCountry } from '@/hooks/useCountry'
+import { Badge } from './ui/badge'
 // ...existing code...
 import {
   DropdownMenu,
@@ -12,58 +22,76 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from './ui/dropdown-menu'
 
 const MobileNavbar = () => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { cartCount } = useCart();
-  const { selectedCountry, setSelectedCountry, selectedCurrency, countryCurrencies } = useCountry();
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { cartCount } = useCart()
+  const {
+    selectedCountry,
+    setSelectedCountry,
+    selectedCurrency,
+    countryCurrencies,
+  } = useCountry()
+  const isCheckoutPage = location.pathname.startsWith('/checkout')
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate(0);
-  };
+    await signOut()
+    navigate(0)
+  }
 
   return (
-    <nav className="md:hidden fixed bottom-0 z-50 w-full bg-transparent backdrop-blur supports-[backdrop-filter]:bg-transparent">
+    <nav className="supports-[backdrop-filter]:bg-transparent fixed bottom-0 z-50 w-full bg-transparent backdrop-blur md:hidden">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center justify-between w-full">
+        <div className="flex w-full items-center justify-between">
           {location.pathname !== '/' && (
-            <button onClick={()=>navigate(-1)} className='relative flex gap-3 items-center'>
-                <ChevronLeft className="h-5 w-5" />
+            <button
+              onClick={() => navigate(-1)}
+              className="relative flex items-center gap-3"
+            >
+              <ChevronLeft className="h-5 w-5" />
             </button>
           )}
-          <Link to="/library" className='relative flex gap-3 items-center'>
-              <BookOpen className="h-5 w-5" />
+          <Link to="/library" className="relative flex items-center gap-3">
+            <BookOpen className="h-5 w-5" />
           </Link>
-          <Link to="/cart" className='relative flex gap-3 items-center'>
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <Badge className="absolute -top-2.5 left-2.5 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                  {cartCount}
-                </Badge>
-              )}
+          <Link to="/cart" className="relative flex items-center gap-3">
+            <ShoppingCart className="h-5 w-5" />
+            {cartCount > 0 && (
+              <Badge className="absolute -top-2.5 left-2.5 flex h-5 w-5 items-center justify-center p-0 text-xs">
+                {cartCount}
+              </Badge>
+            )}
           </Link>
 
           {user ? (
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" liquidGlass={false} className='!bg-none hover:bg-transparent hover:text-black px-2 rounded-full w-max' size="icon">
+                <Button
+                  variant="ghost"
+                  liquidGlass={false}
+                  className="w-max rounded-full !bg-none px-2 hover:bg-transparent hover:text-black"
+                  size="icon"
+                >
                   <User className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
-                side="top" 
+              <DropdownMenuContent
+                align="end"
+                side="top"
                 sideOffset={8}
-                className='rounded min-w-[160px]'
+                className="min-w-[160px] rounded"
                 onCloseAutoFocus={(e) => e.preventDefault()}
               >
                 <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/manage-group-buy')}>
+                  <User className="mr-2 h-4 w-4" />
+                  Manage Group Buy
                 </DropdownMenuItem>
                 {user.role !== 'user' && (
                   <>
@@ -75,7 +103,10 @@ const MobileNavbar = () => {
                   </>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className='text-red-500'>
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="text-red-500"
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
                 </DropdownMenuItem>
@@ -85,36 +116,45 @@ const MobileNavbar = () => {
             <Button onClick={() => navigate('/auth')}>Sign In</Button>
           )}
 
-          {/* Country Selector */}
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" liquidGlass={false} className="!bg-none flex items-center gap-1 text-xs px-2 hover:bg-transparent hover:text-black rounded-full w-max">
-                <Globe className="h-4 w-4" />
-                <span className="text-[10px]">{selectedCurrency}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              align="end" 
-              side="top" 
-              sideOffset={8}
-              className="max-h-60 overflow-y-auto rounded min-w-[160px]"
-              onCloseAutoFocus={(e) => e.preventDefault()}
-            >
-              {countryCurrencies.map((cc) => (
-                <DropdownMenuItem
-                  key={cc.id}
-                  onClick={() => setSelectedCountry(cc.country)}
-                  className={selectedCountry === cc.country ? 'bg-primary/10 font-medium' : ''}
+          {!isCheckoutPage && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  liquidGlass={false}
+                  className="flex w-max items-center gap-1 rounded-full !bg-none px-2 text-xs hover:bg-transparent hover:text-black"
                 >
-                  {cc.country} ({cc.currency})
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <Globe className="h-4 w-4" />
+                  <span className="text-[10px]">{selectedCurrency}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                side="top"
+                sideOffset={8}
+                className="max-h-60 min-w-[160px] overflow-y-auto rounded"
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
+                {countryCurrencies.map((cc) => (
+                  <DropdownMenuItem
+                    key={cc.id}
+                    onClick={() => setSelectedCountry(cc.country)}
+                    className={
+                      selectedCountry === cc.country
+                        ? 'bg-primary/10 font-medium'
+                        : ''
+                    }
+                  >
+                    {cc.country} ({cc.currency})
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </nav>
-  );
-};
+  )
+}
 
-export default MobileNavbar;
+export default MobileNavbar

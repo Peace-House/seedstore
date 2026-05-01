@@ -2,7 +2,15 @@ import { z } from 'zod'
 import { useEffect, useState } from 'react'
 import { getCountries, getStates } from '@/services/location'
 import { useToast } from '@/hooks/use-toast'
-import { ChevronLeft, Loader2, Eye, EyeOff, User } from 'lucide-react'
+import {
+  ChevronLeft,
+  Loader2,
+  Eye,
+  EyeOff,
+  User,
+  Lock,
+  Copy,
+} from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import Logo from '@/components/Logo'
@@ -25,6 +33,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog'
 
 const Auth = () => {
   const [searchParams] = useSearchParams()
@@ -33,6 +50,7 @@ const Auth = () => {
   const token = searchParams.get('token')
 
   const [isLogin, setIsLogin] = useState(admin_email && token ? false : true)
+  const [showPHCodeInfo, setShowPHCodeInfo] = useState(false)
   const [email, setEmail] = useState(admin_email ? admin_email : '')
   const [phcode, setPhcode] = useState('')
   const [password, setPassword] = useState('')
@@ -192,13 +210,24 @@ const Auth = () => {
           gender,
           dateOfBirth,
         })
+        const legacyPhCode = res?.user?.phcode?.trim()
+        if (!legacyPhCode) {
+          toast({
+            variant: 'destructive',
+            title: 'Signup failed',
+            description:
+              'Your account was created, but PHCode was missing. Please contact support.',
+          })
+          return
+        }
+        setPhCode(legacyPhCode)
+        setPhcode(legacyPhCode)
+        setShowSignUpSuccessfulModal(true)
+        setIsLogin(false)
         toast({
           title: 'Account Created!',
           description: 'You can now log in to your account.',
         })
-        setIsLogin(true)
-        const legacy_phcode = res?.PHCode
-        setPhCode(legacy_phcode)
       }
     } catch (error: unknown) {
       console.error('Authentication error:', error)
@@ -229,6 +258,20 @@ const Auth = () => {
     }
   }
 
+  const handleCopyPhCode = async () => {
+    if (!PhCode) return
+    try {
+      await navigator.clipboard.writeText(PhCode)
+      toast({ title: 'PHCode copied' })
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Copy failed',
+        description: 'Could not copy PHCode. Please copy it manually.',
+      })
+    }
+  }
+
   return (
     <div
       className="from-primary/10 via-background to-accent/10 flex min-h-screen items-center justify-center bg-gradient-to-br p-4"
@@ -240,10 +283,14 @@ const Auth = () => {
       }}
     >
       <Card className="border-primary relative w-full max-w-lg border-[0.5px] shadow-lg">
-        <button onClick={() =>
-          !isLogin && !showSignUpSuccessfulModal ?
-            setIsLogin(true)
-            : navigate('/')} className="absolute top-3 left-3">
+        <button
+          onClick={() =>
+            !isLogin && !showSignUpSuccessfulModal
+              ? setIsLogin(true)
+              : navigate('/')
+          }
+          className="absolute top-3 left-3"
+        >
           <ChevronLeft className="h-5 w-5" />
         </button>
         <CardHeader className="space-y-1 text-center">
@@ -254,15 +301,15 @@ const Auth = () => {
             {showSignUpSuccessfulModal
               ? 'Welcome!'
               : isLogin
-                ? 'Welcome Back'
-                : 'Create Account'}
+              ? 'Sign In'
+              : 'Create Account'}
           </CardTitle>
           <CardDescription>
             {isLogin
               ? 'Sign in to access your library'
               : showSignUpSuccessfulModal
-                ? 'You can now log in to your account.'
-                : 'Sign up to start reading'}
+              ? 'You can now log in to your account.'
+              : 'Sign up to start reading'}
           </CardDescription>
           <CardDescription className="rounded-md bg-red-50 px-2 py-3  text-sm text-red-600 md:px-12">
             {isLogin
@@ -271,7 +318,7 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleAuth} className={isLogin ? "space-y-0" : "space-y-4"}>
             {showSignUpSuccessfulModal && (
               <>
                 <div>
@@ -285,8 +332,18 @@ const Auth = () => {
                     <ul className="grid list-disc gap-2 pl-5">
                       <li>
                         You have been assigned the PHCode:{' '}
-                        <b className="text-red-600 ">{PhCode}</b> Please Copy
-                        and Keep it in a Safe Place
+                        <b className="text-red-600 ">{PhCode}</b>. Please copy
+                        and keep it in a safe place.
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2 h-auto px-2 py-1 text-xs"
+                          onClick={handleCopyPhCode}
+                        >
+                          <Copy className="mr-1 h-3.5 w-3.5" />
+                          Copy
+                        </Button>
                       </li>
                       <li>
                         You will be required to login with this PHCode and
@@ -345,22 +402,82 @@ const Auth = () => {
               </div>
             )}
             {isLogin && !showSignUpSuccessfulModal && (
-              <div className="space-y-1">
+              <div className="space-y-0">
                 <Label htmlFor="phcode">PHCode</Label>
                 <div className="relative">
-                  <User className="absolute left-3 z-10 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <User className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
                     id="phcode"
                     type="text"
                     placeholder="Enter your PHCode"
                     value={phcode}
-                    onChange={(e) => setPhcode(e.target.value)}
+                    onChange={(e) => setPhcode(e.target.value.toUpperCase())}
                     required
                     className="pl-10"
                   />
                 </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowPHCodeInfo(true)}
+                    className="mt-1 self-end text-xs text-red-600 underline-offset-2 hover:underline focus:outline-none"
+                  >
+                    What is PH-Code?
+                  </button>
+                </div>
               </div>
             )}
+
+            {/* PH-Code info dialog */}
+            <Dialog open={showPHCodeInfo} onOpenChange={setShowPHCodeInfo}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>What is a PH-Code?</DialogTitle>
+                  <DialogDescription asChild>
+                    <div className="text-muted-foreground space-y-3 text-sm">
+                      <p>
+                        Your PH-Code is your unique Peace House identifier used
+                        across Living Seed events and registrations. It looks
+                        like a short code such as{' '}
+                        <span className="text-foreground font-mono font-medium">
+                          EBE20-M250482
+                        </span>
+                        .
+                      </p>
+                      <p>
+                        If you have ever registered for a Peace House program,
+                        the PH-Code was sent to your email and may also appear
+                        on your registration slip or SMS.
+                      </p>
+                      <p>
+                        If you already have a PH-Code, you can use it to log in
+                        here.
+                      </p>
+                      <p>
+                        If you don&apos;t have a PH-Code, click{' '}
+                        <strong>Register Now</strong> below to create one.
+                      </p>
+                    </div>
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex-row gap-2">
+                  <DialogClose asChild>
+                    <Button variant="outline" size="sm">
+                      Close
+                    </Button>
+                  </DialogClose>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowPHCodeInfo(false)
+                      setIsLogin(false)
+                    }}
+                  >
+                    Register Now
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             {!isLogin && !showSignUpSuccessfulModal && (
               <>
                 <div className="flex flex-col md:flex-row md:items-center md:gap-2">
@@ -388,8 +505,9 @@ const Auth = () => {
                 </div>
                 <div className="mt-2 flex flex-col md:flex-row md:items-center md:gap-2">
                   <div
-                    className={`w-full space-y-1 ${countryOfResidence === '162' ? 'md:w-1/2' : 'md:w-full'
-                      }`}
+                    className={`w-full space-y-1 ${
+                      countryOfResidence === '162' ? 'md:w-1/2' : 'md:w-full'
+                    }`}
                   >
                     <Label htmlFor="countryOfResidence">Country</Label>
                     <select
@@ -459,14 +577,16 @@ const Auth = () => {
             )}
             {!showSignUpSuccessfulModal && (
               <div
-                className={`grid  ${isLogin
-                  ? 'grid-cols-1'
-                  : 'grid-cols-1 md:grid-cols-2 md:gap-2'
-                  }`}
+                className={`grid  ${
+                  isLogin
+                    ? 'grid-cols-1 gap-0'
+                    : 'grid-cols-1 md:grid-cols-2 md:gap-2'
+                }`}
               >
                 <div className="relative">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
@@ -474,7 +594,7 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="pr-10"
+                      className="pr-10 pl-10"
                     />
                     <button
                       type="button"
@@ -508,13 +628,15 @@ const Auth = () => {
                   <div className="space-y-1">
                     <Label htmlFor="phcode">PHCode</Label>
                     <div className="relative">
-                      <User className="absolute left-3 z-10 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <User className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                       <Input
                         id="phcode"
                         type="text"
                         placeholder="Enter your PHCode"
                         value={phcode}
-                        onChange={(e) => setPhcode(e.target.value)}
+                        onChange={(e) =>
+                          setPhcode(e.target.value.toUpperCase())
+                        }
                         required
                         className="pl-10"
                       />
@@ -552,11 +674,14 @@ const Auth = () => {
                 )}
               </div>
             )}
+            {isLogin && (
+              <br />
+            )}
             {!showSignUpSuccessfulModal && (
               <Button
                 variant="outline"
                 type="submit"
-                className="!bg-primary !mt-8 mb-3 w-full !text-white shadow-lg rounded-full"
+                className="!bg-primary !mt-8 mb-4 w-full rounded-full !text-white shadow-lg"
                 disabled={
                   isSubmitting ||
                   loading ||
@@ -609,7 +734,6 @@ const Auth = () => {
 }
 
 export default Auth
-
 
 // import { useEffect } from 'react'
 // import { useMachine } from '@xstate/react'
