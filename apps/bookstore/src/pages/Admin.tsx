@@ -17,6 +17,7 @@ import {
   X,
   CreditCard,
   Mail,
+  Wallet,
 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -35,6 +36,7 @@ import PricingManagement from '@/components/admin/PricingManagement'
 import LendingManagement from '@/components/admin/LendingManagement'
 import GroupBuyingManagement from '@/components/admin/GroupBuyingManagement'
 import NewsletterManagement from '@/components/admin/NewsletterManagement'
+import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
 import { Library } from 'lucide-react'
 
 const Admin = () => {
@@ -78,6 +80,11 @@ const Admin = () => {
       value: 'transactions',
       label: 'Transactions',
       icon: <CreditCard className="h-5 w-5" />,
+    },
+    {
+      value: 'payment-gateways',
+      label: 'Payment Gateways',
+      icon: <Wallet className="h-5 w-5" />,
     },
     {
       value: 'converter',
@@ -302,6 +309,7 @@ const Admin = () => {
           {tab === 'lend' && <LendingManagement />}
           {tab === 'group-buy' && <GroupBuyingManagement />}
           {tab === 'transactions' && <TransactionManagement />}
+          {tab === 'payment-gateways' && <PaymentGatewayManagement />}
           {tab === 'converter' && <EPUBConverter />}
           {tab === 'admins' && <AdminManagement />}
           {tab === 'logs' && <AdminLogs />}

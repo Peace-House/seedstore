@@ -4,6 +4,14 @@ export interface AppFeatureSettings {
   peer_lending_enabled: boolean
   seedstore_lending_enabled: boolean
   group_buying_enabled: boolean
+  payment_paystack_enabled: boolean
+  payment_applepay_enabled: boolean
+  payment_flutterwave_enabled: boolean
+  payment_methods: Array<{
+    key: 'paystack' | 'applepay' | 'flutterwave'
+    label: string
+    enabled: boolean
+  }>
   group_buying_discount_25_plus_copies: number
   group_buying_discount_25_plus: number
   group_buying_discount_50_plus_copies: number
@@ -96,6 +104,29 @@ export const getAppFeatureSettings = async (): Promise<AppFeatureSettings> => {
     peer_lending_enabled: !!res.data?.peer_lending_enabled,
     seedstore_lending_enabled: !!res.data?.seedstore_lending_enabled,
     group_buying_enabled: !!res.data?.group_buying_enabled,
+    payment_paystack_enabled: res.data?.payment_paystack_enabled !== false,
+    payment_applepay_enabled: res.data?.payment_applepay_enabled !== false,
+    payment_flutterwave_enabled:
+      res.data?.payment_flutterwave_enabled !== false,
+    payment_methods: Array.isArray(res.data?.payment_methods)
+      ? res.data.payment_methods
+      : [
+          {
+            key: 'paystack',
+            label: 'Paystack',
+            enabled: res.data?.payment_paystack_enabled !== false,
+          },
+          {
+            key: 'applepay',
+            label: 'Apple Pay',
+            enabled: res.data?.payment_applepay_enabled !== false,
+          },
+          {
+            key: 'flutterwave',
+            label: 'Flutterwave',
+            enabled: res.data?.payment_flutterwave_enabled !== false,
+          },
+        ],
     group_buying_discount_25_plus_copies: Number(
       res.data?.group_buying_discount_25_plus_copies ?? 25,
     ),
@@ -119,6 +150,29 @@ export const updateAppFeatureSettings = async (
     peer_lending_enabled: !!res.data?.peer_lending_enabled,
     seedstore_lending_enabled: !!res.data?.seedstore_lending_enabled,
     group_buying_enabled: !!res.data?.group_buying_enabled,
+    payment_paystack_enabled: res.data?.payment_paystack_enabled !== false,
+    payment_applepay_enabled: res.data?.payment_applepay_enabled !== false,
+    payment_flutterwave_enabled:
+      res.data?.payment_flutterwave_enabled !== false,
+    payment_methods: Array.isArray(res.data?.payment_methods)
+      ? res.data.payment_methods
+      : [
+          {
+            key: 'paystack',
+            label: 'Paystack',
+            enabled: res.data?.payment_paystack_enabled !== false,
+          },
+          {
+            key: 'applepay',
+            label: 'Apple Pay',
+            enabled: res.data?.payment_applepay_enabled !== false,
+          },
+          {
+            key: 'flutterwave',
+            label: 'Flutterwave',
+            enabled: res.data?.payment_flutterwave_enabled !== false,
+          },
+        ],
     group_buying_discount_25_plus_copies: Number(
       res.data?.group_buying_discount_25_plus_copies ?? 25,
     ),
