@@ -163,6 +163,11 @@ const Footer: React.FC = () => {
                 Resolve book purchase issue
               </Link>
             </li>
+            <li>
+              <Link to="/privacy-policy" className="hover:underline">
+                Privacy Policy
+              </Link>
+            </li>
           </ul>
         </div>
         {/* Request Support */}
@@ -247,8 +252,9 @@ const Footer: React.FC = () => {
         </div>
       </div>
       <div className="text-primary container mx-auto mt-8 text-center text-sm">
-        &copy; {new Date().getFullYear()} Livingseed Community. All rights
-        reserved.
+        <Link to="/privacy-policy" className="hover:underline">
+          &copy; 2026 Livingseed Community. All rights reserved.
+        </Link>
       </div>
     </footer>
   )
