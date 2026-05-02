@@ -81,12 +81,18 @@ export async function saveLocalProgress(
   
   try {
     const book = await db.books.get(bookId)
-    
+
     if (book) {
-      // Update existing book record
+      // Monotonic percentage: only ever move forward. If the user
+      // navigates back to re-read an earlier page, the saved percentage
+      // stays at the user's furthest point — cfi follows them, percentage
+      // doesn't regress. Mirrors the same rule on mobile + the server.
+      const existing = typeof book.percentage === 'number' ? book.percentage : 0
+      const monotonic = decimalPercentage > existing ? decimalPercentage : existing
+
       await db.books.update(bookId, {
         cfi: cfi || undefined,
-        percentage: decimalPercentage,
+        percentage: monotonic,
         updatedAt: Date.now(),
       })
     } else {

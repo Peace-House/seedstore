@@ -588,6 +588,41 @@ const Library = () => {
                               </div>
                             )}
 
+                            {/*
+                              "Continue reading" overlay for purchased,
+                              non-borrowed, non-lent-out books that have
+                              actual progress. Skipped for the borrowed and
+                              lent-out cases — those already own the bottom
+                              strip with their own overlays. The matching
+                              mobile card uses the same wording and shape.
+                            */}
+                            {!isBorrowed &&
+                              !isLentOutNoAccess &&
+                              (book.percentage ?? 0) > 0 && (
+                                <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-sm">
+                                  <div className="flex items-center justify-between px-2 py-1 text-[10px] text-white">
+                                    <span>Continue reading</span>
+                                    <span className="font-semibold">
+                                      {Math.round(book.percentage ?? 0)}%
+                                    </span>
+                                  </div>
+                                  <div
+                                    className="h-[3px] w-full bg-white/20"
+                                    aria-hidden
+                                  >
+                                    <div
+                                      className="h-full bg-white"
+                                      style={{
+                                        width: `${Math.min(
+                                          100,
+                                          Math.max(0, book.percentage ?? 0),
+                                        )}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
                             {isBorrowed && book.expiresAt && (
                               <div className="absolute bottom-0 left-0 right-0 gap-1 bg-black/60 p-2 text-[10px] text-white backdrop-blur-sm">
                                 <p className="flex items-center gap-1 text-lg">

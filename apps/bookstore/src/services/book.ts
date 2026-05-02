@@ -57,6 +57,12 @@ export interface Book {
   borrowingSource?: 'BORROW' | 'PEER'
   // Group buy
   allowGroupBuy?: boolean
+  // Reading progress — populated by the /library endpoint, used by the
+  // Library page's "Continue reading" overlay. Optional because most
+  // catalogue endpoints don't include them.
+  percentage?: number
+  cfi?: string | null
+  lastReadAt?: string | null
 }
 
 export interface PaginatedBooks {

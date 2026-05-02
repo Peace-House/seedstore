@@ -2,6 +2,8 @@ import axios from 'axios'
 
 import { Annotation, AnnotationColor, AnnotationType } from '../annotation'
 
+import { getClientId } from './clientId'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 const api = axios.create({
@@ -9,11 +11,16 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Add auth token to requests
+// Add auth token + per-tab client id to every outbound request. The
+// client id lets the SSE hub on the server skip echoing this tab's own
+// writes back to itself.
 api.interceptors.request.use((config) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  if (typeof window !== 'undefined') {
+    config.headers['X-Client-Id'] = getClientId()
   }
   return config
 })
