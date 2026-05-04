@@ -153,7 +153,9 @@ class EventStreamServiceImpl {
       let buffer = ''
 
       // Pump loop. We exit either on stream end (server closed) or on
-      // abort (us closing).
+      // abort (us closing). Canonical ReadableStream consumer pattern;
+      // ESLint flags `while (true)` as a constant condition by default.
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { value, done } = await reader.read()
         if (done) break

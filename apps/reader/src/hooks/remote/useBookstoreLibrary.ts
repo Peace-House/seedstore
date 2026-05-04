@@ -39,7 +39,7 @@ function writeCachedLibrary(data: unknown) {
 
 // Fetch all books from the bookstore server (replica of bookstore getLibrary)
 export function useBookstoreLibrary() {
-  const { data, error, mutate } = useSWR(
+  const { data, error } = useSWR(
     'bookstore/library',
     async () => {
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null

@@ -119,6 +119,10 @@ export default function Index() {
       // Show 1% immediately so the bar isn't pinned at 0 during TLS / TTFB.
       setDownloadPct(total > 0 ? 1 : null);
 
+      // Pump loop: exits via `break` when the reader signals done, or
+      // throws on cancellation. The eslint-disable is intentional —
+      // this is the canonical pattern for ReadableStream consumers.
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         if (cancelled) {
           // Stop pulling — the user navigated away or unmounted.
