@@ -249,30 +249,37 @@ export function useReadProgressSync(bookId: string | undefined) {
       // Restore position if we have one
       if (progressToRestore?.cfi) {
         const tab = reader.focusedBookTab
-        console.log(`[ReadProgressSync] Tab state:`, { 
-          hasTab: !!tab, 
+        console.log(`[ReadProgressSync] Tab state:`, {
+          hasTab: !!tab,
           hasRendition: !!tab?.rendition,
-          rendered: tab?.rendered 
+          rendered: tab?.rendered,
         })
-        
+
         if (tab?.rendition) {
-          // Wait a bit longer for rendition to be fully ready
-          setTimeout(() => {
-            try {
-              console.log(`[ReadProgressSync] Calling display() with cfi: ${progressToRestore!.cfi}`)
-              tab.display(progressToRestore!.cfi!, false)
-              console.log(
-                `[ReadProgressSync] Restored position for book ${bookId} to ${progressToRestore!.percentage}%`
-              )
-              hasRestoredRef.current = true
-              // Position restored, hide shimmer
-              setIsRestoring(false)
-            } catch (err) {
-              console.error('[ReadProgressSync] Error restoring position:', err)
-              hasRestoredRef.current = true // Mark as restored even on error to prevent loops
-              setIsRestoring(false)
+          // The effect that calls restorePosition only fires once
+          // `focusedBookTab.rendered === true` AND `rendition` exists,
+          // so the renderer is provably ready. There used to be a 1000ms
+          // setTimeout here as paranoia — replace with awaiting the
+          // display() promise, which @flow/epubjs resolves only after
+          // the target page has actually been laid out. That removes a
+          // guaranteed second of dead time on every book open.
+          try {
+            console.log(`[ReadProgressSync] Calling display() with cfi: ${progressToRestore.cfi}`)
+            const result = tab.display(progressToRestore.cfi, false)
+            // display() may return a Promise; await it if so.
+            if (result && typeof (result as any).then === 'function') {
+              await (result as Promise<unknown>)
             }
-          }, 1000) // Increased delay to ensure rendition is ready
+            console.log(
+              `[ReadProgressSync] Restored position for book ${bookId} to ${progressToRestore.percentage}%`
+            )
+            hasRestoredRef.current = true
+            setIsRestoring(false)
+          } catch (err) {
+            console.error('[ReadProgressSync] Error restoring position:', err)
+            hasRestoredRef.current = true // mark restored even on error to prevent loops
+            setIsRestoring(false)
+          }
         } else {
           console.log('[ReadProgressSync] No rendition available yet - will retry')
           // Don't set hasRestoredRef = true, so it will retry when rendition is ready
