@@ -18,6 +18,7 @@ import {
   CreditCard,
   Mail,
   Wallet,
+  Smartphone,
 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -37,6 +38,7 @@ import LendingManagement from '@/components/admin/LendingManagement'
 import GroupBuyingManagement from '@/components/admin/GroupBuyingManagement'
 import NewsletterManagement from '@/components/admin/NewsletterManagement'
 import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
+import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
 import { Library } from 'lucide-react'
 
 const Admin = () => {
@@ -85,6 +87,11 @@ const Admin = () => {
       value: 'payment-gateways',
       label: 'Payment Gateways',
       icon: <Wallet className="h-5 w-5" />,
+    },
+    {
+      value: 'app-settings',
+      label: 'App Settings',
+      icon: <Smartphone className="h-5 w-5" />,
     },
     {
       value: 'converter',
@@ -310,6 +317,7 @@ const Admin = () => {
           {tab === 'group-buy' && <GroupBuyingManagement />}
           {tab === 'transactions' && <TransactionManagement />}
           {tab === 'payment-gateways' && <PaymentGatewayManagement />}
+          {tab === 'app-settings' && <AppUpdateSettings />}
           {tab === 'converter' && <EPUBConverter />}
           {tab === 'admins' && <AdminManagement />}
           {tab === 'logs' && <AdminLogs />}

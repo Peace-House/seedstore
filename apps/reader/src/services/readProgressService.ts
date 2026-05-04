@@ -1,5 +1,7 @@
 import axios from 'axios'
 
+import { getClientId } from './clientId'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 const api = axios.create({
@@ -7,11 +9,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Add auth token to requests
+// Add auth token + per-tab client id to every outbound request. See
+// annotationService for the rationale.
 api.interceptors.request.use((config) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  if (typeof window !== 'undefined') {
+    config.headers['X-Client-Id'] = getClientId()
   }
   return config
 })

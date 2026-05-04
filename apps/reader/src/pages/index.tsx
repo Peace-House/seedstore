@@ -42,6 +42,11 @@ export default function Index() {
   const bookId = router.query.bookId as string | undefined
   const orderId = router.query.orderId as string | undefined
   const [loading, setLoading] = useState(!!bookId);
+  // Download progress (0-100). Null while we're not downloading or while
+  // the cache hit means there's nothing to show. Surfaced in the loading
+  // UI so the user sees motion instead of a frozen "Loading..." text on
+  // multi-MB books over slow networks.
+  const [downloadPct, setDownloadPct] = useState<number | null>(null);
 
   // Track when tabs are opened
   useEffect(() => {
@@ -68,35 +73,126 @@ export default function Index() {
   useEffect(() => {
     if (hasOpenedBook) return;
     if (!bookId || !orderId) return;
-    setLoading(true);
-    if (remoteBook && remoteBook.fileUrl) {
-      fetch(remoteBook.fileUrl)
-        .then(async (res) => {
-          if (!res.ok) throw new Error('Failed to download book file');
-          const blob = await res.blob();
-          const file = new File([blob], remoteBook.name || 'book.epub', { type: 'application/epub+zip' });
-          if (db?.files) await db.files.put({ id: remoteBook.id, file });
-          reader.addTab({ ...remoteBook, file });
-          setLoading(false);
-          setHasOpenedBook(true);
-          // Remove all URL search params for a clean URL
-          if (typeof window !== 'undefined') {
-            const url = new URL(window.location.href);
-            if (url.search) {
-              const newUrl = url.pathname + url.hash;
-              window.history.replaceState({}, '', newUrl);
-            }
-          }
-        })
-        .catch((err) => {
-          setLoading(false);
-          console.error(err);
-        });
-    } else if (remoteBookError) {
+
+    let cancelled = false;
+    const cleanUrl = () => {
+      // Strip ?bookId=...&orderId=... so the address bar reflects the
+      // user's actual location after a successful open.
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        if (url.search) {
+          window.history.replaceState({}, '', url.pathname + url.hash);
+        }
+      }
+    };
+
+    const finalize = (file: File) => {
+      if (cancelled) return;
+      reader.addTab({ ...remoteBook!, file });
       setLoading(false);
-      alert('Could not fetch book from server.');
+      setDownloadPct(null);
       setHasOpenedBook(true);
-    }
+      cleanUrl();
+    };
+
+    /** Stream the EPUB from the network and surface byte-level progress.
+     *  Falls back to res.blob() if the server didn't send Content-Length
+     *  (some CDNs strip it on chunked transfers) so we always end with a
+     *  usable File. */
+    const streamingDownload = async (url: string): Promise<File> => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to download book file');
+
+      const total = Number(res.headers.get('Content-Length')) || 0;
+      const stream = res.body;
+      if (!stream) {
+        // Older browsers without ReadableStream — fall back to blob().
+        const blob = await res.blob();
+        return new File([blob], remoteBook!.name || 'book.epub', {
+          type: 'application/epub+zip',
+        });
+      }
+
+      const reader = stream.getReader();
+      const chunks: Uint8Array[] = [];
+      let received = 0;
+      // Show 1% immediately so the bar isn't pinned at 0 during TLS / TTFB.
+      setDownloadPct(total > 0 ? 1 : null);
+
+      // Pump loop: exits via `break` when the reader signals done, or
+      // throws on cancellation. The eslint-disable is intentional —
+      // this is the canonical pattern for ReadableStream consumers.
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        if (cancelled) {
+          // Stop pulling — the user navigated away or unmounted.
+          await reader.cancel().catch(() => {});
+          throw new Error('cancelled');
+        }
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          received += value.length;
+          if (total > 0) {
+            const pct = Math.min(99, Math.floor((received / total) * 100));
+            setDownloadPct(pct);
+          }
+        }
+      }
+
+      setDownloadPct(100);
+      const blob = new Blob(chunks, { type: 'application/epub+zip' });
+      return new File([blob], remoteBook!.name || 'book.epub', {
+        type: 'application/epub+zip',
+      });
+    };
+
+    setLoading(true);
+    setDownloadPct(null);
+
+    (async () => {
+      try {
+        if (!remoteBook || !remoteBook.fileUrl) {
+          if (remoteBookError) {
+            setLoading(false);
+            alert('Could not fetch book from server.');
+            setHasOpenedBook(true);
+          }
+          return;
+        }
+
+        // Cache hit: skip the network entirely and reuse the previously
+        // downloaded File from IndexedDB. Books that have been opened
+        // before become near-instant on subsequent opens.
+        const cached = db?.files ? await db.files.get(String(remoteBook.id)) : undefined;
+        if (cached?.file) {
+          // Preserve a non-null file reference for the .addTab call but
+          // keep finalize generic. Touch percentage as a sentinel so the
+          // loading UI knows there's no download to display.
+          finalize(cached.file);
+          return;
+        }
+
+        // Cache miss → stream the file with progress, persist to
+        // IndexedDB for next time, then open the tab.
+        const file = await streamingDownload(remoteBook.fileUrl);
+        if (cancelled) return;
+        if (db?.files) {
+          await db.files.put({ id: String(remoteBook.id), file });
+        }
+        finalize(file);
+      } catch (err: any) {
+        if (cancelled || err?.message === 'cancelled') return;
+        setLoading(false);
+        setDownloadPct(null);
+        console.error('[Reader] open book failed:', err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [bookId, orderId, remoteBook, remoteBookError, hasOpenedBook]);
   useEffect(() => {
     if ('launchQueue' in window && 'LaunchParams' in window) {
@@ -132,10 +228,30 @@ export default function Index() {
         <title>{focusedTab?.title ?? 'SeedStore'}</title>
       </Head>
       <ReaderGridView />
-      {loading ? <div className='animate-pulse text-white dark:text-gray-400'>Loading...</div> : 
-      // <Library />
-      <div>No book opened</div>
-      }
+      {loading ? (
+        <div className='flex flex-col items-center justify-center gap-3 p-6 text-white dark:text-gray-400'>
+          <div className='animate-pulse text-sm'>
+            {downloadPct === null
+              ? 'Loading...'
+              : downloadPct < 100
+                ? `Downloading book... ${downloadPct}%`
+                : 'Opening...'}
+          </div>
+          {downloadPct !== null && (
+            // Slim progress bar; only shown while we have meaningful
+            // progress data (Content-Length was sent and we're streaming).
+            <div className='h-1 w-48 overflow-hidden rounded bg-white/10'>
+              <div
+                className='h-full bg-white/70 transition-[width] duration-150'
+                style={{ width: `${downloadPct}%` }}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        // <Library />
+        <div>No book opened</div>
+      )}
     </>
   )
 }
