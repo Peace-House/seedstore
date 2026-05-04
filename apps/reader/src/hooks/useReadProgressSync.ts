@@ -248,6 +248,13 @@ export function useReadProgressSync(bookId: string | undefined) {
 
       // Restore position if we have one
       if (progressToRestore?.cfi) {
+        // Capture into locals so TypeScript can narrow them past the
+        // optional-chained check above (the next access of
+        // `progressToRestore.cfi` would otherwise still be typed
+        // `string | null`, which `tab.display(cfi: string)` rejects).
+        const restoreCfi: string = progressToRestore.cfi
+        const restorePercentage: number = progressToRestore.percentage
+
         const tab = reader.focusedBookTab
         console.log(`[ReadProgressSync] Tab state:`, {
           hasTab: !!tab,
@@ -264,14 +271,16 @@ export function useReadProgressSync(bookId: string | undefined) {
           // the target page has actually been laid out. That removes a
           // guaranteed second of dead time on every book open.
           try {
-            console.log(`[ReadProgressSync] Calling display() with cfi: ${progressToRestore.cfi}`)
-            const result = tab.display(progressToRestore.cfi, false)
-            // display() may return a Promise; await it if so.
-            if (result && typeof (result as any).then === 'function') {
-              await (result as Promise<unknown>)
-            }
+            console.log(`[ReadProgressSync] Calling display() with cfi: ${restoreCfi}`)
+            // display() is typed `void` in this build of @flow/epubjs.
+            // Just fire it — the rendition queues the navigation and
+            // performs it on the next frame. The previous code awaited a
+            // setTimeout(1000) which was strictly worse: the renderer is
+            // already provably ready (rendered=true above) so this call
+            // takes effect immediately on the next paint.
+            tab.display(restoreCfi, false)
             console.log(
-              `[ReadProgressSync] Restored position for book ${bookId} to ${progressToRestore.percentage}%`
+              `[ReadProgressSync] Restored position for book ${bookId} to ${restorePercentage}%`
             )
             hasRestoredRef.current = true
             setIsRestoring(false)

@@ -70,13 +70,8 @@ export function startEventStreamBridge() {
           // single event — that's too disruptive if the event misfires,
           // and the existing 401 interceptor on the next API call
           // already handles logout cleanly. Just stop the SSE service so
-          // we don't reconnect into an immediate close loop. The
-          // reason field is at the top level (no envelope), so read it
-          // defensively.
-          const reason =
-            event.payload && typeof event.payload === 'object'
-              ? (event.payload as any).reason
-              : undefined
+          // we don't reconnect into an immediate close loop.
+          const reason = (event.payload as { reason?: string } | undefined)?.reason
           console.info('[EventBridge] Session expired:', reason ?? 'unknown')
           eventStream.stop()
           return
