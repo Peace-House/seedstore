@@ -276,3 +276,34 @@ export const getObservedVersions = async (): Promise<ObservedVersions> => {
         : null,
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Email settings (admin)
+//
+// One toggle per email type. Disabled toggles short-circuit the matching
+// `sendBookEmail` / `sendSeedStoreEmail` call on the server with no SMTP
+// connection — see backend services/emailToggle.service.ts.
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface EmailSetting {
+  key: string
+  label: string
+  description: string
+  category: string
+  enabled: boolean
+}
+
+export const listEmailSettings = async (): Promise<EmailSetting[]> => {
+  const res = await api.get('/admin/email-settings')
+  return Array.isArray(res.data?.types) ? res.data.types : []
+}
+
+export const setEmailSetting = async (
+  key: string,
+  enabled: boolean,
+): Promise<EmailSetting[]> => {
+  const res = await api.patch(`/admin/email-settings/${encodeURIComponent(key)}`, {
+    enabled,
+  })
+  return Array.isArray(res.data?.types) ? res.data.types : []
+}
