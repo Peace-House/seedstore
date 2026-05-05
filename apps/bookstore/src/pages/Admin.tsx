@@ -39,6 +39,7 @@ import GroupBuyingManagement from '@/components/admin/GroupBuyingManagement'
 import NewsletterManagement from '@/components/admin/NewsletterManagement'
 import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
 import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
+import EmailSettings from '@/components/admin/EmailSettings'
 import { Library } from 'lucide-react'
 
 const Admin = () => {
@@ -92,6 +93,11 @@ const Admin = () => {
       value: 'app-settings',
       label: 'App Settings',
       icon: <Smartphone className="h-5 w-5" />,
+    },
+    {
+      value: 'email-settings',
+      label: 'Email Settings',
+      icon: <Mail className="h-5 w-5" />,
     },
     {
       value: 'converter',
@@ -318,6 +324,7 @@ const Admin = () => {
           {tab === 'transactions' && <TransactionManagement />}
           {tab === 'payment-gateways' && <PaymentGatewayManagement />}
           {tab === 'app-settings' && <AppUpdateSettings />}
+          {tab === 'email-settings' && <EmailSettings />}
           {tab === 'converter' && <EPUBConverter />}
           {tab === 'admins' && <AdminManagement />}
           {tab === 'logs' && <AdminLogs />}
