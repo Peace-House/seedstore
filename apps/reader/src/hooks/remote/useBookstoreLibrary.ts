@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useMemo } from 'react'
 import useSWR from 'swr'
 
 // You may want to move this to an env variable or config
@@ -66,24 +67,31 @@ export function useBookstoreLibrary() {
   )
 
   console.log('useBookstoreLibrary data:', data, 'error:', error);
-  const transformedData = data ? data?.map((book: any) => ({
-    ...book,
-    id: String(book.id), // Ensure id is a string
-    name: String(book.title),
-    size: Number(book?.size),
-    cover: book?.coverImage || null,
-    metadata: {},
-    createdAt: Number(book?.createdAt),
-    updatedAt: book?.updatedAt ? Number(book.updatedAt) : undefined,
-    cfi: book?.cfi,
-    // Server returns percentage as 0-100, reader internally uses 0-1 decimal
-    percentage: book?.percentage ? book.percentage / 100 : undefined,
-    definitions: book?.description,
-    annotations: book?.annotations,
-    configuration: {
-      typography: book?.configuration?.typography,
-    },
-  })) : []
+  // Memoise the transformed array so its reference stays stable while
+  // SWR's underlying `data` hasn't changed. Without this, hooks /
+  // effects downstream (useLibrarySync, library list rendering, etc.)
+  // re-run on every parent render and can cascade into surprise loops.
+  const transformedData = useMemo(() => {
+    if (!data) return []
+    return data.map((book: any) => ({
+      ...book,
+      id: String(book.id), // Ensure id is a string
+      name: String(book.title),
+      size: Number(book?.size),
+      cover: book?.coverImage || null,
+      metadata: {},
+      createdAt: Number(book?.createdAt),
+      updatedAt: book?.updatedAt ? Number(book.updatedAt) : undefined,
+      cfi: book?.cfi,
+      // Server returns percentage as 0-100, reader internally uses 0-1 decimal
+      percentage: book?.percentage ? book.percentage / 100 : undefined,
+      definitions: book?.description,
+      annotations: book?.annotations,
+      configuration: {
+        typography: book?.configuration?.typography,
+      },
+    }))
+  }, [data])
   return transformedData
 }
 

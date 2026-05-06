@@ -10,12 +10,25 @@ export function isAuthenticated(): boolean {
 
 /**
  * Sync local library with remote library
- * Removes books from local DB that are no longer in the user's remote library
+ * Removes books from local DB that are no longer in the user's remote library.
+ *
+ * Refuses to do anything destructive if the caller passes an empty
+ * remote list — the most likely cause is a still-loading or failed
+ * fetch, and treating "haven't heard back yet" as "user owns nothing"
+ * silently nuked the IndexedDB cache (books / files / covers) every
+ * time the reader booted. The caller is responsible for waiting for a
+ * real response, but we keep this guard as a safety net.
  */
 export async function syncLocalLibraryWithRemote(
   remoteBooks: BookRecord[],
 ): Promise<void> {
   if (!db || !isAuthenticated()) return
+  if (!Array.isArray(remoteBooks) || remoteBooks.length === 0) {
+    console.warn(
+      '[LibrarySync] Skipping purge: remote list is empty (likely still loading or transient error).',
+    )
+    return
+  }
 
   try {
     // Get all local books
