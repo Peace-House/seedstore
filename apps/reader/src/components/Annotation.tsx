@@ -120,7 +120,7 @@ const Annotation: React.FC<AnnotationProps> = ({ tab, annotation }) => {
     // panel, not as in-text overlays).
     const rawType = annotation.type as string
     if (rawType === 'bookmark') return
-    const renderType: 'highlight' = 'highlight'
+    const renderType = 'highlight' as const
 
     const hasNote = !!(annotation.notes && annotation.notes.trim().length)
     const fill = colorMap[annotation.color] ?? colorMap.yellow
