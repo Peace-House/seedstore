@@ -11,6 +11,7 @@ import {
 } from '@/utils/pricing'
 // import { truncate } from '@/lib/utils';
 import { Book } from '@/services'
+import AppDownload from './AppDownload'
 import FeaturedBooks from './FeaturedBooks'
 
 const Hero = () => {
@@ -39,14 +40,17 @@ const Hero = () => {
   return (
     <section className="to-primary/20 relative overflow-hidden bg-gradient-to-b from-transparent via-transparent">
       <div className="px-2 md:container md:py-12 lg:py-12">
-        <div className="grid items-center md:gap-12 lg:grid-cols-2">
-          <div className="md:space-y-8 ">
+        <div className="mt-3 grid items-center md:mt-0 md:gap-12 lg:grid-cols-2">
+          <div className="space-y-6 md:space-y-8">
             <h1 className=" text-4xl font-bold leading-tight md:block md:text-5xl lg:text-[42px]">
               Strengthen Your walk with God
               <span className="from-primary to-accent block bg-gradient-to-r bg-clip-text text-transparent">
                 With your next read.
               </span>
             </h1>
+
+            <AppDownload />
+
             {/* no auth */}
             {!user && (
               <p className="text-muted-foreground max-w-lg text-sm">
@@ -57,20 +61,6 @@ const Hero = () => {
               </p>
             )}
             {user ? (
-              // <div className='w-full max-w-[calc(100vw-1rem)] md:max-w-full h-auto mt-8 md:mt-0 overflow-hidden'>
-              //   <p className='font-medium mb-1'>Most read</p>
-              //   <ul className='overflow-x-auto scroll-smooth custom-scrollbar flex gap-2 pb-2 -mx-2 px-2' style={{ WebkitOverflowScrolling: 'touch' }}>
-              //     {booksWithPricing.map((book: Book) => (
-              //       <li key={book.id} className="bg-transparent flex-shrink-0 h-[180px] max-w-[140px] rounded-none flex flex-col items-center">
-              //         <img
-              //         src={book.coverImage}
-              //         alt={book.title}
-              //         className="h-full w-full object-contain object-top scale-90 bg-transparent"
-              //         />
-              //       </li>
-              //     ))}
-              //   </ul>
-              // </div>
               <FeaturedBooks />
             ) : (
               <div className="my-8 grid grid-cols-1 flex-wrap gap-4 md:flex">
