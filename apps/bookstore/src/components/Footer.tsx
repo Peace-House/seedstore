@@ -6,6 +6,7 @@ import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { subscribeToNewsletter } from '@/services/newsletter'
 import { sendSupportMessage } from '@/services/support'
+import AppDownload from './AppDownload'
 
 const Footer: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -112,6 +113,9 @@ const Footer: React.FC = () => {
                 info@livingseed.org
               </a>
             </p>
+          </div>
+          <div className="mt-6">
+            <AppDownload />
           </div>
         </div>
         {/* Quicklinks */}

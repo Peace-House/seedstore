@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import MobileNavbar from '@/components/MobileNavbar';
 import Footer from '@/components/Footer';
 import MostReadBooks from '@/components/ui/MostRead';
+import StickyAppDownload from '@/components/StickyAppDownload';
 import { useBooks } from '@/hooks/useBooks';
 import { hasValidPricing } from '@/utils/pricing';
 import { Book } from '@/services';
@@ -19,6 +20,12 @@ const Index = () => {
 
   return (
     <div className='bg-[#8FB51C]/15 relative'>
+      {/* Mobile-only sticky download CTA — slides in from the top once
+          the user scrolls past the inline AppDownload in the Hero so
+          the install affordance stays one tap away no matter where
+          they are on the landing page. Hidden on md+ where the
+          desktop Navbar occupies the same screen real estate. */}
+      <StickyAppDownload />
       <Navbar />
       <div className="min-h-screen ">
         <Hero />
