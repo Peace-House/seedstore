@@ -72,11 +72,21 @@ const PricingManagement = () => {
         prices: Object.entries(prices[book.id] || {}).map(([country, price]) => {
           // Find currency for this country from countryCurrencies
           const cc = countryCurrencies.find(c => c.country === country);
+          // Empty input (or whitespace-only) means "no price set",
+          // not "free". Send null so the server stores NULL — which
+          // is what the customer-facing country filter checks for.
+          // `Number("")` returns 0, which would have been a silent
+          // false-positive ("free book") instead of an unset price.
+          const trimmed = (price ?? '').trim();
+          const softCopyPrice =
+            trimmed === '' || Number.isNaN(Number(trimmed))
+              ? null
+              : Number(trimmed);
           return {
             currency: cc?.currency || 'NGN',
             country,
-            soft_copy_price: Number(price),
-            hard_copy_price: 0,
+            soft_copy_price: softCopyPrice,
+            hard_copy_price: null,
           };
         })
       }));
