@@ -1,7 +1,14 @@
+import { useEffect, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { Button } from './ui/button'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from './ui/carousel'
 import { useAuth } from '@/hooks/useAuth'
 import { useBooks } from '@/hooks/useBooks'
 // import { useCountry } from '@/hooks/useCountry';
@@ -17,6 +24,7 @@ import FeaturedBooks from './FeaturedBooks'
 const Hero = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const [heroCarouselApi, setHeroCarouselApi] = useState<CarouselApi>()
   // const { selectedCountry, countryCurrencies } = useCountry();
 
   const books = useBooks()
@@ -36,6 +44,44 @@ const Hero = () => {
   const booksWithPricing =
     books?.data?.books?.filter((book: Book) => hasValidPricing(book.prices)) ||
     []
+
+  const heroSlides = [
+    {
+      id: 'hero-stats',
+      coverImage: '/bg-cross-new.jpg',
+      title: `${books?.data?.total?.toLocaleString()}+`,
+      heading: 'Christian eBooks Available',
+      imageOnly: false,
+    },
+    {
+      id: 'now-live',
+      coverImage: '/banner.jpeg',
+      title: ``,
+      heading: '',
+      imageOnly: true,
+    },
+  ]
+
+  const totalSlides = heroSlides.length
+
+  useEffect(() => {
+    if (!heroCarouselApi) {
+      return
+    }
+
+    const autoplay = window.setInterval(() => {
+      if (heroCarouselApi.canScrollNext()) {
+        heroCarouselApi.scrollNext()
+        return
+      }
+
+      heroCarouselApi.scrollTo(0)
+    }, 4500)
+
+    return () => {
+      window.clearInterval(autoplay)
+    }
+  }, [heroCarouselApi])
 
   return (
     <section className="to-primary/20 relative overflow-hidden bg-gradient-to-b from-transparent via-transparent">
@@ -93,24 +139,70 @@ const Hero = () => {
           </div>
           {/* not auth */}
           {
-            <div className="relative overflow-hidden rounded-2xl shadow-2xl lg:h-[500px]">
-              <div className="from-primary to-accent absolute inset-0 bg-gradient-to-br opacity-90" />
-              <div
-                className="absolute inset-0 flex items-center justify-center md:items-end md:justify-end"
-                style={{
-                  backgroundImage: 'url(/bg-cross-new.jpg)',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'left',
-                  backgroundRepeat: 'no-repeat',
-                }}
+            <div className="relative h-[320px] overflow-hidden rounded-2xl shadow-2xl md:h-[420px] lg:h-[500px]">
+              <Carousel
+                setApi={setHeroCarouselApi}
+                opts={{ align: 'start', loop: totalSlides > 1 }}
+                className="h-full"
               >
-                <div className="text-primary space-y-4 p-8 text-center">
-                  <div className="text-3xl font-bold md:text-8xl">
-                    {books?.data?.total?.toLocaleString()}+
-                  </div>
-                  <div className="text-2xl">Christian eBooks Available</div>
+                <CarouselContent className="ml-0 h-[320px] md:h-[420px] lg:h-[500px]">
+                  {heroSlides.map((slide) => (
+                    <CarouselItem
+                      key={slide.id}
+                      className="h-[320px] pl-0 md:h-[420px] lg:h-[500px]"
+                    >
+                      <div className="relative h-full overflow-hidden">
+                        {slide.imageOnly ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/5 p-1 md:p-2">
+                            <img
+                              src={slide.coverImage}
+                              alt="Promotional banner"
+                              className="object-scale-up rounded-lg object-top shadow-lg"
+                              style={{
+                                height: '500px',
+                                width: '100%',
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            className="absolute inset-0 flex items-center justify-center md:items-end md:justify-end"
+                            style={{
+                              backgroundImage: `url(${slide.coverImage})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'left',
+                              backgroundRepeat: 'no-repeat',
+                            }}
+                          >
+                            <div className="text-primary space-y-4 p-8 text-center">
+                              <div className="text-3xl font-bold md:text-8xl">
+                                {slide.title}
+                              </div>
+                              <div className="text-2xl">{slide.heading}</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+
+              {/* {totalSlides > 1 && (
+                <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/25 px-3 py-2 backdrop-blur-sm">
+                  {Array.from({ length: totalSlides }).map((_, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      aria-label={`Go to slide ${index + 1}`}
+                      className={`h-2.5 w-2.5 rounded-full transition ${
+                        currentSlide === index ? 'bg-white' : 'bg-white/40'
+                      }`}
+                      onClick={() => heroCarouselApi?.scrollTo(index)}
+                    />
+                  ))}
                 </div>
-              </div>
+              )} */}
             </div>
           }
           {/* with auth - show two most recent new releases */}
