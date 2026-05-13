@@ -1,9 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getBooks, deleteBook, updateBook, Book } from '@/services/book';
-import { useState } from 'react';
+import {
+  getBooks,
+  getBookFilterOptions,
+  deleteBook,
+  updateBook,
+  Book,
+} from '@/services/book';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Trash2, Edit, MoreVertical } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Trash2, Edit, MoreVertical, Search, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -33,6 +47,55 @@ const BookManagement = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [editing, setEditing] = useState<Book | null>(null);
+
+  // Search & filter state. `query` is the live input value, kept
+  // separate from `debouncedQuery` (the value actually sent to the
+  // server) so typing doesn't fire a request per keystroke.
+  const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [author, setAuthor] = useState<string>('');
+  const [groupId, setGroupId] = useState<string>('');
+  const [categoryIds, setCategoryIds] = useState<number[]>([]);
+
+  // 300ms debounce — short enough to feel responsive, long enough
+  // that mid-word typing doesn't spam the server.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // Reset to page 1 whenever a filter or the debounced query changes,
+  // otherwise the user could land on page 5 of an empty result set.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, author, groupId, categoryIds]);
+
+  // Filter dropdown options — long staleTime since these change
+  // rarely (admins add categories / groups infrequently).
+  const filterOptionsQuery = useQuery({
+    queryKey: ['admin-books-filter-options'],
+    queryFn: getBookFilterOptions,
+    staleTime: 5 * 60 * 1000,
+  });
+  const authorOptions = filterOptionsQuery.data?.authors ?? [];
+  const groupOptions = filterOptionsQuery.data?.groups ?? [];
+  const categoryOptions = filterOptionsQuery.data?.categories ?? [];
+
+  const hasActiveFilters = useMemo(
+    () =>
+      Boolean(query) ||
+      Boolean(author) ||
+      Boolean(groupId) ||
+      categoryIds.length > 0,
+    [query, author, groupId, categoryIds],
+  );
+
+  const clearFilters = () => {
+    setQuery('');
+    setAuthor('');
+    setGroupId('');
+    setCategoryIds([]);
+  };
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -71,12 +134,31 @@ const BookManagement = () => {
       toast({ variant: 'destructive', title: 'Update failed', description: error.message });
     },
   });
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-books', page, pageSize],
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: [
+      'admin-books',
+      page,
+      pageSize,
+      debouncedQuery,
+      author,
+      groupId,
+      categoryIds,
+    ],
     queryFn: async () => {
-      const res = await getBooks(page, pageSize);
-      return res;
+      return getBooks({
+        page,
+        pageSize,
+        q: debouncedQuery,
+        author: author || undefined,
+        groupId: groupId || undefined,
+        categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
+      });
     },
+    // Keep the previous page's data visible while a new query is
+    // in flight — prevents the table from blanking on every keystroke
+    // / filter change. Visible-but-dimmed state below uses
+    // `isFetching` to convey "we're refreshing this."
+    placeholderData: (prev) => prev,
   });
   const books = data?.books || [];
   const total = data?.total || 0;
@@ -178,8 +260,129 @@ const BookManagement = () => {
             <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
               {total.toLocaleString()}
             </span>
+            {isFetching && !isLoading && (
+              <span className="text-xs font-normal text-muted-foreground">
+                Refreshing…
+              </span>
+            )}
           </h2>
         </div>
+
+        {/* Filter row — debounced title search on the left,
+            dropdown filters on the right. Filters compose: server
+            applies them via AND, so e.g. picking author "John" and
+            category "Teaching" returns books that match both.
+            "Clear" resets all four filters and the table refetches
+            page 1. */}
+        <div className="px-4 pb-3 flex flex-col gap-3 md:flex-row md:items-center md:flex-wrap">
+          <div className="relative flex-1 min-w-[220px] max-w-md">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search by title…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-8 pr-8"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          <Select
+            value={author || 'all'}
+            onValueChange={(v) => setAuthor(v === 'all' ? '' : v)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Author" />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="all">All authors</SelectItem>
+              {authorOptions.map((a) => (
+                <SelectItem key={a} value={a}>
+                  {a}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={groupId || 'all'}
+            onValueChange={(v) => setGroupId(v === 'all' ? '' : v)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Group" />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="all">All groups</SelectItem>
+              {groupOptions.map((g) => (
+                <SelectItem key={g.id} value={String(g.id)}>
+                  {g.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Category is multi-select — implemented as a single
+              "Categories" select that toggles selection on each
+              click. Could swap for a proper Combobox/Popover with
+              checkboxes later; this works without a new dependency. */}
+          <Select
+            value="__placeholder"
+            onValueChange={(v) => {
+              if (v === '__placeholder') return
+              const id = Number(v)
+              setCategoryIds((prev) =>
+                prev.includes(id)
+                  ? prev.filter((x) => x !== id)
+                  : [...prev, id],
+              )
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue
+                placeholder={
+                  categoryIds.length > 0
+                    ? `${categoryIds.length} categor${
+                        categoryIds.length === 1 ? 'y' : 'ies'
+                      }`
+                    : 'Categories'
+                }
+              />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value="__placeholder" disabled>
+                Toggle categories
+              </SelectItem>
+              {categoryOptions.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>
+                  {categoryIds.includes(c.id) ? '✓ ' : ''}
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-muted-foreground"
+            >
+              <X className="mr-1 h-3.5 w-3.5" />
+              Clear filters
+            </Button>
+          )}
+        </div>
+
         <AdminTable
           admins={books}
           loading={isLoading}

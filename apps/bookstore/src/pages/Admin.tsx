@@ -19,6 +19,7 @@ import {
   Mail,
   Wallet,
   Smartphone,
+  Bell,
 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -37,6 +38,7 @@ import PricingManagement from '@/components/admin/PricingManagement'
 import LendingManagement from '@/components/admin/LendingManagement'
 import GroupBuyingManagement from '@/components/admin/GroupBuyingManagement'
 import NewsletterManagement from '@/components/admin/NewsletterManagement'
+import PushNotificationManagement from '@/components/admin/PushNotificationManagement'
 import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
 import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
 import EmailSettings from '@/components/admin/EmailSettings'
@@ -110,6 +112,11 @@ const Admin = () => {
       value: 'newsletter',
       label: 'Newsletter',
       icon: <Mail className="h-5 w-5" />,
+    },
+    {
+      value: 'push',
+      label: 'Push Notifications',
+      icon: <Bell className="h-5 w-5" />,
     },
   ]
 
@@ -329,6 +336,7 @@ const Admin = () => {
           {tab === 'admins' && <AdminManagement />}
           {tab === 'logs' && <AdminLogs />}
           {tab === 'newsletter' && <NewsletterManagement />}
+          {tab === 'push' && <PushNotificationManagement />}
         </main>
       </div>
     </>
