@@ -20,6 +20,7 @@ import {
   Wallet,
   Smartphone,
   Bell,
+  MapPin,
 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -39,6 +40,7 @@ import LendingManagement from '@/components/admin/LendingManagement'
 import GroupBuyingManagement from '@/components/admin/GroupBuyingManagement'
 import NewsletterManagement from '@/components/admin/NewsletterManagement'
 import PushNotificationManagement from '@/components/admin/PushNotificationManagement'
+import OutreachManagement from '@/components/admin/OutreachManagement'
 import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
 import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
 import EmailSettings from '@/components/admin/EmailSettings'
@@ -117,6 +119,11 @@ const Admin = () => {
       value: 'push',
       label: 'Push Notifications',
       icon: <Bell className="h-5 w-5" />,
+    },
+    {
+      value: 'outreach',
+      label: 'Outreach Locations',
+      icon: <MapPin className="h-5 w-5" />,
     },
   ]
 
@@ -271,7 +278,7 @@ const Admin = () => {
               {<Sidebar className="h-5 w-5" />}
             </button>
           </div>
-          <nav className="mt-4 flex flex-1 flex-col gap-2">
+          <nav className="mt-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
             {navItems.map((item) => (
               <button
                 key={item.value}
@@ -337,6 +344,7 @@ const Admin = () => {
           {tab === 'logs' && <AdminLogs />}
           {tab === 'newsletter' && <NewsletterManagement />}
           {tab === 'push' && <PushNotificationManagement />}
+          {tab === 'outreach' && <OutreachManagement />}
         </main>
       </div>
     </>
