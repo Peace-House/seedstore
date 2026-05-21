@@ -393,6 +393,7 @@ const BookManagement = () => {
           onPageSizeChange={setPageSize}
           columns={bookColumns}
           renderActions={(row) => renderActions(row as unknown as Book)}
+          stickyHeader
         />
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

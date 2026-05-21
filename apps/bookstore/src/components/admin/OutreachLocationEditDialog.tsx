@@ -21,6 +21,7 @@ import {
   type OutreachLocation,
   type OutreachType,
 } from '@/services/outreach'
+import { countryMap } from '@/utils/countryNames'
 
 interface OpeningHours {
   mon?: string
@@ -316,6 +317,12 @@ const OutreachLocationEditDialog = ({
                 placeholder="NG"
                 maxLength={2}
               />
+              {state.country.length === 2 && (
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {countryMap[state.country.toUpperCase()] ??
+                    'Unknown country code'}
+                </p>
+              )}
             </div>
           </div>
 

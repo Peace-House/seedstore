@@ -34,6 +34,8 @@ export interface AdminTableProps<T = { id: string; firstName: string; lastName: 
   renderActions?: (row: T) => React.ReactNode;
   /** Enable client-side sorting (default: true) */
   sortable?: boolean;
+  /** Pin the table header to the top of the nearest scrolling ancestor (default: false) */
+  stickyHeader?: boolean;
 }
 
 
@@ -72,7 +74,7 @@ const SortIcon = ({ direction }: { direction: SortDirection }) => {
   return <ChevronsUpDown className="w-4 h-4 inline-block ml-1 opacity-40" />;
 };
 
-function AdminTable<T extends { id: string; firstName: string; lastName: string; role: string; email: string; phoneNumber?: string; status: string; lastActive?: string; createdAt?: string }>({ admins, loading, page, pageSize, total, onPageChange, onPageSizeChange, columns, renderActions, sortable = true }: AdminTableProps<T>) {
+function AdminTable<T extends { id: string; firstName: string; lastName: string; role: string; email: string; phoneNumber?: string; status: string; lastActive?: string; createdAt?: string }>({ admins, loading, page, pageSize, total, onPageChange, onPageSizeChange, columns, renderActions, sortable = true, stickyHeader = false }: AdminTableProps<T>) {
   const cols = columns || defaultAdminColumns;
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: null });
 
@@ -138,9 +140,9 @@ function AdminTable<T extends { id: string; firstName: string; lastName: string;
 
   return (
     <div>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader className='bg-gray-100'>
+      <div className={stickyHeader ? 'max-h-[65vh] overflow-auto' : 'overflow-x-auto'}>
+        <Table wrapperClassName={stickyHeader ? 'overflow-visible' : undefined}>
+          <TableHeader className={`bg-gray-100 ${stickyHeader ? 'sticky top-0 z-10' : ''}`}>
             <TableRow>
               {cols.map((col, i) => {
                 const isSortable = sortable && col.sortKey;

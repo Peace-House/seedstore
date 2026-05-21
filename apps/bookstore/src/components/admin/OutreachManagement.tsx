@@ -54,6 +54,7 @@ import {
   type OutreachType,
   type PreviewRow,
 } from '@/services/outreach'
+import { countryName, countryOptions } from '@/utils/countryNames'
 
 type Tab = 'upload' | 'list'
 
@@ -416,7 +417,9 @@ const OutreachManagement = () => {
                               {r.data.region || '—'}
                             </td>
                             <td className="px-2 py-1">
-                              {r.data.country || '—'}
+                              {r.data.country
+                                ? countryName(r.data.country)
+                                : '—'}
                             </td>
                             <td className="text-muted-foreground px-2 py-1 text-xs">
                               {r.data.latitude && r.data.longitude
@@ -504,15 +507,25 @@ const OutreachManagement = () => {
                 />
               </div>
               <div className="relative">
-                <Globe className="text-muted-foreground absolute left-2 top-2.5 h-4 w-4" />
-                <Input
-                  value={filterCountry}
-                  onChange={(e) =>
-                    setFilterCountry(e.target.value.toUpperCase())
+                <Globe className="text-muted-foreground pointer-events-none absolute left-2 top-2.5 z-10 h-4 w-4" />
+                <Select
+                  value={filterCountry || 'ALL'}
+                  onValueChange={(v) =>
+                    setFilterCountry(v === 'ALL' ? '' : v)
                   }
-                  placeholder="Country (NG, GH…)"
-                  className="w-[180px] pl-8"
-                />
+                >
+                  <SelectTrigger className="w-[200px] pl-8">
+                    <SelectValue placeholder="Any country" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="ALL">Any country</SelectItem>
+                    {countryOptions().map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <label className="inline-flex items-center gap-2 text-sm">
                 <input
@@ -693,7 +706,9 @@ const OutreachManagement = () => {
                         <td className="text-muted-foreground py-2 pr-2">
                           {l.region || '—'}
                         </td>
-                        <td className="py-2 pr-2">{l.country}</td>
+                        <td className="py-2 pr-2">
+                          {countryName(l.country)}
+                        </td>
                         <td className="text-muted-foreground py-2 pr-2">
                           {l.contactName || '—'}
                         </td>
