@@ -187,6 +187,19 @@ const PushNotificationManagement = () => {
     null,
   )
 
+  // The list endpoint trims its `select` (no userIds / surfaces / imageUrl /
+  // scheduledFor / translations) so the row object alone can't render the
+  // details dialog without exploding on `.length` / `.join`. Fetch the full
+  // campaign lazily whenever a row is opened.
+  const detailsQuery = useQuery({
+    queryKey: ['admin', 'push', 'campaign', detailsCampaign?.id],
+    queryFn: () => getPushCampaignDetails(detailsCampaign!.id),
+    enabled: !!detailsCampaign?.id,
+    staleTime: 10_000,
+  })
+  const detailsFull: PushCampaign | null =
+    detailsQuery.data?.campaign ?? detailsCampaign
+
   // Health probe — surfaces "Firebase not configured" warning at the top.
   const healthQuery = useQuery({
     queryKey: ['admin', 'push', 'health'],
@@ -897,51 +910,65 @@ const PushNotificationManagement = () => {
         onOpenChange={(o) => !o && setDetailsCampaign(null)}
       >
         <DialogContent className="max-w-2xl">
-          {detailsCampaign && (
+          {detailsFull && (
             <>
               <DialogHeader>
-                <DialogTitle>{detailsCampaign.title}</DialogTitle>
-                <DialogDescription>{detailsCampaign.body}</DialogDescription>
+                <DialogTitle>{detailsFull.title}</DialogTitle>
+                <DialogDescription>{detailsFull.body}</DialogDescription>
               </DialogHeader>
               <div className="space-y-2 text-sm">
-                <div>
-                  <strong>Mode:</strong> {detailsCampaign.targetMode}
-                </div>
-                {detailsCampaign.topics.length > 0 && (
-                  <div>
-                    <strong>Topics:</strong> {detailsCampaign.topics.join(', ')}
+                {detailsQuery.isLoading && (
+                  <div className="text-xs text-muted-foreground">
+                    Loading full campaign…
                   </div>
                 )}
-                {detailsCampaign.userIds.length > 0 && (
+                {detailsQuery.isError && (
+                  <div className="text-xs text-red-600">
+                    Couldn't load full campaign details — showing summary only.
+                  </div>
+                )}
+                <div>
+                  <strong>Mode:</strong> {detailsFull.targetMode}
+                </div>
+                {(detailsFull.topics ?? []).length > 0 && (
+                  <div>
+                    <strong>Topics:</strong>{' '}
+                    {(detailsFull.topics ?? []).join(', ')}
+                  </div>
+                )}
+                {(detailsFull.userIds ?? []).length > 0 && (
                   <div>
                     <strong>User IDs:</strong>{' '}
-                    {detailsCampaign.userIds.join(', ')}
+                    {(detailsFull.userIds ?? []).join(', ')}
                   </div>
                 )}
                 <div>
                   <strong>Surfaces:</strong>{' '}
-                  {detailsCampaign.surfaces.join(', ')}
+                  {(detailsFull.surfaces ?? []).join(', ') || '—'}
                 </div>
-                {detailsCampaign.deepLink && (
+                {detailsFull.deepLink && (
                   <div>
-                    <strong>Deep link:</strong> {detailsCampaign.deepLink}
+                    <strong>Deep link:</strong> {detailsFull.deepLink}
                   </div>
                 )}
                 <div className="flex gap-4 pt-2 text-sm">
-                  <Stat label="Total" value={detailsCampaign.totalRecipients} />
+                  <Stat
+                    label="Total"
+                    value={detailsFull.totalRecipients ?? 0}
+                  />
                   <Stat
                     label="Sent"
-                    value={detailsCampaign.sentCount}
+                    value={detailsFull.sentCount ?? 0}
                     color="text-green-600"
                   />
                   <Stat
                     label="Failed"
-                    value={detailsCampaign.failedCount}
+                    value={detailsFull.failedCount ?? 0}
                     color="text-red-600"
                   />
                   <Stat
                     label="Queued"
-                    value={detailsCampaign.queuedCount}
+                    value={detailsFull.queuedCount ?? 0}
                     color="text-blue-600"
                   />
                 </div>
