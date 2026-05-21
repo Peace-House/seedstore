@@ -20,6 +20,7 @@ import {
 import { Book } from '@/services'
 import AppDownload from './AppDownload'
 import FeaturedBooks from './FeaturedBooks'
+import { Skeleton } from './ui/skeleton'
 
 const Hero = () => {
   const navigate = useNavigate()
@@ -49,7 +50,11 @@ const Hero = () => {
     {
       id: 'hero-stats',
       coverImage: '/bg-cross-new.jpg',
-      title: `${books?.data?.total?.toLocaleString()}+`,
+      title: books.isLoading ? (
+        <Skeleton className="mx-auto h-12 w-40 md:h-20 md:w-64" />
+      ) : books?.data?.total ? (
+        `${books.data.total.toLocaleString()}+`
+      ) : null,
       heading: 'Christian eBooks Available',
       imageOnly: false,
     },
