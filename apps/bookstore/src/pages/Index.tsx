@@ -7,13 +7,21 @@ import MobileNavbar from '@/components/MobileNavbar';
 import Footer from '@/components/Footer';
 import MostReadBooks from '@/components/ui/MostRead';
 import StickyAppDownload from '@/components/StickyAppDownload';
+import { PageLoader } from '@/components/Loader';
 import { useBooks } from '@/hooks/useBooks';
 import { hasValidPricing } from '@/utils/pricing';
 import { Book } from '@/services';
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, token, loading } = useAuth();
   const books = useBooks();
+
+  // While we have a stored token but /me hasn't resolved yet, render a loader
+  // instead of the visitor variant of the landing page — avoids the visible
+  // flash of the !user UI before the authed UI hydrates.
+  if (token && loading && !user) {
+    return <PageLoader />;
+  }
 
   const featuredBooks = books.data?.books?.filter((book: Book) => book.featured && hasValidPricing(book.prices));
   const booksWithPricing = books.data?.books?.filter((book: Book) => hasValidPricing(book.prices)) || [];
