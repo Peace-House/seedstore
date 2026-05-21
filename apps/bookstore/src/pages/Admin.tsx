@@ -121,8 +121,8 @@ const Admin = () => {
       icon: <Bell className="h-5 w-5" />,
     },
     {
-      value: 'outreach',
-      label: 'Outreach Locations',
+      value: 'locations',
+      label: 'Locations',
       icon: <MapPin className="h-5 w-5" />,
     },
   ]
@@ -344,7 +344,7 @@ const Admin = () => {
           {tab === 'logs' && <AdminLogs />}
           {tab === 'newsletter' && <NewsletterManagement />}
           {tab === 'push' && <PushNotificationManagement />}
-          {tab === 'outreach' && <OutreachManagement />}
+          {tab === 'locations' && <OutreachManagement />}
         </main>
       </div>
     </>

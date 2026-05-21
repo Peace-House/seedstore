@@ -267,7 +267,7 @@ const OutreachManagement = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <MapPin className="text-primary h-6 w-6" />
-          <h2 className="text-2xl font-semibold">Outreach Locations</h2>
+          <h2 className="text-2xl font-semibold">Locations</h2>
         </div>
         <Button
           liquidGlass={false}
@@ -510,9 +510,7 @@ const OutreachManagement = () => {
                 <Globe className="text-muted-foreground pointer-events-none absolute left-2 top-2.5 z-10 h-4 w-4" />
                 <Select
                   value={filterCountry || 'ALL'}
-                  onValueChange={(v) =>
-                    setFilterCountry(v === 'ALL' ? '' : v)
-                  }
+                  onValueChange={(v) => setFilterCountry(v === 'ALL' ? '' : v)}
                 >
                   <SelectTrigger className="w-[200px] pl-8">
                     <SelectValue placeholder="Any country" />
@@ -706,9 +704,7 @@ const OutreachManagement = () => {
                         <td className="text-muted-foreground py-2 pr-2">
                           {l.region || '—'}
                         </td>
-                        <td className="py-2 pr-2">
-                          {countryName(l.country)}
-                        </td>
+                        <td className="py-2 pr-2">{countryName(l.country)}</td>
                         <td className="text-muted-foreground py-2 pr-2">
                           {l.contactName || '—'}
                         </td>
