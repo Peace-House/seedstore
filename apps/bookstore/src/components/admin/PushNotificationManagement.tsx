@@ -284,6 +284,9 @@ const PushNotificationManagement = () => {
     onSuccess: (res) => {
       toast.success(`Queued ${res.queuedCount} deliveries`)
       queryClient.invalidateQueries({ queryKey: ['admin', 'push', 'campaigns'] })
+      // Server now deletes the draft after promoting it to a campaign,
+      // so refresh the drafts list as well to drop it from the UI.
+      queryClient.invalidateQueries({ queryKey: ['admin', 'push', 'drafts'] })
       setTab('campaigns')
     },
     onError: (err: any) => {
