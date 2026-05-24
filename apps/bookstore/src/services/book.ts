@@ -88,6 +88,9 @@ export interface GetBooksParams {
   author?: string
   groupId?: number | string
   categoryIds?: number[]
+  /** Restrict to featured (or non-featured) books. Backed by the
+   *  `featured=true|false` query string on /books. */
+  featured?: boolean
 }
 
 export const getBooks = async (
@@ -110,6 +113,11 @@ export const getBooks = async (
   }
   if (opts.categoryIds && opts.categoryIds.length > 0) {
     queryParams.categoryIds = opts.categoryIds.join(',')
+  }
+  if (opts.featured !== undefined) {
+    // Backend reads "true"/"false" strings — send the literal so it
+    // round-trips cleanly through axios + Express query parsing.
+    queryParams.featured = opts.featured ? 'true' : 'false'
   }
   const res = await api.get('/books', { params: queryParams })
   return res.data
