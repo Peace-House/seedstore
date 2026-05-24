@@ -21,6 +21,9 @@ import {
   Smartphone,
   Bell,
   MapPin,
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -43,6 +46,7 @@ import PushNotificationManagement from '@/components/admin/PushNotificationManag
 import OutreachManagement from '@/components/admin/OutreachManagement'
 import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
 import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
+import AppVersioningManagement from '@/components/admin/AppVersioningManagement'
 import EmailSettings from '@/components/admin/EmailSettings'
 import { Library } from 'lucide-react'
 
@@ -55,80 +59,110 @@ const Admin = () => {
     localStorage.getItem('admin_tab') || 'overview',
   )
   const navigate = useNavigate()
-  const navItems = [
+  const navGroups: Array<{
+    id: string
+    label: string | null
+    items: Array<{ value: string; label: string; icon: JSX.Element }>
+  }> = [
     {
-      value: 'overview',
-      label: 'Overview',
-      icon: <LayoutDashboard className="h-5 w-5" />,
+      id: 'overview',
+      label: null,
+      items: [
+        { value: 'overview', label: 'Overview', icon: <LayoutDashboard className="h-5 w-5" /> },
+      ],
     },
     {
-      value: 'upload',
-      label: 'Upload Book',
-      icon: <Upload className="h-5 w-5" />,
-    },
-    { value: 'manage', label: 'Books', icon: <BookOpen className="h-5 w-5" /> },
-    {
-      value: 'pricing',
-      label: 'Pricing',
-      icon: <CopyCheck className="h-5 w-5" />,
-    },
-    {
-      value: 'orders',
-      label: 'Orders',
-      icon: <ClipboardList className="h-5 w-5" />,
-    },
-    { value: 'lend', label: 'Lending', icon: <Library className="h-5 w-5" /> },
-    {
-      value: 'group-buy',
-      label: 'Group Buying',
-      icon: <Users className="h-5 w-5" />,
+      id: 'catalog',
+      label: 'Catalog',
+      items: [
+        { value: 'upload', label: 'Upload Book', icon: <Upload className="h-5 w-5" /> },
+        { value: 'manage', label: 'Books', icon: <BookOpen className="h-5 w-5" /> },
+        { value: 'pricing', label: 'Pricing', icon: <CopyCheck className="h-5 w-5" /> },
+        { value: 'lend', label: 'Lending', icon: <Library className="h-5 w-5" /> },
+        { value: 'group-buy', label: 'Group Buying', icon: <Users className="h-5 w-5" /> },
+        { value: 'converter', label: 'Converter', icon: <RotateCcw className="h-5 w-5" /> },
+      ],
     },
     {
-      value: 'transactions',
-      label: 'Transactions',
-      icon: <CreditCard className="h-5 w-5" />,
+      id: 'commerce',
+      label: 'Commerce',
+      items: [
+        { value: 'orders', label: 'Orders', icon: <ClipboardList className="h-5 w-5" /> },
+        { value: 'transactions', label: 'Transactions', icon: <CreditCard className="h-5 w-5" /> },
+        { value: 'payment-gateways', label: 'Payment Gateways', icon: <Wallet className="h-5 w-5" /> },
+      ],
     },
     {
-      value: 'payment-gateways',
-      label: 'Payment Gateways',
-      icon: <Wallet className="h-5 w-5" />,
+      id: 'platform',
+      label: 'Platform',
+      items: [
+        { value: 'app-settings', label: 'App Settings', icon: <Smartphone className="h-5 w-5" /> },
+        { value: 'app-versioning', label: 'Whats New & Badges', icon: <Sparkles className="h-5 w-5" /> },
+        { value: 'email-settings', label: 'Email Settings', icon: <Mail className="h-5 w-5" /> },
+      ],
     },
     {
-      value: 'app-settings',
-      label: 'App Settings',
-      icon: <Smartphone className="h-5 w-5" />,
+      id: 'outreach',
+      label: 'Outreach',
+      items: [
+        { value: 'newsletter', label: 'Newsletter', icon: <Mail className="h-5 w-5" /> },
+        { value: 'push', label: 'Push Notifications', icon: <Bell className="h-5 w-5" /> },
+        { value: 'locations', label: 'Locations', icon: <MapPin className="h-5 w-5" /> },
+      ],
     },
     {
-      value: 'email-settings',
-      label: 'Email Settings',
-      icon: <Mail className="h-5 w-5" />,
-    },
-    {
-      value: 'converter',
-      label: 'Converter',
-      icon: <RotateCcw className="h-5 w-5" />,
-    },
-    { value: 'admins', label: 'Users', icon: <Users className="h-5 w-5" /> },
-    { value: 'logs', label: 'Logs', icon: <List className="h-5 w-5" /> },
-    {
-      value: 'newsletter',
-      label: 'Newsletter',
-      icon: <Mail className="h-5 w-5" />,
-    },
-    {
-      value: 'push',
-      label: 'Push Notifications',
-      icon: <Bell className="h-5 w-5" />,
-    },
-    {
-      value: 'locations',
-      label: 'Locations',
-      icon: <MapPin className="h-5 w-5" />,
+      id: 'administration',
+      label: 'Administration',
+      items: [
+        { value: 'admins', label: 'Users', icon: <Users className="h-5 w-5" /> },
+        { value: 'logs', label: 'Logs', icon: <List className="h-5 w-5" /> },
+      ],
     },
   ]
 
+  const allNavItems = navGroups.flatMap((g) => g.items)
+
+  // Collapsed/expanded state per group. Persist user toggles in localStorage;
+  // on first mount, expand only the group containing the active tab.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const stored = localStorage.getItem('admin_nav_open_groups')
+    if (stored) {
+      try {
+        return JSON.parse(stored) as Record<string, boolean>
+      } catch {
+        // fall through to default
+      }
+    }
+    const activeGroupId = navGroups.find((g) => g.items.some((i) => i.value === tab))?.id
+    return navGroups.reduce<Record<string, boolean>>((acc, g) => {
+      acc[g.id] = g.label === null || g.id === activeGroupId
+      return acc
+    }, {})
+  })
+
+  const persistOpenGroups = (next: Record<string, boolean>) => {
+    setOpenGroups(next)
+    localStorage.setItem('admin_nav_open_groups', JSON.stringify(next))
+  }
+
+  const toggleGroup = (id: string) => {
+    persistOpenGroups({ ...openGroups, [id]: !openGroups[id] })
+  }
+
+  const selectTab = (value: string, closeMobile?: boolean) => {
+    setTab(value)
+    localStorage.setItem('admin_tab', value)
+    // Ensure the group containing the new tab is expanded so the active
+    // highlight is always visible after navigation.
+    const group = navGroups.find((g) => g.items.some((i) => i.value === value))
+    if (group && !openGroups[group.id]) {
+      persistOpenGroups({ ...openGroups, [group.id]: true })
+    }
+    if (closeMobile) setMobileMenuOpen(false)
+  }
+
   useEffect(() => {
-    if (!navItems.some((item) => item.value === tab)) {
+    if (!allNavItems.some((item) => item.value === tab)) {
       setTab('overview')
       localStorage.setItem('admin_tab', 'overview')
     }
@@ -167,7 +201,7 @@ const Admin = () => {
             <Menu className="h-5 w-5" />
           </button>
           <span className="font-semibold">
-            {navItems.find((item) => item.value === tab)?.label}
+            {allNavItems.find((item) => item.value === tab)?.label}
           </span>
           <div className="w-9" /> {/* Spacer for centering */}
         </div>
@@ -204,29 +238,47 @@ const Admin = () => {
           </div>
 
           <nav className="flex max-h-[calc(100vh-200px)] flex-1 flex-col gap-1 overflow-y-auto py-4">
-            {navItems.map((item) => (
-              <button
-                key={item.value}
-                className={`hover:bg-primary/10 flex items-center gap-3 px-4 py-3 text-left transition-all ${
-                  tab === item.value
-                    ? 'bg-primary/10 text-primary font-semibold'
-                    : 'text-muted-foreground'
-                }`}
-                onClick={() => {
-                  setTab(item.value)
-                  localStorage.setItem('admin_tab', item.value)
-                  setMobileMenuOpen(false)
-                }}
-              >
-                {item.icon}
-                <span className="text-sm">{item.label}</span>
-              </button>
-            ))}
+            {navGroups.map((group) => {
+              const isOpen = openGroups[group.id] ?? false
+              return (
+                <div key={group.id} className="flex flex-col">
+                  {group.label && (
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.id)}
+                      className="text-muted-foreground hover:bg-primary/5 flex items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors"
+                    >
+                      <span>{group.label}</span>
+                      {isOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                  {(group.label === null || isOpen) &&
+                    group.items.map((item) => (
+                      <button
+                        key={item.value}
+                        className={`hover:bg-primary/10 flex items-center gap-3 px-4 py-3 text-left transition-all ${
+                          tab === item.value
+                            ? 'bg-primary/10 text-primary font-semibold'
+                            : 'text-muted-foreground'
+                        }`}
+                        onClick={() => selectTab(item.value, true)}
+                      >
+                        {item.icon}
+                        <span className="text-sm">{item.label}</span>
+                      </button>
+                    ))}
+                </div>
+              )
+            })}
           </nav>
 
           <div className="absolute bottom-0 left-0 right-0 border-t bg-white py-4">
             <button
-              className="text-muted-foreground flex w-full items-center gap-3 px-4 py-3 text-left transition-all hover:bg-black/5 hover:text-red-600"
+              className="text-red-600 flex w-full items-center gap-3 px-4 py-3 text-left transition-all hover:bg-red-50 hover:text-red-700"
               onClick={() => {
                 navigate('/')
                 setMobileMenuOpen(false)
@@ -278,35 +330,63 @@ const Admin = () => {
               {<Sidebar className="h-5 w-5" />}
             </button>
           </div>
-          <nav className="mt-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-            {navItems.map((item) => (
-              <button
-                key={item.value}
-                className={`hover:bg-primary/10 flex items-center gap-3 px-4  py-2 text-left transition-all ${
-                  tab === item.value
-                    ? 'bg-primary/10 text-primary font-semibold'
-                    : 'text-muted-foreground'
-                }`}
-                onClick={() => {
-                  setTab(item.value)
-                  localStorage.setItem('admin_tab', item.value)
-                }}
-                title={item.label}
-              >
-                {item.icon}
-                <span
-                  className={` text-sm transition-all ${
-                    sidebarOpen ? 'ml-2 opacity-100' : 'ml-0 w-0 opacity-0'
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </button>
-            ))}
+          <nav className="mt-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+            {sidebarOpen
+              ? navGroups.map((group) => {
+                  const isOpen = openGroups[group.id] ?? false
+                  return (
+                    <div key={group.id} className="flex flex-col">
+                      {group.label && (
+                        <button
+                          type="button"
+                          onClick={() => toggleGroup(group.id)}
+                          className="text-muted-foreground hover:bg-primary/5 mt-2 flex items-center justify-between px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors"
+                        >
+                          <span>{group.label}</span>
+                          {isOpen ? (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
+                      {(group.label === null || isOpen) &&
+                        group.items.map((item) => (
+                          <button
+                            key={item.value}
+                            className={`hover:bg-primary/10 flex items-center gap-3 px-4 py-2 text-left transition-all ${
+                              tab === item.value
+                                ? 'bg-primary/10 text-primary font-semibold'
+                                : 'text-muted-foreground'
+                            }`}
+                            onClick={() => selectTab(item.value)}
+                            title={item.label}
+                          >
+                            {item.icon}
+                            <span className="ml-2 text-sm">{item.label}</span>
+                          </button>
+                        ))}
+                    </div>
+                  )
+                })
+              : allNavItems.map((item) => (
+                  <button
+                    key={item.value}
+                    className={`hover:bg-primary/10 flex items-center gap-3 px-4 py-2 text-left transition-all ${
+                      tab === item.value
+                        ? 'bg-primary/10 text-primary font-semibold'
+                        : 'text-muted-foreground'
+                    }`}
+                    onClick={() => selectTab(item.value)}
+                    title={item.label}
+                  >
+                    {item.icon}
+                  </button>
+                ))}
           </nav>
           <div className="mt-auto border-t py-4">
             <button
-              className={`text-muted-foreground flex w-full items-center gap-3  px-4 py-2 text-left transition-all hover:bg-black/5 hover:text-red-600`}
+              className={`text-red-600 flex w-full items-center gap-3  px-4 py-2 text-left transition-all hover:bg-red-50 hover:text-red-700`}
               onClick={() => {
                 navigate('/')
               }}
@@ -326,7 +406,7 @@ const Admin = () => {
         {/* Main Content */}
         <main className="custom-scrollbar flex-1 overflow-y-auto p-4 pt-20 md:p-8 md:pt-8">
           <h1 className="mb-8 hidden text-3xl font-bold md:block">
-            {navItems.find((item) => item.value === tab)?.label}
+            {allNavItems.find((item) => item.value === tab)?.label}
           </h1>
           {tab === 'overview' && <AdminOverview />}
           {tab === 'upload' && <BookUpload />}
@@ -338,6 +418,7 @@ const Admin = () => {
           {tab === 'transactions' && <TransactionManagement />}
           {tab === 'payment-gateways' && <PaymentGatewayManagement />}
           {tab === 'app-settings' && <AppUpdateSettings />}
+          {tab === 'app-versioning' && <AppVersioningManagement />}
           {tab === 'email-settings' && <EmailSettings />}
           {tab === 'converter' && <EPUBConverter />}
           {tab === 'admins' && <AdminManagement />}
