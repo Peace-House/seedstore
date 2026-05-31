@@ -24,6 +24,7 @@ import {
   Sparkles,
   ChevronDown,
   ChevronRight,
+  BookCheck,
 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -48,6 +49,7 @@ import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagemen
 import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
 import AppVersioningManagement from '@/components/admin/AppVersioningManagement'
 import EmailSettings from '@/components/admin/EmailSettings'
+import BookAuthorAccess from '@/components/admin/BookAuthorAccess'
 import { Library } from 'lucide-react'
 
 const Admin = () => {
@@ -115,6 +117,7 @@ const Admin = () => {
       label: 'Administration',
       items: [
         { value: 'admins', label: 'Users', icon: <Users className="h-5 w-5" /> },
+        { value: 'book-author-access', label: 'Book Author Access', icon: <BookCheck className="h-5 w-5" /> },
         { value: 'logs', label: 'Logs', icon: <List className="h-5 w-5" /> },
       ],
     },
@@ -422,6 +425,7 @@ const Admin = () => {
           {tab === 'email-settings' && <EmailSettings />}
           {tab === 'converter' && <EPUBConverter />}
           {tab === 'admins' && <AdminManagement />}
+          {tab === 'book-author-access' && <BookAuthorAccess />}
           {tab === 'logs' && <AdminLogs />}
           {tab === 'newsletter' && <NewsletterManagement />}
           {tab === 'push' && <PushNotificationManagement />}

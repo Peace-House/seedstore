@@ -599,6 +599,14 @@ const BookManagement = () => {
                   maxConcurrentBorrows: editing.maxConcurrentBorrows || 5,
                   quotaLimit: editing.quotaLimit || 3,
                   quotaPeriodDays: editing.quotaPeriodDays || 30,
+                  // Author free-copy distribution. Free copies total is
+                  // shown as read-only here — actual changes go through
+                  // the 2FA-gated Book Author Access page, NOT this
+                  // dialog. authorPhcodes IS editable inline so admin
+                  // can correct authorship without an OTP dance.
+                  authorPhcodes: (editing as any).authorPhcodes ?? [],
+                  freeCopies:
+                    (editing as any).freeCopiesTotal ?? 5000,
                 }}
                 submitLabel="Save Changes"
                 onSubmitOverride={async (data, coverFile, bookFile) => {
@@ -640,6 +648,13 @@ const BookManagement = () => {
                     formData.append(
                       'quotaPeriodDays',
                       String(data.quotaPeriodDays),
+                    )
+                    // authorPhcodes is editable inline. freeCopiesTotal
+                    // is intentionally NOT sent — backend ignores it on
+                    // update; the OTP-gated flow is the only path.
+                    formData.append(
+                      'authorPhcodes',
+                      JSON.stringify(data.authorPhcodes ?? []),
                     )
                     if (coverFile) formData.append('coverImage', coverFile)
                     if (bookFile) formData.append('file', bookFile)
@@ -684,6 +699,10 @@ const BookManagement = () => {
                     formData.append(
                       'quotaPeriodDays',
                       String(data.quotaPeriodDays),
+                    )
+                    formData.append(
+                      'authorPhcodes',
+                      JSON.stringify(data.authorPhcodes ?? []),
                     )
                     updateMutation.mutate({
                       id: editing.id as number,

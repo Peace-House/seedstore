@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { X } from 'lucide-react';
+import PhCodeChipInput from './PhCodeChipInput';
 
 const bookSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
@@ -32,6 +33,13 @@ const bookSchema = z.object({
   maxConcurrentBorrows: z.number().min(1).default(5),
   quotaPeriodDays: z.number().min(1).default(30),
   quotaLimit: z.number().min(1).default(3),
+  // Author free-copy distribution. authorPhcodes is the list of
+  // PHCodes who count as authors for this book — they (and admins)
+  // can distribute from a shared pool of `freeCopies` copies.
+  // freeCopies is editable at creation; later changes go through
+  // the 2FA-gated Book Author Access page.
+  authorPhcodes: z.array(z.string()).default([]),
+  freeCopies: z.number().min(0).default(5000),
 });
 
 type BookFormData = z.infer<typeof bookSchema>;
@@ -58,10 +66,10 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
 
   const form = useForm<BookFormData>({
     resolver: zodResolver(bookSchema),
-    defaultValues: { 
-      ...initialValues, 
+    defaultValues: {
+      ...initialValues,
       categoryIds: defaultCategoryIds,
-      isFeatured: initialValues?.isFeatured ?? false, 
+      isFeatured: initialValues?.isFeatured ?? false,
       isNewRelease: initialValues?.isNewRelease ?? false,
       isLendable: initialValues?.isLendable ?? false,
       lendDurationDays: initialValues?.lendDurationDays ?? 7,
@@ -69,6 +77,8 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
       maxConcurrentBorrows: initialValues?.maxConcurrentBorrows ?? 5,
       quotaPeriodDays: initialValues?.quotaPeriodDays ?? 30,
       quotaLimit: initialValues?.quotaLimit ?? 3,
+      authorPhcodes: initialValues?.authorPhcodes ?? [],
+      freeCopies: initialValues?.freeCopies ?? 5000,
     },
   });
 
@@ -130,6 +140,15 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
       formData.append('maxConcurrentBorrows', String(data.maxConcurrentBorrows));
       formData.append('quotaPeriodDays', String(data.quotaPeriodDays));
       formData.append('quotaLimit', String(data.quotaLimit));
+      // Author free-copy distribution. Send as JSON-encoded array
+      // for the chip list (the queue processor parses either form
+      // — JSON, CSV, or array). freeCopies is honoured only at
+      // creation; updates ignore it server-side.
+      formData.append(
+        'authorPhcodes',
+        JSON.stringify(data.authorPhcodes ?? []),
+      );
+      formData.append('freeCopiesTotal', String(data.freeCopies ?? 5000));
       // File uploads: backend expects 'coverImage' and 'file'
       formData.append('coverImage', coverFile as Blob);
       formData.append('file', bookFile as Blob);
@@ -209,6 +228,58 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="authorPhcodes"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Author PHCodes</FormLabel>
+                      <FormControl>
+                        <PhCodeChipInput
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                          placeholder="Add PHCode and press Enter (paste a list to add many)"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        These users see this book in their group-buy list and
+                        can distribute free copies. Comma- or space-separated
+                        paste is supported.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="freeCopies"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Free Copies (initial pool)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ''
+                                ? 0
+                                : parseInt(e.target.value, 10) || 0,
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Default 5000. After creation, changes are gated by
+                        the Book Author Access page (2FA).
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
