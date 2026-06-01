@@ -437,7 +437,11 @@ const Library = () => {
               <Button onClick={() => navigate('/')}>Browse Bookstore</Button>
             </div>
           ) : (
-            <div className="space-y-0">
+            // Gap between shelves — books and the next shelf above
+            // shouldn't share a seam. ~32px breathing room reads as
+            // separate shelves of a bookcase rather than one
+            // continuous wood slab.
+            <div className="space-y-8">
               <div className="flex justify-end">
                 {orderedBooks && orderedBooks.length > 0 && (
                   <p className="text-muted-foreground hidden text-sm md:block">
@@ -482,11 +486,6 @@ const Library = () => {
                           className={`group relative cursor-grab transition-all duration-200 hover:z-10 hover:-translate-y-2 active:cursor-grabbing ${
                             isDragging ? 'scale-90 opacity-30' : ''
                           } ${isDragOver ? 'z-20 -translate-y-4' : ''}`}
-                          style={{
-                            transform: `rotate(${
-                              ((bookIndex % 3) - 1) * 1
-                            }deg)`,
-                          }}
                         >
                           {/* Drop indicator - shows where book will be placed */}
                           {isDragOver && (

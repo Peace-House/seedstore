@@ -1,101 +1,207 @@
-import { useState } from 'react';
+import { useState } from 'react'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import AdminTable, { TableColumn } from './AdminTable';
-import UpdateFreeCopiesDialog from './free-copies/UpdateFreeCopiesDialog';
-import AssignBooksDialog from './free-copies/AssignBooksDialog';
-import { useFreeCopiesList } from '@/hooks/useFreeCopies';
-import { FreeCopyBookRow } from '@/services/adminFreeCopies';
-import { Send, Settings } from 'lucide-react';
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ArrowUpCircle, Gift, History } from 'lucide-react'
+import AdminTable, { TableColumn } from './AdminTable'
+import UpdateFreeCopiesDialog, {
+  AllocationTarget,
+} from './free-copies/UpdateFreeCopiesDialog'
+import CreateUserAllocationDialog from './free-copies/CreateUserAllocationDialog'
+import UserGivingHistoryDialog from './free-copies/UserGivingHistoryDialog'
+import { useAuthorsFreeCopies, useUsersFreeCopies } from '@/hooks/useFreeCopies'
+import { AuthorBookRow, UserBookAgg } from '@/services/adminFreeCopies'
 
 /**
- * Book Author Access — admin page that surfaces every book's
- * free-copy state and lets the admin both update the total
- * (2FA-gated) and bulk-assign copies by PHCode.
- *
- * Sits under the Administration nav group. Reads via
- * useFreeCopiesList (TanStack Query), so changes from either
- * dialog refresh the table automatically.
+ * Book Author Access — two tabs:
+ *   • Authors: each book's authors and their per-author free-copy quota
+ *     (default 100). Admin can only INCREASE a quota (2FA OTP). No direct
+ *     assignment — authors give copies out themselves from the app.
+ *   • Users: outreach allocations. Admin gives a user a redistribution quota;
+ *     aggregated per book, with giving history + recipient drill-down.
  */
 export default function BookAuthorAccess() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [q, setQ] = useState('');
-  const [updateTarget, setUpdateTarget] =
-    useState<FreeCopyBookRow | null>(null);
-  const [assignOpen, setAssignOpen] = useState(false);
-  const [assignPreselectId, setAssignPreselectId] = useState<
-    number | undefined
-  >(undefined);
+  return (
+    <Card className="rounded">
+      <CardHeader>
+        <CardTitle>Book Author Access</CardTitle>
+        <CardDescription>
+          Manage per-author free-copy quotas and outreach giveaways. Authors and
+          outreach users distribute copies from the mobile app.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="authors">
+          <TabsList className="mb-4">
+            <TabsTrigger value="authors">Authors' free copies</TabsTrigger>
+            <TabsTrigger value="users">Users' free copies</TabsTrigger>
+          </TabsList>
+          <TabsContent value="authors">
+            <AuthorsTab />
+          </TabsContent>
+          <TabsContent value="users">
+            <UsersTab />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  )
+}
 
-  const { data, isLoading, isFetching } = useFreeCopiesList({
+// ── Authors tab ───────────────────────────────────────────────
+function AuthorsTab() {
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+  const [q, setQ] = useState('')
+  const [otpTarget, setOtpTarget] = useState<{
+    allocation: AllocationTarget
+    bookTitle: string
+  } | null>(null)
+
+  const { data, isLoading, isFetching } = useAuthorsFreeCopies({
     page,
     pageSize,
     q: q.trim() || undefined,
-  });
+  })
+  const rows = data?.books ?? []
 
-  const rows = data?.books ?? [];
-
-  const columns: TableColumn<FreeCopyBookRow>[] = [
+  const columns: TableColumn<AuthorBookRow>[] = [
     {
-      label: 'Title',
-      sortKey: 'title',
+      label: 'Book',
       render: (r) => (
         <div className="min-w-0">
-          <div className="font-medium truncate">{r.title}</div>
-          <div className="text-xs text-muted-foreground truncate">
+          <div className="truncate font-medium">{r.title}</div>
+          <div className="text-muted-foreground truncate text-xs">
+            {r.author}
+            {r.coAuthor ? ` & ${r.coAuthor}` : ''}
+          </div>
+        </div>
+      ),
+    },
+    {
+      label: 'Authors & free copies',
+      render: (r) =>
+        r?.authorAllocations?.length === 0 ? (
+          <span className="text-muted-foreground text-xs italic">
+            No authors set
+          </span>
+        ) : (
+          <div className="space-y-1.5">
+            {r.authorAllocations.map((a) => (
+              <div
+                key={a.allocationId}
+                className="flex items-center gap-3 text-sm"
+              >
+                <span className="min-w-[140px]">
+                  {a.holderName || (
+                    <span className="font-mono">{a.holderPhcode}</span>
+                  )}
+                </span>
+                <span className="text-muted-foreground font-mono text-xs">
+                  {a.used}/{a.total} used · {a.remaining} left
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7"
+                  onClick={() =>
+                    setOtpTarget({ allocation: a, bookTitle: r.title })
+                  }
+                >
+                  <ArrowUpCircle className="mr-1 h-3.5 w-3.5" />
+                  Increase
+                </Button>
+              </div>
+            ))}
+          </div>
+        ),
+    },
+  ]
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Input
+          placeholder="Search title or author"
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value)
+            setPage(1)
+          }}
+          className="w-60"
+        />
+      </div>
+      <AdminTable
+        admins={rows}
+        loading={isLoading || isFetching}
+        page={page}
+        pageSize={pageSize}
+        total={data?.total ?? 0}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => {
+          setPageSize(s)
+          setPage(1)
+        }}
+        columns={columns}
+      />
+      <UpdateFreeCopiesDialog
+        open={!!otpTarget}
+        onOpenChange={(o) => !o && setOtpTarget(null)}
+        allocation={otpTarget?.allocation ?? null}
+        bookTitle={otpTarget?.bookTitle}
+      />
+    </div>
+  )
+}
+
+// ── Users (outreach) tab ──────────────────────────────────────
+function UsersTab() {
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+  const [q, setQ] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [historyBook, setHistoryBook] = useState<{
+    bookId: number
+    title: string
+  } | null>(null)
+
+  const { data, isLoading, isFetching } = useUsersFreeCopies({
+    page,
+    pageSize,
+    q: q.trim() || undefined,
+  })
+  // AdminTable keys rows by `row.id`; the aggregate has `bookId`, so alias it.
+  const rows = (data?.books ?? []).map((b) => ({ ...b, id: b.bookId }))
+
+  const columns: TableColumn<UserBookAgg>[] = [
+    {
+      label: 'Book',
+      render: (r) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium">{r.title}</div>
+          <div className="text-muted-foreground truncate text-xs">
             {r.author}
           </div>
         </div>
       ),
     },
     {
-      label: 'Author PHCodes',
-      render: (r) =>
-        r.authorPhcodes.length === 0 ? (
-          <span className="text-xs text-muted-foreground italic">none</span>
-        ) : (
-          <div className="flex flex-wrap gap-1 max-w-[260px]">
-            {r.authorPhcodes.slice(0, 4).map((p) => (
-              <span
-                key={p}
-                className="bg-muted text-xs px-1.5 py-0.5 rounded font-mono"
-              >
-                {p}
-              </span>
-            ))}
-            {r.authorPhcodes.length > 4 && (
-              <span className="text-xs text-muted-foreground">
-                +{r.authorPhcodes.length - 4}
-              </span>
-            )}
-          </div>
-        ),
-    },
-    {
-      label: 'Total',
-      sortKey: 'freeCopiesTotal',
-      render: (r) => (
-        <span className="font-mono text-sm">{r.freeCopiesTotal}</span>
-      ),
+      label: 'Total given',
+      render: (r) => <span className="font-mono text-sm">{r.totalGiven}</span>,
     },
     {
       label: 'Used',
-      sortKey: 'freeCopiesUsed',
-      render: (r) => (
-        <span className="font-mono text-sm">{r.freeCopiesUsed}</span>
-      ),
+      render: (r) => <span className="font-mono text-sm">{r.used}</span>,
     },
     {
       label: 'Remaining',
-      sortKey: 'remaining',
       render: (r) => (
         <span
           className={`font-mono text-sm font-semibold ${
@@ -106,90 +212,68 @@ export default function BookAuthorAccess() {
         </span>
       ),
     },
-  ];
+    {
+      label: 'Users',
+      render: (r) => <span className="font-mono text-sm">{r.userCount}</span>,
+    },
+  ]
 
   return (
-    <Card className="rounded">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 flex-wrap">
-        <div>
-          <CardTitle>Book Author Access</CardTitle>
-          <CardDescription>
-            Manage per-book free-copy pools. Update the total via 2FA, or
-            distribute copies to readers by PHCode.
-          </CardDescription>
-        </div>
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Search title or author"
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setPage(1);
-            }}
-            className="w-60"
-          />
-          <Button
-            onClick={() => {
-              setAssignPreselectId(undefined);
-              setAssignOpen(true);
-            }}
-          >
-            <Send className="h-4 w-4 mr-2" />
-            Assign Books to Users
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <AdminTable
-          admins={rows}
-          loading={isLoading || isFetching}
-          page={page}
-          pageSize={pageSize}
-          total={data?.total ?? 0}
-          onPageChange={setPage}
-          onPageSizeChange={(s) => {
-            setPageSize(s);
-            setPage(1);
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <Input
+          placeholder="Search title or author"
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value)
+            setPage(1)
           }}
-          columns={columns}
-          renderActions={(r: FreeCopyBookRow) => (
-            <div className="flex items-center gap-2 justify-end">
+          className="w-60"
+        />
+        <Button onClick={() => setCreateOpen(true)}>
+          <Gift className="mr-2 h-4 w-4" />
+          Give free copies to a user
+        </Button>
+      </div>
+      <AdminTable
+        admins={rows}
+        loading={isLoading || isFetching}
+        page={page}
+        pageSize={pageSize}
+        total={data?.total ?? 0}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => {
+          setPageSize(s)
+          setPage(1)
+        }}
+        columns={columns}
+        renderActions={(row) => {
+          const r = row as unknown as UserBookAgg
+          return (
+            <div className="flex justify-end">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setUpdateTarget(r)}
+                onClick={() =>
+                  setHistoryBook({ bookId: r.bookId, title: r.title })
+                }
               >
-                <Settings className="h-4 w-4 mr-1" />
-                Update total
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setAssignPreselectId(r.id);
-                  setAssignOpen(true);
-                }}
-                disabled={r.remaining === 0}
-              >
-                Assign
+                <History className="mr-1 h-4 w-4" />
+                History
               </Button>
             </div>
-          )}
-        />
-      </CardContent>
-
-      <UpdateFreeCopiesDialog
-        open={!!updateTarget}
-        onOpenChange={(o) => !o && setUpdateTarget(null)}
-        book={updateTarget}
+          )
+        }}
       />
-
-      <AssignBooksDialog
-        open={assignOpen}
-        onOpenChange={setAssignOpen}
-        books={rows}
-        preselectedBookId={assignPreselectId}
+      <CreateUserAllocationDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
       />
-    </Card>
-  );
+      <UserGivingHistoryDialog
+        open={!!historyBook}
+        onOpenChange={(o) => !o && setHistoryBook(null)}
+        book={historyBook}
+      />
+    </div>
+  )
 }

@@ -42,8 +42,7 @@ import LiquidGlassWrapper from '@/components/LiquidGlassWrapper'
 import PricingManagement from '@/components/admin/PricingManagement'
 import LendingManagement from '@/components/admin/LendingManagement'
 import GroupBuyingManagement from '@/components/admin/GroupBuyingManagement'
-import NewsletterManagement from '@/components/admin/NewsletterManagement'
-import PushNotificationManagement from '@/components/admin/PushNotificationManagement'
+import CommunicationsManagement from '@/components/admin/CommunicationsManagement'
 import OutreachManagement from '@/components/admin/OutreachManagement'
 import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
 import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
@@ -57,9 +56,13 @@ const Admin = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [tab, setTab] = useState(
-    localStorage.getItem('admin_tab') || 'overview',
-  )
+  const [tab, setTab] = useState(() => {
+    const stored = localStorage.getItem('admin_tab') || 'overview'
+    // Newsletter + Push were merged into a single Communications tab.
+    return stored === 'newsletter' || stored === 'push'
+      ? 'communications'
+      : stored
+  })
   const navigate = useNavigate()
   const navGroups: Array<{
     id: string
@@ -107,8 +110,7 @@ const Admin = () => {
       id: 'outreach',
       label: 'Outreach',
       items: [
-        { value: 'newsletter', label: 'Newsletter', icon: <Mail className="h-5 w-5" /> },
-        { value: 'push', label: 'Push Notifications', icon: <Bell className="h-5 w-5" /> },
+        { value: 'communications', label: 'Communications', icon: <Bell className="h-5 w-5" /> },
         { value: 'locations', label: 'Locations', icon: <MapPin className="h-5 w-5" /> },
       ],
     },
@@ -427,8 +429,9 @@ const Admin = () => {
           {tab === 'admins' && <AdminManagement />}
           {tab === 'book-author-access' && <BookAuthorAccess />}
           {tab === 'logs' && <AdminLogs />}
-          {tab === 'newsletter' && <NewsletterManagement />}
-          {tab === 'push' && <PushNotificationManagement />}
+          {tab === 'communications' && (
+            <CommunicationsManagement defaultChannel="email" />
+          )}
           {tab === 'locations' && <OutreachManagement />}
         </main>
       </div>

@@ -105,6 +105,16 @@ export const deleteWhatsNewSlide = async (id: number): Promise<void> => {
   await api.delete(`/app-config/admin/whats-new/slides/${id}`)
 }
 
+// Upload a What's New slide image; returns the Cloudinary URL.
+export const uploadWhatsNewImage = async (
+  file: File,
+): Promise<{ imageUrl: string }> => {
+  const formData = new FormData()
+  formData.append('image', file)
+  const res = await api.post('/app-config/admin/whats-new/upload-image', formData)
+  return res.data
+}
+
 // ─── Normalisers ──────────────────────────────────────────────────
 
 function normaliseBadge(raw: any): AppFeatureBadge {

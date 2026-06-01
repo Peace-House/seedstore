@@ -599,14 +599,11 @@ const BookManagement = () => {
                   maxConcurrentBorrows: editing.maxConcurrentBorrows || 5,
                   quotaLimit: editing.quotaLimit || 3,
                   quotaPeriodDays: editing.quotaPeriodDays || 30,
-                  // Author free-copy distribution. Free copies total is
-                  // shown as read-only here — actual changes go through
-                  // the 2FA-gated Book Author Access page, NOT this
-                  // dialog. authorPhcodes IS editable inline so admin
-                  // can correct authorship without an OTP dance.
-                  authorPhcodes: (editing as any).authorPhcodes ?? [],
-                  freeCopies:
-                    (editing as any).freeCopiesTotal ?? 5000,
+                  // Author + co-author are editable here. Per-author free-copy
+                  // quotas are managed on the Book Author Access page.
+                  authorPhcode: editing.authorPhcode ?? '',
+                  coAuthor: editing.coAuthor ?? '',
+                  coAuthorPhcode: editing.coAuthorPhcode ?? '',
                 }}
                 submitLabel="Save Changes"
                 onSubmitOverride={async (data, coverFile, bookFile) => {
@@ -649,13 +646,11 @@ const BookManagement = () => {
                       'quotaPeriodDays',
                       String(data.quotaPeriodDays),
                     )
-                    // authorPhcodes is editable inline. freeCopiesTotal
-                    // is intentionally NOT sent — backend ignores it on
-                    // update; the OTP-gated flow is the only path.
-                    formData.append(
-                      'authorPhcodes',
-                      JSON.stringify(data.authorPhcodes ?? []),
-                    )
+                    // Author + co-author (always sent so clearing works).
+                    // Free-copy totals are never set here.
+                    formData.append('authorPhcode', data.authorPhcode ?? '')
+                    formData.append('coAuthor', data.coAuthor ?? '')
+                    formData.append('coAuthorPhcode', data.coAuthorPhcode ?? '')
                     if (coverFile) formData.append('coverImage', coverFile)
                     if (bookFile) formData.append('file', bookFile)
                     updateMutation.mutate({
@@ -700,10 +695,9 @@ const BookManagement = () => {
                       'quotaPeriodDays',
                       String(data.quotaPeriodDays),
                     )
-                    formData.append(
-                      'authorPhcodes',
-                      JSON.stringify(data.authorPhcodes ?? []),
-                    )
+                    formData.append('authorPhcode', data.authorPhcode ?? '')
+                    formData.append('coAuthor', data.coAuthor ?? '')
+                    formData.append('coAuthorPhcode', data.coAuthorPhcode ?? '')
                     updateMutation.mutate({
                       id: editing.id as number,
                       data: formData,

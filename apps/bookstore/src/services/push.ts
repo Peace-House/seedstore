@@ -1,4 +1,5 @@
 import api from './apiService'
+import type { NewsletterPreviewFilters } from './user'
 
 export type PushTargetMode = 'topic' | 'manual-user-list' | 'all'
 export type PushCampaignStatus =
@@ -19,6 +20,8 @@ export interface PushCampaign {
   targetMode: PushTargetMode
   topics: string[]
   userIds: number[]
+  filters?: NewsletterPreviewFilters | null
+  platforms?: string[]
   translations?: Record<string, { title?: string; body?: string }> | null
   scheduledFor?: string | null
   status: PushCampaignStatus
@@ -41,6 +44,8 @@ export interface PushDraft {
   targetMode: PushTargetMode | null
   topics: string[]
   userIds: number[]
+  filters?: NewsletterPreviewFilters | null
+  platforms?: string[]
   translations?: Record<string, { title?: string; body?: string }> | null
   createdById: number
   createdAt: string
@@ -62,9 +67,14 @@ export interface ComposerPayload {
   imageUrl?: string | null
   deepLink?: string | null
   surfaces?: string[]
-  targetMode: PushTargetMode
+  targetMode?: PushTargetMode
   topics?: string[]
   userIds?: number[]
+  // When set, the push reuses the shared newsletter audience filters; the
+  // server resolves them to userIds → device tokens at send time and
+  // targetMode/topics/userIds are ignored.
+  filters?: NewsletterPreviewFilters | null
+  platforms?: string[]
   translations?: Record<string, { title?: string; body?: string }> | null
   scheduledFor?: string | null
 }
@@ -182,8 +192,11 @@ export const getPushHealth = async (): Promise<{ ok: boolean; error?: string }> 
   try {
     const res = await api.get('/admin/push/health')
     return res.data
-  } catch (err: any) {
-    return { ok: false, error: err?.response?.data?.error || 'Health check failed' }
+  } catch (err) {
+    const message =
+      (err as { response?: { data?: { error?: string } } })?.response?.data
+        ?.error || 'Health check failed'
+    return { ok: false, error: message }
   }
 }
 
@@ -202,5 +215,25 @@ export const getPushAudienceEstimate = async (params: {
     queryParams.userIds = params.userIds.join(',')
   }
   const res = await api.get('/admin/push/audience', { params: queryParams })
+  return res.data
+}
+
+// Filter-based reach estimate: how many matched users + how many of their
+// active device tokens a push would fan out to.
+export const estimatePushAudienceByFilters = async (
+  filters: NewsletterPreviewFilters,
+  platforms: string[] = [],
+): Promise<{ users: number; deliveries: number }> => {
+  const res = await api.post('/admin/push/audience', { filters, platforms })
+  return res.data
+}
+
+// Upload a push hero image; returns the Cloudinary URL to use as imageUrl.
+export const uploadPushImage = async (
+  file: File,
+): Promise<{ imageUrl: string }> => {
+  const formData = new FormData()
+  formData.append('image', file)
+  const res = await api.post('/admin/push/upload-image', formData)
   return res.data
 }

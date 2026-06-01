@@ -5,36 +5,73 @@ import {
 } from '@tanstack/react-query';
 
 import {
-  AssignResponse,
   ConfirmUpdateResponse,
-  ListFreeCopiesResponse,
+  ListAuthorsResponse,
+  ListUsersResponse,
   RequestOtpResponse,
-  assignFreeCopies,
+  UserAllocationRow,
+  RecipientRow,
   confirmFreeCopiesUpdate,
-  listBooksFreeCopies,
+  createUserAllocation,
+  listAllocationRecipients,
+  listAuthorsFreeCopies,
+  listBookUserAllocations,
+  listUsersFreeCopies,
   requestFreeCopiesOtp,
 } from '@/services/adminFreeCopies';
 
-/**
- * Read hook for the Book Author Access table. Default page size
- * matches the audit's existing admin pages.
- */
-export function useFreeCopiesList(params: {
-  page?: number;
-  pageSize?: number;
-  q?: string;
-} = {}) {
-  return useQuery<ListFreeCopiesResponse>({
-    queryKey: ['admin-free-copies', params],
-    queryFn: () => listBooksFreeCopies(params),
+type ListParams = { page?: number; pageSize?: number; q?: string };
+
+export function useAuthorsFreeCopies(params: ListParams = {}) {
+  return useQuery<ListAuthorsResponse>({
+    queryKey: ['admin-free-copies', 'authors', params],
+    queryFn: () => listAuthorsFreeCopies(params),
     placeholderData: (prev) => prev,
   });
 }
 
+export function useUsersFreeCopies(params: ListParams = {}) {
+  return useQuery<ListUsersResponse>({
+    queryKey: ['admin-free-copies', 'users', params],
+    queryFn: () => listUsersFreeCopies(params),
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function useBookUserAllocations(bookId: number | null) {
+  return useQuery<{ allocations: UserAllocationRow[] }>({
+    queryKey: ['admin-free-copies', 'book-users', bookId],
+    queryFn: () => listBookUserAllocations(bookId as number),
+    enabled: !!bookId,
+  });
+}
+
+export function useAllocationRecipients(allocationId: string | null) {
+  return useQuery<{ recipients: RecipientRow[] }>({
+    queryKey: ['admin-free-copies', 'recipients', allocationId],
+    queryFn: () => listAllocationRecipients(allocationId as string),
+    enabled: !!allocationId,
+  });
+}
+
+export function useCreateUserAllocation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createUserAllocation,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-free-copies'] });
+    },
+  });
+}
+
 export function useRequestFreeCopiesOtp() {
-  return useMutation<RequestOtpResponse, Error, { bookId: number; newTotal: number }>({
-    mutationFn: ({ bookId, newTotal }) =>
-      requestFreeCopiesOtp(bookId, newTotal),
+  return useMutation<
+    RequestOtpResponse,
+    Error,
+    { allocationId: string; newTotal: number }
+  >({
+    mutationFn: ({ allocationId, newTotal }) =>
+      requestFreeCopiesOtp(allocationId, newTotal),
   });
 }
 
@@ -43,27 +80,13 @@ export function useConfirmFreeCopiesUpdate() {
   return useMutation<
     ConfirmUpdateResponse,
     Error,
-    { bookId: number; requestId: string; code: string }
+    { allocationId: string; requestId: string; code: string }
   >({
-    mutationFn: ({ bookId, requestId, code }) =>
-      confirmFreeCopiesUpdate(bookId, { requestId, code }),
+    mutationFn: ({ allocationId, requestId, code }) =>
+      confirmFreeCopiesUpdate(allocationId, { requestId, code }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-free-copies'] });
       qc.invalidateQueries({ queryKey: ['all-books'] });
-    },
-  });
-}
-
-export function useAssignFreeCopies() {
-  const qc = useQueryClient();
-  return useMutation<
-    AssignResponse,
-    Error,
-    { bookIds: number[]; phcodes: string[] }
-  >({
-    mutationFn: (args) => assignFreeCopies(args),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-free-copies'] });
     },
   });
 }

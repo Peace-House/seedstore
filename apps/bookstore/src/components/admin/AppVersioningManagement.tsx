@@ -59,8 +59,10 @@ import {
   listWhatsNewSlides,
   updateFeatureBadge,
   updateWhatsNewSlide,
+  uploadWhatsNewImage,
 } from '@/services/appVersioning'
 import { getAppUpdateSettings, getObservedVersions } from '@/services/admin'
+import ImageInput from './communications/ImageInput'
 
 // ─────────────────────────────────────────────────────────────────
 // Catalog of mobile feature keys. Keep this in sync with the values
@@ -970,15 +972,15 @@ const WhatsNewSlideDialog = ({
             />
           </div>
           <div>
-            <Label>Image URL (optional)</Label>
-            <Input
+            <Label>Image (optional)</Label>
+            <ImageInput
               value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://res.cloudinary.com/…/whatsnew-find-peace.jpg"
+              onChange={setImageUrl}
+              upload={uploadWhatsNewImage}
             />
             <p className="text-muted-foreground mt-1 text-xs">
-              Paste a Cloudinary URL (or any HTTPS image URL). Image is
-              optional — text-only slides render without one.
+              Paste an image link or upload a file. Image is optional —
+              text-only slides render without one.
             </p>
           </div>
         </div>

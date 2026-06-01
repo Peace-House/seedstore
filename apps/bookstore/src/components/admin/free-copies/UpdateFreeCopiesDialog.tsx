@@ -16,25 +16,28 @@ import {
   useConfirmFreeCopiesUpdate,
   useRequestFreeCopiesOtp,
 } from '@/hooks/useFreeCopies';
-import { FreeCopyBookRow } from '@/services/adminFreeCopies';
+import { freeCopyErr } from '@/services/adminFreeCopies';
 
 /**
- * Three-step OTP-gated update of a book's free-copies total.
- *
- *   1. Enter new total. Validate against `freeCopiesUsed`.
- *   2. Click "Send verification code". Server pushes a 6-digit
- *      code to admin's mobile + emails it. Returns a requestId.
- *   3. Admin types code → confirm. Server applies the update
- *      and writes an audit row.
- *
- * The dialog stays open until the admin either confirms or
- * cancels; closing mid-flow discards the requestId (the server
- * will time it out after 15 minutes regardless).
+ * Three-step OTP-gated increase of an allocation's free-copy total.
+ *   1. Enter new total (>= already-given).
+ *   2. Server pushes a 6-digit code to the admin's mobile + email.
+ *   3. Admin types the code → confirm → server applies + writes an audit row.
  */
+export interface AllocationTarget {
+  allocationId: string;
+  holderPhcode: string;
+  holderName: string | null;
+  total: number;
+  used: number;
+  remaining: number;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  book: FreeCopyBookRow | null;
+  allocation: AllocationTarget | null;
+  bookTitle?: string;
 }
 
 type Step = 'enter' | 'awaiting-code' | 'confirming';
@@ -42,7 +45,8 @@ type Step = 'enter' | 'awaiting-code' | 'confirming';
 export default function UpdateFreeCopiesDialog({
   open,
   onOpenChange,
-  book,
+  allocation,
+  bookTitle,
 }: Props) {
   const { toast } = useToast();
   const [step, setStep] = useState<Step>('enter');
@@ -55,43 +59,46 @@ export default function UpdateFreeCopiesDialog({
   const requestOtp = useRequestFreeCopiesOtp();
   const confirmUpdate = useConfirmFreeCopiesUpdate();
 
-  // Reset on every open/book change.
   useEffect(() => {
-    if (open && book) {
+    if (open && allocation) {
       setStep('enter');
-      setNewTotal(book.freeCopiesTotal);
+      setNewTotal(allocation.total + 1);
       setCode('');
       setRequestId(null);
       setExpiresAt(null);
     }
-  }, [open, book]);
+  }, [open, allocation]);
 
-  // Tick once a second so the "expires in N min" label is live.
   useEffect(() => {
     if (step !== 'awaiting-code') return;
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [step]);
 
-  const minTotal = book?.freeCopiesUsed ?? 0;
+  // Increase-only: the new total must exceed the current total.
+  const minTotal = (allocation?.total ?? 0) + 1;
   const remaining = useMemo(() => {
     if (!expiresAt) return 0;
     return Math.max(0, Math.floor((expiresAt - now) / 1000));
   }, [expiresAt, now]);
 
+  const holderLabel = allocation
+    ? allocation.holderName || allocation.holderPhcode
+    : '';
+
   const handleSendCode = async () => {
-    if (!book) return;
+    if (!allocation) return;
     if (newTotal < minTotal) {
       toast({
         variant: 'destructive',
         title: 'Invalid total',
-        description: `Cannot be lower than already-granted copies (${minTotal}).`,
+        description: `Must be greater than the current total (${allocation.total}).`,
       });
       return;
     }
     try {
       const res = await requestOtp.mutateAsync({
-        bookId: book.id,
+        allocationId: allocation.allocationId,
         newTotal,
       });
       setRequestId(res.requestId);
@@ -102,17 +109,17 @@ export default function UpdateFreeCopiesDialog({
         description:
           'A 6-digit code has been sent to your registered mobile device and email.',
       });
-    } catch (e: any) {
+    } catch (e) {
       toast({
         variant: 'destructive',
         title: 'Could not send code',
-        description: e?.response?.data?.error ?? e?.message ?? 'Unknown error',
+        description: freeCopyErr(e),
       });
     }
   };
 
   const handleConfirm = async () => {
-    if (!book || !requestId) return;
+    if (!allocation || !requestId) return;
     if (code.trim().length !== 6) {
       toast({
         variant: 'destructive',
@@ -124,37 +131,38 @@ export default function UpdateFreeCopiesDialog({
     setStep('confirming');
     try {
       const res = await confirmUpdate.mutateAsync({
-        bookId: book.id,
+        allocationId: allocation.allocationId,
         requestId,
         code: code.trim(),
       });
       toast({
         title: 'Free copies updated',
-        description: `${res.book.title} is now ${res.book.freeCopiesTotal} total (${res.book.remaining} remaining).`,
+        description: `${holderLabel} now has ${res.allocation.total} total (${res.allocation.remaining} remaining).`,
       });
       onOpenChange(false);
-    } catch (e: any) {
+    } catch (e) {
       setStep('awaiting-code');
       toast({
         variant: 'destructive',
         title: 'Code rejected',
-        description: e?.response?.data?.error ?? e?.message ?? 'Unknown error',
+        description: freeCopyErr(e),
       });
     }
   };
 
-  if (!book) return null;
+  if (!allocation) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Update free copies</DialogTitle>
+          <DialogTitle>Increase free copies</DialogTitle>
           <DialogDescription>
-            {book.title}
-            <span className="block text-xs mt-0.5 text-muted-foreground">
-              Currently {book.freeCopiesTotal} total · {book.freeCopiesUsed}{' '}
-              used · {book.remaining} remaining
+            {bookTitle ? `${bookTitle} · ` : ''}
+            {holderLabel}
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Currently {allocation.total} total · {allocation.used} given ·{' '}
+              {allocation.remaining} remaining
             </span>
           </DialogDescription>
         </DialogHeader>
@@ -176,8 +184,9 @@ export default function UpdateFreeCopiesDialog({
                   )
                 }
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Cannot be less than {minTotal} (already granted).
+              <p className="mt-1 text-xs text-muted-foreground">
+                Must be greater than the current total ({allocation.total}).
+                {allocation.used} already given.
               </p>
             </div>
             <DialogFooter>
@@ -220,7 +229,7 @@ export default function UpdateFreeCopiesDialog({
                   setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
                 }
                 placeholder="123456"
-                className="font-mono text-center text-lg tracking-widest"
+                className="text-center font-mono text-lg tracking-widest"
               />
             </div>
             <DialogFooter>

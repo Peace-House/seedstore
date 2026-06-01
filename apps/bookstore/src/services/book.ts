@@ -24,6 +24,9 @@ export interface Book {
   format?: string
   title: string
   author: string
+  authorPhcode?: string | null
+  coAuthor?: string | null
+  coAuthorPhcode?: string | null
   price: number // Deprecated: use prices array instead
   prices?: BookPrice[]
   coverImage?: string
