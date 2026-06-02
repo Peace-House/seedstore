@@ -84,7 +84,11 @@ export function parseBibleRefs(text: string): BibleRef[] {
     const chapterRaw = m[3]
     const vsRaw = m[4]
     const veRaw = m[5]
-    if (!bookRoot || !chapterRaw || !vsRaw) continue
+    // `m[0]` is the full-match string. Under `noUncheckedIndexedAccess`
+    // every indexed read is widened to `T | undefined`, so we narrow
+    // here once and use the local `raw` below.
+    const raw = m[0]
+    if (!raw || !bookRoot || !chapterRaw || !vsRaw) continue
 
     const chapter = parseInt(chapterRaw, 10)
     const verseStart = parseInt(vsRaw, 10)
@@ -104,7 +108,7 @@ export function parseBibleRefs(text: string): BibleRef[] {
     }
 
     results.push({
-      raw: m[0],
+      raw,
       usfm: buildUsfm(book, chapter, verseStart, verseEnd),
       book,
       chapter,
