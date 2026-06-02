@@ -1,4 +1,12 @@
-import { BookOpen, GripVertical, Clock, AlertTriangle, X } from 'lucide-react'
+import {
+  BookOpen,
+  GripVertical,
+  Clock,
+  AlertTriangle,
+  X,
+  Layers,
+  LayoutGrid,
+} from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -30,6 +38,12 @@ import { useToast } from '@/hooks/use-toast'
 const LIBRARY_ORDER_KEY = 'library_book_order'
 const LIBRARY_PURCHASE_BANNER_DISMISSED_KEY =
   'library_purchase_banner_dismissed'
+// Stack-vs-grid view preference. Defaults to 'stack' on first
+// load so a user lands on the bookshelf treatment — matching
+// the mobile default. Persisted across sessions so anyone who
+// picks 'grid' stays there.
+const LIBRARY_VIEW_MODE_KEY = 'library_view_mode_v1'
+type LibraryViewMode = 'stack' | 'grid'
 
 const Library = () => {
   const { user, loading } = useAuth()
@@ -58,6 +72,18 @@ const Library = () => {
       localStorage.getItem(LIBRARY_PURCHASE_BANNER_DISMISSED_KEY) !== 'true'
     )
   })
+  // View mode (stack | grid) hydrated from localStorage. Stack
+  // is the default — mirrors the mobile library's bookshelf
+  // first impression. Only an explicit pick of 'grid' switches
+  // away.
+  const [viewMode, setViewMode] = useState<LibraryViewMode>(() => {
+    const stored = localStorage.getItem(LIBRARY_VIEW_MODE_KEY)
+    return stored === 'grid' ? 'grid' : 'stack'
+  })
+  const handleSetViewMode = useCallback((next: LibraryViewMode) => {
+    setViewMode(next)
+    localStorage.setItem(LIBRARY_VIEW_MODE_KEY, next)
+  }, [])
 
   // State for ordered books and drag-and-drop
   const [orderedBooks, setOrderedBooks] = useState<Book[]>([])
@@ -293,9 +319,11 @@ const Library = () => {
     return book.orderId.split(':')[1] || null
   }
 
-  // Group books into shelves (8 books per shelf on large, 6 on md, 4 on tablet, 2 on mobile)
-  // Using 8 as the max for grouping, CSS will handle responsive display
-  const booksPerShelf = 8
+  // Group books into shelves. Stack view fits more books per
+  // row because covers overlap, so we group 10 per shelf there;
+  // grid view stays at 8 (its responsive CSS grid handles the
+  // wrap from 2 → 8 cols across breakpoints).
+  const booksPerShelf = viewMode === 'stack' ? 10 : 8
   const shelves: Book[][] = []
   if (orderedBooks && orderedBooks.length > 0) {
     for (let i = 0; i < orderedBooks.length; i += booksPerShelf) {
@@ -442,7 +470,36 @@ const Library = () => {
             // separate shelves of a bookcase rather than one
             // continuous wood slab.
             <div className="space-y-8">
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                {/* Stack / Grid view toggle. Mirrors the mobile
+                    library's view switcher — same default
+                    (stack), same persistence behaviour. */}
+                <div className="inline-flex rounded-full border border-amber-300 bg-white p-1 shadow-sm">
+                  <button
+                    type="button"
+                    aria-pressed={viewMode === 'stack'}
+                    onClick={() => handleSetViewMode('stack')}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                      viewMode === 'stack'
+                        ? 'bg-amber-700 text-white shadow-sm'
+                        : 'text-amber-900 hover:bg-amber-50'
+                    }`}
+                  >
+                    <Layers className="h-3.5 w-3.5" /> Stack
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={viewMode === 'grid'}
+                    onClick={() => handleSetViewMode('grid')}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                      viewMode === 'grid'
+                        ? 'bg-amber-700 text-white shadow-sm'
+                        : 'text-amber-900 hover:bg-amber-50'
+                    }`}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" /> Grid
+                  </button>
+                </div>
                 {orderedBooks && orderedBooks.length > 0 && (
                   <p className="text-muted-foreground hidden text-sm md:block">
                     <GripVertical className="mr-1 inline h-4 w-4" />
@@ -452,9 +509,20 @@ const Library = () => {
               </div>
               {shelves.map((shelfBooks, shelfIndex) => (
                 <div key={shelfIndex} className="relative">
-                  {/* Books on the shelf */}
+                  {/* Books on the shelf — layout switches by view
+                      mode. Grid uses the responsive CSS grid we've
+                      had; stack uses a flex row with each non-first
+                      child pulled left by ~half its width so the
+                      previous book's right edge is covered. The
+                      natural HTML stacking order (later siblings
+                      paint over earlier ones) handles the overlap
+                      direction. */}
                   <div
-                    className="grid min-h-[180px] grid-cols-2 items-end gap-2 px-2 pb-0 pt-4 sm:grid-cols-4 md:min-h-[220px] md:grid-cols-6 md:gap-3 md:px-6 lg:grid-cols-8"
+                    className={
+                      viewMode === 'stack'
+                        ? 'flex min-h-[180px] items-end justify-start px-2 pb-0 pt-4 md:min-h-[220px] md:px-6'
+                        : 'grid min-h-[180px] grid-cols-2 items-end gap-2 px-2 pb-0 pt-4 sm:grid-cols-4 md:min-h-[220px] md:grid-cols-6 md:gap-3 md:px-6 lg:grid-cols-8'
+                    }
                     onDragOver={(e) => {
                       e.preventDefault()
                     }}
@@ -475,6 +543,25 @@ const Library = () => {
                         !!activeLendForBook &&
                         !activeLendForBook.lenderHasAccess
 
+                      // Stack-view sizing: each book is a fixed
+                      // width, and every book after the first is
+                      // pulled left by half that width so it
+                      // covers the previous one's right edge.
+                      // Widths are tuned so 10 overlapping books
+                      // (span = W·(N+1)/2 = W·5.5) fit each
+                      // breakpoint's typical container width:
+                      //   • mobile (≤640): 60·5.5 = 330px  ✓ 360
+                      //   • sm (640–768):  90·5.5 = 495    ✓ 640
+                      //   • md (768–1024): 120·5.5 = 660   ✓ 768
+                      //   • lg (≥1024):    150·5.5 = 825   ✓ 1024+
+                      const stackBookSizing =
+                        viewMode === 'stack'
+                          ? `shrink-0 w-[60px] sm:w-[90px] md:w-[120px] lg:w-[150px] ${
+                              bookIndex > 0
+                                ? '-ml-[30px] sm:-ml-[45px] md:-ml-[60px] lg:-ml-[75px]'
+                                : ''
+                            }`
+                          : ''
                       return (
                         <div
                           key={`book-${book.id}`}
@@ -483,7 +570,7 @@ const Library = () => {
                           onDragEnd={handleDragEnd}
                           onDragOver={(e) => handleDragOver(e, globalIndex)}
                           onDrop={(e) => handleDrop(e, globalIndex)}
-                          className={`group relative cursor-grab transition-all duration-200 hover:z-10 hover:-translate-y-2 active:cursor-grabbing ${
+                          className={`group relative cursor-grab transition-all duration-200 hover:z-10 hover:-translate-y-2 active:cursor-grabbing ${stackBookSizing} ${
                             isDragging ? 'scale-90 opacity-30' : ''
                           } ${isDragOver ? 'z-20 -translate-y-4' : ''}`}
                         >
@@ -492,9 +579,18 @@ const Library = () => {
                             <div className="bg-primary shadow-primary/50 absolute -left-2 top-0 bottom-0 w-1.5 rounded-full shadow-lg" />
                           )}
 
-                          {/* Book spine/cover */}
+                          {/* Book spine/cover. Grid view keeps the
+                              fixed 160/200px heights with max-width
+                              caps; stack view drops both and uses an
+                              aspect ratio so heights stay
+                              proportional to the smaller widths
+                              (7:10 = standard book proportions). */}
                           <div
-                            className={`relative mx-auto h-[160px] w-full max-w-[120px] overflow-hidden rounded-r-sm shadow-md transition-all duration-300 group-hover:shadow-xl md:h-[200px] md:max-w-[150px] ${
+                            className={`relative mx-auto w-full overflow-hidden rounded-r-sm shadow-md transition-all duration-300 group-hover:shadow-xl ${
+                              viewMode === 'stack'
+                                ? 'aspect-[7/10]'
+                                : 'h-[160px] max-w-[120px] md:h-[200px] md:max-w-[150px]'
+                            } ${
                               isDragOver
                                 ? 'ring-primary ring-2 ring-offset-2'
                                 : ''
@@ -503,6 +599,16 @@ const Library = () => {
                               // 3D book effect
                               transformStyle: 'preserve-3d',
                               perspective: '1000px',
+                              // Stack-view seam shadow — only on
+                              // books that sit on top of another.
+                              // Without it, two adjacent overlapping
+                              // covers blur together. Composed with
+                              // the existing card shadow so we don't
+                              // lose the lift effect.
+                              boxShadow:
+                                viewMode === 'stack' && bookIndex > 0
+                                  ? '0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px -2px rgba(0,0,0,0.10), -4px 0 6px -1px rgba(0,0,0,0.45)'
+                                  : undefined,
                             }}
                             onClick={() => {
                               if (isLentOutNoAccess) return
@@ -687,8 +793,19 @@ const Library = () => {
                     })}
                   </div>
 
-                  {/* Wooden shelf */}
-                  <div className="relative hidden md:block">
+                  {/* Wooden shelf. Stack view's overlap layout
+                      fits on one row at every breakpoint, so the
+                      plank is shown on all sizes. Grid view still
+                      hides the plank on mobile because the cells
+                      wrap into multiple visual rows and a single
+                      plank at the bottom would look stranded. */}
+                  <div
+                    className={
+                      viewMode === 'stack'
+                        ? 'relative block'
+                        : 'relative hidden md:block'
+                    }
+                  >
                     {/* Shelf front edge (3D effect) */}
                     <div
                       className="h-[8px] rounded-b-sm md:h-[10px]"
@@ -700,8 +817,16 @@ const Library = () => {
                     />
 
                     {/* Shelf brackets (decorative) */}
-                    <div className="absolute -bottom-4 left-4 hidden h-4 w-3 rounded-b-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-md md:block" />
-                    <div className="absolute -bottom-4 right-4 hidden h-4 w-3 rounded-b-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-md md:block" />
+                    <div
+                      className={`absolute -bottom-4 left-4 h-4 w-3 rounded-b-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-md ${
+                        viewMode === 'stack' ? 'block' : 'hidden md:block'
+                      }`}
+                    />
+                    <div
+                      className={`absolute -bottom-4 right-4 h-4 w-3 rounded-b-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-md ${
+                        viewMode === 'stack' ? 'block' : 'hidden md:block'
+                      }`}
+                    />
                   </div>
                 </div>
               ))}
