@@ -11,8 +11,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
-import { BibleRef, labelForRef } from './refParser'
 import { DEFAULT_BIBLE_ID, fetchPassage } from './bibleService'
+import { BibleRef, labelForRef } from './refParser'
 import { usfmDisplayNames } from './usfmAliases'
 
 interface Translation {
@@ -51,13 +51,6 @@ const EXTRA_TRANSLATIONS: Translation[] = [
   { id: 463, abbr: 'NABRE', name: 'New American Bible, Revised Edition' },
   { id: 100, abbr: 'NASB1995', name: 'New American Standard Bible 1995' },
   { id: 2407, abbr: 'CEB', name: 'Common English Bible' },
-]
-
-// All translations combined — used to resolve a saved id back to its
-// abbreviation when re-opening the sheet across sessions.
-const ALL_TRANSLATIONS: Translation[] = [
-  ...TRANSLATIONS,
-  ...EXTRA_TRANSLATIONS,
 ]
 
 const VERSION_PREF_KEY = 'ls_bible_version_v1'
@@ -192,10 +185,6 @@ export function BibleVerseSheet({
     document.addEventListener('mousedown', onDocDown)
     return () => document.removeEventListener('mousedown', onDocDown)
   }, [moreOpen])
-
-  const handleToggleChapter = useCallback(() => {
-    setChapterMode((m) => !m)
-  }, [])
 
   if (!open || !ref) return null
 

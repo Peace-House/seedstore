@@ -17,6 +17,9 @@ import { useSnapshot } from 'valtio'
 import { RenditionSpread } from '@flow/epubjs/types/rendition'
 import { navbarState } from '@flow/reader/state'
 
+import { BibleVerseSheet } from '../bible/BibleVerseSheet'
+import { installBibleRefDetector } from '../bible/refDetector'
+import type { BibleRef } from '../bible/refParser'
 import { db } from '../db'
 import { handleFiles } from '../file'
 import {
@@ -35,9 +38,6 @@ import { useReadProgressSync } from '../hooks/useReadProgressSync'
 import { BookTab, reader, useReaderSnapshot } from '../models'
 import { isTouchScreen } from '../platform'
 import { updateCustomStyle } from '../styles'
-import { BibleVerseSheet } from '../bible/BibleVerseSheet'
-import { installBibleRefDetector } from '../bible/refDetector'
-import type { BibleRef } from '../bible/refParser'
 
 import {
   getClickedAnnotation,
