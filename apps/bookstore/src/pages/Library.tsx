@@ -319,11 +319,12 @@ const Library = () => {
     return book.orderId.split(':')[1] || null
   }
 
-  // Group books into shelves. Stack view fits more books per
-  // row because covers overlap, so we group 10 per shelf there;
-  // grid view stays at 8 (its responsive CSS grid handles the
-  // wrap from 2 → 8 cols across breakpoints).
-  const booksPerShelf = viewMode === 'stack' ? 10 : 8
+  // Group books into shelves. Both views render their shelf
+  // sized exactly to fit the books — 10 overlapping covers in
+  // stack mode, 5 standalone covers in grid. The wrapping
+  // container uses w-fit + mx-auto so the shelf reads as a
+  // centred bookcase row regardless of viewport width.
+  const booksPerShelf = viewMode === 'stack' ? 10 : 5
   const shelves: Book[][] = []
   if (orderedBooks && orderedBooks.length > 0) {
     for (let i = 0; i < orderedBooks.length; i += booksPerShelf) {
@@ -508,20 +509,27 @@ const Library = () => {
                 )}
               </div>
               {shelves.map((shelfBooks, shelfIndex) => (
-                <div key={shelfIndex} className="relative">
-                  {/* Books on the shelf — layout switches by view
-                      mode. Grid uses the responsive CSS grid we've
-                      had; stack uses a flex row with each non-first
-                      child pulled left by ~half its width so the
-                      previous book's right edge is covered. The
-                      natural HTML stacking order (later siblings
-                      paint over earlier ones) handles the overlap
-                      direction. */}
+                // `w-fit + mx-auto` collapses the shelf to its
+                // content width (exactly the books it holds) and
+                // centres it horizontally on the page. The plank
+                // and brackets below are children of this wrapper
+                // so they inherit the same compact width.
+                <div
+                  key={shelfIndex}
+                  className="relative mx-auto w-fit"
+                >
+                  {/* Books on the shelf. Both views are flex rows
+                      now — stack uses negative left margins so
+                      each cover overlaps the previous one by half
+                      its width; grid uses a positive gap so covers
+                      sit side-by-side. Either way, the container's
+                      intrinsic width is the sum of the contents,
+                      which is what the surrounding w-fit reads. */}
                   <div
                     className={
                       viewMode === 'stack'
-                        ? 'flex min-h-[180px] items-end justify-start px-2 pb-0 pt-4 md:min-h-[220px] md:px-6'
-                        : 'grid min-h-[180px] grid-cols-2 items-end gap-2 px-2 pb-0 pt-4 sm:grid-cols-4 md:min-h-[220px] md:grid-cols-6 md:gap-3 md:px-6 lg:grid-cols-8'
+                        ? 'flex min-h-[180px] items-end pt-4 md:min-h-[220px]'
+                        : 'flex min-h-[180px] items-end gap-2 pt-4 sm:gap-3 md:min-h-[220px]'
                     }
                     onDragOver={(e) => {
                       e.preventDefault()
@@ -543,25 +551,26 @@ const Library = () => {
                         !!activeLendForBook &&
                         !activeLendForBook.lenderHasAccess
 
-                      // Stack-view sizing: each book is a fixed
-                      // width, and every book after the first is
-                      // pulled left by half that width so it
-                      // covers the previous one's right edge.
-                      // Widths are tuned so 10 overlapping books
-                      // (span = W·(N+1)/2 = W·5.5) fit each
-                      // breakpoint's typical container width:
-                      //   • mobile (≤640): 60·5.5 = 330px  ✓ 360
-                      //   • sm (640–768):  90·5.5 = 495    ✓ 640
-                      //   • md (768–1024): 120·5.5 = 660   ✓ 768
-                      //   • lg (≥1024):    150·5.5 = 825   ✓ 1024+
-                      const stackBookSizing =
-                        viewMode === 'stack'
-                          ? `shrink-0 w-[60px] sm:w-[90px] md:w-[120px] lg:w-[150px] ${
-                              bookIndex > 0
-                                ? '-ml-[30px] sm:-ml-[45px] md:-ml-[60px] lg:-ml-[75px]'
-                                : ''
-                            }`
+                      // Both views give every book an explicit
+                      // width so the parent's w-fit can size the
+                      // shelf exactly to its contents:
+                      //   • mobile: 60px
+                      //   • sm:     90px
+                      //   • md:    120px
+                      //   • lg:    150px
+                      // Stack additionally pulls each book after
+                      // the first left by half a width to overlap
+                      // the previous cover; grid leaves the gap
+                      // class on the parent to space them out.
+                      // Stack total: W·5.5 (10 books); grid total:
+                      // W·5 + 4·gap (5 books).
+                      const bookSizing =
+                        'shrink-0 w-[60px] sm:w-[90px] md:w-[120px] lg:w-[150px]'
+                      const stackOverlapPull =
+                        viewMode === 'stack' && bookIndex > 0
+                          ? '-ml-[30px] sm:-ml-[45px] md:-ml-[60px] lg:-ml-[75px]'
                           : ''
+                      const stackBookSizing = `${bookSizing} ${stackOverlapPull}`
                       return (
                         <div
                           key={`book-${book.id}`}
@@ -579,18 +588,16 @@ const Library = () => {
                             <div className="bg-primary shadow-primary/50 absolute -left-2 top-0 bottom-0 w-1.5 rounded-full shadow-lg" />
                           )}
 
-                          {/* Book spine/cover. Grid view keeps the
-                              fixed 160/200px heights with max-width
-                              caps; stack view drops both and uses an
-                              aspect ratio so heights stay
-                              proportional to the smaller widths
-                              (7:10 = standard book proportions). */}
+                          {/* Book spine/cover. Both views use the
+                              7:10 standard book aspect ratio on a
+                              w-full cover, so the cover height is
+                              driven by the parent's fixed width
+                              (60–150px depending on breakpoint).
+                              Keeps the proportions consistent
+                              between grid and stack — only the
+                              parent layout changes between them. */}
                           <div
-                            className={`relative mx-auto w-full overflow-hidden rounded-r-sm shadow-md transition-all duration-300 group-hover:shadow-xl ${
-                              viewMode === 'stack'
-                                ? 'aspect-[7/10]'
-                                : 'h-[160px] max-w-[120px] md:h-[200px] md:max-w-[150px]'
-                            } ${
+                            className={`relative mx-auto aspect-[7/10] w-full overflow-hidden rounded-r-sm shadow-md transition-all duration-300 group-hover:shadow-xl ${
                               isDragOver
                                 ? 'ring-primary ring-2 ring-offset-2'
                                 : ''
