@@ -23,6 +23,24 @@ pnpm --filter @flow/website build
 
 ---
 
+## Deployed URLs (Staging vs Production)
+
+These are the known deployed endpoints referenced in this codebase.
+
+| Surface | Production | Staging |
+|---|---|---|
+| Bookstore (Web) | `https://seedstore.livingseed.org` | `TODO: set staging domain` |
+| Reader (Web) | `https://reader.seedstore.livingseed.org` | `TODO: set staging domain` |
+| Backend API | `TODO: confirm production API domain` | `https://ls-server-oq9l.onrender.com/api/v1` |
+| Legacy backend (PHREMA) | `TODO: confirm` | `https://backend.livingseed.org/phrema` |
+| Legacy auth | `TODO: confirm` | `https://backend.livingseed.org/auth` |
+
+Notes:
+- The production web domains above come from `vercel.json` in this repo.
+- The staging API URL above comes from `seedstore-mobile/.env`.
+
+---
+
 ## 2. Connect the Monorepo to Vercel
 
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard) and click **New Project**.

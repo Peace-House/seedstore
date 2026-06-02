@@ -120,6 +120,10 @@ const ManageGroupBuy = () => {
     {},
   )
   const [howItWorksOpen, setHowItWorksOpen] = useState(false)
+  // Which group-purchase card is currently expanded. Null = every
+  // card is collapsed. Only one card is allowed open at a time so
+  // the page stays scannable when a user has many group buys.
+  const [openCardId, setOpenCardId] = useState<string | null>(null)
   const [checkingGroupId, setCheckingGroupId] = useState<string | null>(null)
   const [bulkModal, setBulkModal] = useState<{
     open: boolean
@@ -536,6 +540,7 @@ const ManageGroupBuy = () => {
               assignMutation.isPending &&
               assignMutation.variables?.id === gp.id
 
+            const isOpen = openCardId === gp.id
             return (
               <LiquidGlassWrapper
                 key={gp.id}
@@ -543,10 +548,32 @@ const ManageGroupBuy = () => {
                   border: '0.5px solid green',
                 }}
               >
-                <CardContent className="space-y-4 p-6">
-                  <div className="flex items-start justify-between gap-4">
+                {/* Each card is a single-open Collapsible. The
+                    trigger surfaces just the title + assigned/total
+                    so the list stays compact when the user has
+                    many group purchases. Opening one card closes
+                    any other that was open, enforced via the
+                    shared openCardId state. */}
+                <Collapsible
+                  open={isOpen}
+                  onOpenChange={(next) =>
+                    setOpenCardId(next ? gp.id : null)
+                  }
+                >
+                  <CollapsibleTrigger className="group flex w-full items-center justify-between gap-4 p-6 text-left">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="truncate text-lg font-semibold">
+                        {gp.book.title}
+                      </h2>
+                      <p className="text-muted-foreground text-sm">
+                        Give out: <strong>{displayAssignedCount}</strong> / {gp.totalCopies}
+                      </p>
+                    </div>
+                    <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 px-6 pb-6">
+                  <div className="flex items-start justify-between gap-4 border-t pt-4">
                     <div>
-                      <h2 className="text-lg font-semibold">{gp.book.title}</h2>
                       <p className="text-muted-foreground text-sm">
                         Status: {gp.status} · Copies: {displayAssignedCount}/
                         {gp.totalCopies} assigned
@@ -791,7 +818,8 @@ const ManageGroupBuy = () => {
                         : 'All copies are already assigned.'}
                     </p>
                   )}
-                </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
               </LiquidGlassWrapper>
             )
           })}

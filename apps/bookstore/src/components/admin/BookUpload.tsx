@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import BookPreviewCard from './BookPreviewCard';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,10 +11,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { X } from 'lucide-react';
+import { X, FileText, Image as ImageIcon } from 'lucide-react';
 
 const bookSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
@@ -32,10 +33,41 @@ const bookSchema = z.object({
   maxConcurrentBorrows: z.number().min(1).default(5),
   quotaPeriodDays: z.number().min(1).default(30),
   quotaLimit: z.number().min(1).default(3),
+  // Authors (max 2). Each author is identified by a PHCode used for free-copy
+  // distribution. Free copies are no longer set here — each author defaults to
+  // 100 and is managed (increased) on the Book Author Access page.
+  authorPhcode: z.string().max(40).optional(),
+  coAuthor: z.string().max(100).optional(),
+  coAuthorPhcode: z.string().max(40).optional(),
 });
 
 type BookFormData = z.infer<typeof bookSchema>;
 
+// Shared styling for the native <select> controls so they match the shadcn
+// Input height / border / focus ring.
+const selectClass =
+  'flex h-10 w-full rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50';
+
+// Titled group of related fields with a consistent header + spacing.
+const FormSection = ({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) => (
+  <section className="space-y-4">
+    <div className="space-y-0.5">
+      <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+      {description ? (
+        <p className="text-sm text-muted-foreground">{description}</p>
+      ) : null}
+    </div>
+    {children}
+  </section>
+);
 
 interface BookUploadProps {
   initialValues?: Partial<BookFormData> & { coverImage?: string; category?: string };
@@ -58,10 +90,10 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
 
   const form = useForm<BookFormData>({
     resolver: zodResolver(bookSchema),
-    defaultValues: { 
-      ...initialValues, 
+    defaultValues: {
+      ...initialValues,
       categoryIds: defaultCategoryIds,
-      isFeatured: initialValues?.isFeatured ?? false, 
+      isFeatured: initialValues?.isFeatured ?? false,
       isNewRelease: initialValues?.isNewRelease ?? false,
       isLendable: initialValues?.isLendable ?? false,
       lendDurationDays: initialValues?.lendDurationDays ?? 7,
@@ -69,6 +101,9 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
       maxConcurrentBorrows: initialValues?.maxConcurrentBorrows ?? 5,
       quotaPeriodDays: initialValues?.quotaPeriodDays ?? 30,
       quotaLimit: initialValues?.quotaLimit ?? 3,
+      authorPhcode: initialValues?.authorPhcode ?? '',
+      coAuthor: initialValues?.coAuthor ?? '',
+      coAuthorPhcode: initialValues?.coAuthorPhcode ?? '',
     },
   });
 
@@ -130,6 +165,12 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
       formData.append('maxConcurrentBorrows', String(data.maxConcurrentBorrows));
       formData.append('quotaPeriodDays', String(data.quotaPeriodDays));
       formData.append('quotaLimit', String(data.quotaLimit));
+      // Authors: primary author name is sent above; the PHCodes drive the
+      // per-author free-copy allocations (seeded at 100 each server-side).
+      if (data.authorPhcode) formData.append('authorPhcode', data.authorPhcode);
+      if (data.coAuthor) formData.append('coAuthor', data.coAuthor);
+      if (data.coAuthorPhcode)
+        formData.append('coAuthorPhcode', data.coAuthorPhcode);
       // File uploads: backend expects 'coverImage' and 'file'
       formData.append('coverImage', coverFile as Blob);
       formData.append('file', bookFile as Blob);
@@ -174,53 +215,71 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
   };
 
   return (
-
-
     <div className="flex flex-col lg:flex-row gap-8 items-start">
-      <Card className={`flex-1 w-full lg:w-2/3 rounded ${isUpdate ? 'border-none bg-transparent' : ''}`}>
-        {!isUpdate && <CardHeader>
-          <CardTitle>Upload New Book</CardTitle>
-          <CardDescription>Add a new book to the store</CardDescription>
-        </CardHeader>}
+      <Card className={`flex-1 w-full lg:w-2/3 rounded ${isUpdate ? 'border-none bg-transparent shadow-none' : ''}`}>
+        {!isUpdate && (
+          <CardHeader>
+            <CardTitle>Upload New Book</CardTitle>
+            <CardDescription>Add a new book to the store</CardDescription>
+          </CardHeader>
+        )}
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              {/* ── Book details ──────────────────────────────────────── */}
+              <FormSection
+                title="Book details"
+                description="Core information shown to readers in the store."
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title *</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="author"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Author *</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
-                  name="title"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Title *</FormLabel>
+                      <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Textarea rows={4} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="author"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Author *</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Price field removed */}
 
                 <FormField
                   control={form.control}
                   name="categoryIds"
                   render={({ field }) => (
-                    <FormItem className="md:col-span-2">
+                    <FormItem>
                       <FormLabel>Categories</FormLabel>
                       <FormControl>
                         <div className="space-y-2">
@@ -258,7 +317,7 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                                 field.onChange([...(field.value || []), selectedId]);
                               }
                             }}
-                            className="block w-full border rounded px-3 py-2 bg-background"
+                            className={selectClass}
                             disabled={loadingCategories}
                           >
                             <option value="">Add a category...</option>
@@ -277,155 +336,253 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="groupId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Book Group *</FormLabel>
-                      <FormControl>
-                        <select
-                          value={field.value}
-                          onChange={field.onChange}
-                          className="block w-full border rounded px-3 py-2 bg-background"
-                          disabled={loadingGroups}
-                        >
-                          <option value="">Select book group</option>
-                          {bookGroups?.map((group) => (
-                            <option key={group.id} value={String(group.id)}>
-                              {group.name} ({group.shortcode})
-                            </option>
-                          ))}
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                  <FormField
+                    control={form.control}
+                    name="groupId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Book Group *</FormLabel>
+                        <FormControl>
+                          <select
+                            value={field.value}
+                            onChange={field.onChange}
+                            className={selectClass}
+                            disabled={loadingGroups}
+                          >
+                            <option value="">Select book group</option>
+                            {bookGroups?.map((group) => (
+                              <option key={group.id} value={String(group.id)}>
+                                {group.name} ({group.shortcode})
+                              </option>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="isbn"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ISBN</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="isbn"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ISBN</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {/* Pages field removed */}
-
-                <FormField
-                  control={form.control}
-                  name="publishedDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Published Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea rows={4} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="space-y-4">
-                <div>
-                  <FormLabel>Cover Image *</FormLabel>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
-                    className="mt-2"
+                  <FormField
+                    control={form.control}
+                    name="publishedDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Published Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
+              </FormSection>
 
-                <div>
-                  <FormLabel>Book File (EPUB/HTML/DOCX) *</FormLabel>
-                  <Input
-                    type="file"
-                    accept=".epub, .html, .docx, .doc, .htm"
-                    onChange={(e) =>{
-                      const selectedFile = e.target.files[0];
-                      if (selectedFile) {
-                        const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/html', 'application/epub+zip'];
-                        if (!validTypes.includes(selectedFile.type)) {
-                          toast({
-                            variant: 'destructive',
-                            title: 'Upload failed',
-                            description: 'Invalid file type. Please upload PDF, DOCX, HTML, or EPUB',
-                          });
-                          return;
+              <Separator />
+
+              {/* ── Cover & book file ─────────────────────────────────── */}
+              <FormSection
+                title="Cover & book file"
+                description="Upload the cover image and the readable book file."
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <FormLabel className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      Cover Image *
+                    </FormLabel>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                    />
+                    <p className="text-xs text-muted-foreground truncate">
+                      {coverFile ? `Selected: ${coverFile.name}` : 'PNG or JPG. Portrait cover recommended.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <FormLabel className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      Book File (EPUB/HTML/DOCX) *
+                    </FormLabel>
+                    <Input
+                      type="file"
+                      accept=".epub, .html, .docx, .doc, .htm"
+                      onChange={(e) =>{
+                        const selectedFile = e.target.files[0];
+                        if (selectedFile) {
+                          const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/html', 'application/epub+zip'];
+                          if (!validTypes.includes(selectedFile.type)) {
+                            toast({
+                              variant: 'destructive',
+                              title: 'Upload failed',
+                              description: 'Invalid file type. Please upload PDF, DOCX, HTML, or EPUB',
+                            });
+                            return;
+                          }
+                          setBookFile(selectedFile || null)
                         }
-                        setBookFile(selectedFile || null)
-                      }
-                    }}
-                    className="mt-2"
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground truncate">
+                      {bookFile ? `Selected: ${bookFile.name}` : 'Accepted: EPUB, HTML or DOCX.'}
+                    </p>
+                  </div>
+                </div>
+              </FormSection>
+
+              <Separator />
+
+              {/* ── Visibility & promotion ────────────────────────────── */}
+              <FormSection
+                title="Visibility & promotion"
+                description="Control where this book is highlighted in the store."
+              >
+                <div className="space-y-3">
+                  <FormField
+                    control={form.control}
+                    name="isFeatured"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4 space-y-0">
+                        <div className="space-y-0.5 pr-4">
+                          <FormLabel className="!mt-0">Featured Book</FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Show this title in the featured / highlighted rails.
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="isNewRelease"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4 space-y-0">
+                        <div className="space-y-0.5 pr-4">
+                          <FormLabel className="!mt-0">New Release</FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Notify users who opted in for new-release alerts.
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
                   />
                 </div>
-              </div>
+              </FormSection>
 
-              <FormField
-                control={form.control}
-                name="isFeatured"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-2">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel className="!mt-0">Featured Book</FormLabel>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="isNewRelease"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-2">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel className="!mt-0">New Release (notify users who opted in for new releases)</FormLabel>
-                  </FormItem>
-                )}
-              />
+              <Separator />
 
-              <div className="border-t pt-4 mt-4">
-                <h3 className="text-sm font-medium mb-4">Lending Configuration</h3>
+              {/* ── Authors (max 2) ───────────────────────────────────── */}
+              <FormSection
+                title="Authors"
+                description="Up to two authors. The primary author's name is the “Author” field above. Add each author's PHCode so they receive their free-copy quota (100 each, managed on the Book Author Access page)."
+              >
+                <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="authorPhcode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Author PHCode</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="PH123456"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) =>
+                              field.onChange(e.target.value.toUpperCase())
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="coAuthor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Co-author name (optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value ?? ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="coAuthorPhcode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Co-author PHCode (optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="PH654321"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) =>
+                              field.onChange(e.target.value.toUpperCase())
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </FormSection>
+
+              <Separator />
+
+              {/* ── Lending configuration ─────────────────────────────── */}
+              <FormSection
+                title="Lending configuration"
+                description="Decide whether and how this book can be borrowed."
+              >
                 <FormField
                   control={form.control}
                   name="isLendable"
                   render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2">
+                    <FormItem className="flex items-center justify-between rounded-lg border p-4 space-y-0">
+                      <div className="space-y-0.5 pr-4">
+                        <FormLabel className="!mt-0">Enable Lending</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Allow readers to borrow this book for a limited time.
+                        </p>
+                      </div>
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
-                      <FormLabel className="!mt-0">Enable Lending</FormLabel>
                     </FormItem>
                   )}
                 />
 
                 {form.watch('isLendable') && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 animate-in fade-in slide-in-from-top-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 rounded-lg border bg-muted/30 p-4 animate-in fade-in slide-in-from-top-2">
                     <FormField
                       control={form.control}
                       name="lendDurationDays"
@@ -480,7 +637,10 @@ const BookUpload = ({ initialValues, onSubmitOverride, submitLabel, isUpdate = f
                     />
                   </div>
                 )}
-              </div>
+              </FormSection>
+
+              <Separator />
+
               <div className="flex justify-end">
                 <Button
                   type="submit"

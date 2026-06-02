@@ -1,4 +1,12 @@
-import { BookOpen, GripVertical, Clock, AlertTriangle, X } from 'lucide-react'
+import {
+  BookOpen,
+  GripVertical,
+  Clock,
+  AlertTriangle,
+  X,
+  Layers,
+  LayoutGrid,
+} from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -30,6 +38,12 @@ import { useToast } from '@/hooks/use-toast'
 const LIBRARY_ORDER_KEY = 'library_book_order'
 const LIBRARY_PURCHASE_BANNER_DISMISSED_KEY =
   'library_purchase_banner_dismissed'
+// Stack-vs-grid view preference. Defaults to 'stack' on first
+// load so a user lands on the bookshelf treatment — matching
+// the mobile default. Persisted across sessions so anyone who
+// picks 'grid' stays there.
+const LIBRARY_VIEW_MODE_KEY = 'library_view_mode_v1'
+type LibraryViewMode = 'stack' | 'grid'
 
 const Library = () => {
   const { user, loading } = useAuth()
@@ -58,6 +72,18 @@ const Library = () => {
       localStorage.getItem(LIBRARY_PURCHASE_BANNER_DISMISSED_KEY) !== 'true'
     )
   })
+  // View mode (stack | grid) hydrated from localStorage. Stack
+  // is the default — mirrors the mobile library's bookshelf
+  // first impression. Only an explicit pick of 'grid' switches
+  // away.
+  const [viewMode, setViewMode] = useState<LibraryViewMode>(() => {
+    const stored = localStorage.getItem(LIBRARY_VIEW_MODE_KEY)
+    return stored === 'grid' ? 'grid' : 'stack'
+  })
+  const handleSetViewMode = useCallback((next: LibraryViewMode) => {
+    setViewMode(next)
+    localStorage.setItem(LIBRARY_VIEW_MODE_KEY, next)
+  }, [])
 
   // State for ordered books and drag-and-drop
   const [orderedBooks, setOrderedBooks] = useState<Book[]>([])
@@ -293,9 +319,12 @@ const Library = () => {
     return book.orderId.split(':')[1] || null
   }
 
-  // Group books into shelves (8 books per shelf on large, 6 on md, 4 on tablet, 2 on mobile)
-  // Using 8 as the max for grouping, CSS will handle responsive display
-  const booksPerShelf = 8
+  // Group books into shelves. Both views render their shelf
+  // sized exactly to fit the books — 10 overlapping covers in
+  // stack mode, 5 standalone covers in grid. The wrapping
+  // container uses w-fit + mx-auto so the shelf reads as a
+  // centred bookcase row regardless of viewport width.
+  const booksPerShelf = viewMode === 'stack' ? 10 : 5
   const shelves: Book[][] = []
   if (orderedBooks && orderedBooks.length > 0) {
     for (let i = 0; i < orderedBooks.length; i += booksPerShelf) {
@@ -437,8 +466,41 @@ const Library = () => {
               <Button onClick={() => navigate('/')}>Browse Bookstore</Button>
             </div>
           ) : (
-            <div className="space-y-0">
-              <div className="flex justify-end">
+            // Gap between shelves — books and the next shelf above
+            // shouldn't share a seam. ~32px breathing room reads as
+            // separate shelves of a bookcase rather than one
+            // continuous wood slab.
+            <div className="space-y-8">
+              <div className="flex items-center justify-between">
+                {/* Stack / Grid view toggle. Mirrors the mobile
+                    library's view switcher — same default
+                    (stack), same persistence behaviour. */}
+                <div className="inline-flex rounded-full border border-amber-300 bg-white p-1 shadow-sm">
+                  <button
+                    type="button"
+                    aria-pressed={viewMode === 'stack'}
+                    onClick={() => handleSetViewMode('stack')}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                      viewMode === 'stack'
+                        ? 'bg-amber-700 text-white shadow-sm'
+                        : 'text-amber-900 hover:bg-amber-50'
+                    }`}
+                  >
+                    <Layers className="h-3.5 w-3.5" /> Stack
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={viewMode === 'grid'}
+                    onClick={() => handleSetViewMode('grid')}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                      viewMode === 'grid'
+                        ? 'bg-amber-700 text-white shadow-sm'
+                        : 'text-amber-900 hover:bg-amber-50'
+                    }`}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" /> Grid
+                  </button>
+                </div>
                 {orderedBooks && orderedBooks.length > 0 && (
                   <p className="text-muted-foreground hidden text-sm md:block">
                     <GripVertical className="mr-1 inline h-4 w-4" />
@@ -447,10 +509,28 @@ const Library = () => {
                 )}
               </div>
               {shelves.map((shelfBooks, shelfIndex) => (
-                <div key={shelfIndex} className="relative">
-                  {/* Books on the shelf */}
+                // `w-fit + mx-auto` collapses the shelf to its
+                // content width (exactly the books it holds) and
+                // centres it horizontally on the page. The plank
+                // and brackets below are children of this wrapper
+                // so they inherit the same compact width.
+                <div
+                  key={shelfIndex}
+                  className="relative mx-auto w-fit"
+                >
+                  {/* Books on the shelf. Both views are flex rows
+                      now — stack uses negative left margins so
+                      each cover overlaps the previous one by half
+                      its width; grid uses a positive gap so covers
+                      sit side-by-side. Either way, the container's
+                      intrinsic width is the sum of the contents,
+                      which is what the surrounding w-fit reads. */}
                   <div
-                    className="grid min-h-[180px] grid-cols-2 items-end gap-2 px-2 pb-0 pt-4 sm:grid-cols-4 md:min-h-[220px] md:grid-cols-6 md:gap-3 md:px-6 lg:grid-cols-8"
+                    className={
+                      viewMode === 'stack'
+                        ? 'flex min-h-[180px] items-end pt-4 md:min-h-[220px]'
+                        : 'flex min-h-[180px] items-end gap-2 pt-4 sm:gap-3 md:min-h-[220px]'
+                    }
                     onDragOver={(e) => {
                       e.preventDefault()
                     }}
@@ -471,6 +551,26 @@ const Library = () => {
                         !!activeLendForBook &&
                         !activeLendForBook.lenderHasAccess
 
+                      // Both views give every book an explicit
+                      // width so the parent's w-fit can size the
+                      // shelf exactly to its contents:
+                      //   • mobile: 60px
+                      //   • sm:     90px
+                      //   • md:    120px
+                      //   • lg:    150px
+                      // Stack additionally pulls each book after
+                      // the first left by half a width to overlap
+                      // the previous cover; grid leaves the gap
+                      // class on the parent to space them out.
+                      // Stack total: W·5.5 (10 books); grid total:
+                      // W·5 + 4·gap (5 books).
+                      const bookSizing =
+                        'shrink-0 w-[60px] sm:w-[90px] md:w-[120px] lg:w-[150px]'
+                      const stackOverlapPull =
+                        viewMode === 'stack' && bookIndex > 0
+                          ? '-ml-[30px] sm:-ml-[45px] md:-ml-[60px] lg:-ml-[75px]'
+                          : ''
+                      const stackBookSizing = `${bookSizing} ${stackOverlapPull}`
                       return (
                         <div
                           key={`book-${book.id}`}
@@ -479,23 +579,25 @@ const Library = () => {
                           onDragEnd={handleDragEnd}
                           onDragOver={(e) => handleDragOver(e, globalIndex)}
                           onDrop={(e) => handleDrop(e, globalIndex)}
-                          className={`group relative cursor-grab transition-all duration-200 hover:z-10 hover:-translate-y-2 active:cursor-grabbing ${
+                          className={`group relative cursor-grab transition-all duration-200 hover:z-10 hover:-translate-y-2 active:cursor-grabbing ${stackBookSizing} ${
                             isDragging ? 'scale-90 opacity-30' : ''
                           } ${isDragOver ? 'z-20 -translate-y-4' : ''}`}
-                          style={{
-                            transform: `rotate(${
-                              ((bookIndex % 3) - 1) * 1
-                            }deg)`,
-                          }}
                         >
                           {/* Drop indicator - shows where book will be placed */}
                           {isDragOver && (
                             <div className="bg-primary shadow-primary/50 absolute -left-2 top-0 bottom-0 w-1.5 rounded-full shadow-lg" />
                           )}
 
-                          {/* Book spine/cover */}
+                          {/* Book spine/cover. Both views use the
+                              7:10 standard book aspect ratio on a
+                              w-full cover, so the cover height is
+                              driven by the parent's fixed width
+                              (60–150px depending on breakpoint).
+                              Keeps the proportions consistent
+                              between grid and stack — only the
+                              parent layout changes between them. */}
                           <div
-                            className={`relative mx-auto h-[160px] w-full max-w-[120px] overflow-hidden rounded-r-sm shadow-md transition-all duration-300 group-hover:shadow-xl md:h-[200px] md:max-w-[150px] ${
+                            className={`relative mx-auto aspect-[7/10] w-full overflow-hidden rounded-r-sm shadow-md transition-all duration-300 group-hover:shadow-xl ${
                               isDragOver
                                 ? 'ring-primary ring-2 ring-offset-2'
                                 : ''
@@ -504,6 +606,16 @@ const Library = () => {
                               // 3D book effect
                               transformStyle: 'preserve-3d',
                               perspective: '1000px',
+                              // Stack-view seam shadow — only on
+                              // books that sit on top of another.
+                              // Without it, two adjacent overlapping
+                              // covers blur together. Composed with
+                              // the existing card shadow so we don't
+                              // lose the lift effect.
+                              boxShadow:
+                                viewMode === 'stack' && bookIndex > 0
+                                  ? '0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px -2px rgba(0,0,0,0.10), -4px 0 6px -1px rgba(0,0,0,0.45)'
+                                  : undefined,
                             }}
                             onClick={() => {
                               if (isLentOutNoAccess) return
@@ -588,6 +700,41 @@ const Library = () => {
                               </div>
                             )}
 
+                            {/*
+                              "Continue reading" overlay for purchased,
+                              non-borrowed, non-lent-out books that have
+                              actual progress. Skipped for the borrowed and
+                              lent-out cases — those already own the bottom
+                              strip with their own overlays. The matching
+                              mobile card uses the same wording and shape.
+                            */}
+                            {!isBorrowed &&
+                              !isLentOutNoAccess &&
+                              (book.percentage ?? 0) > 0 && (
+                                <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-sm">
+                                  <div className="flex items-center justify-between px-2 py-1 text-[10px] text-white">
+                                    <span>Continue reading</span>
+                                    <span className="font-semibold">
+                                      {Math.round(book.percentage ?? 0)}%
+                                    </span>
+                                  </div>
+                                  <div
+                                    className="h-[3px] w-full bg-white/20"
+                                    aria-hidden
+                                  >
+                                    <div
+                                      className="h-full bg-white"
+                                      style={{
+                                        width: `${Math.min(
+                                          100,
+                                          Math.max(0, book.percentage ?? 0),
+                                        )}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
                             {isBorrowed && book.expiresAt && (
                               <div className="absolute bottom-0 left-0 right-0 gap-1 bg-black/60 p-2 text-[10px] text-white backdrop-blur-sm">
                                 <p className="flex items-center gap-1 text-lg">
@@ -653,8 +800,19 @@ const Library = () => {
                     })}
                   </div>
 
-                  {/* Wooden shelf */}
-                  <div className="relative hidden md:block">
+                  {/* Wooden shelf. Stack view's overlap layout
+                      fits on one row at every breakpoint, so the
+                      plank is shown on all sizes. Grid view still
+                      hides the plank on mobile because the cells
+                      wrap into multiple visual rows and a single
+                      plank at the bottom would look stranded. */}
+                  <div
+                    className={
+                      viewMode === 'stack'
+                        ? 'relative block'
+                        : 'relative hidden md:block'
+                    }
+                  >
                     {/* Shelf front edge (3D effect) */}
                     <div
                       className="h-[8px] rounded-b-sm md:h-[10px]"
@@ -666,8 +824,16 @@ const Library = () => {
                     />
 
                     {/* Shelf brackets (decorative) */}
-                    <div className="absolute -bottom-4 left-4 hidden h-4 w-3 rounded-b-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-md md:block" />
-                    <div className="absolute -bottom-4 right-4 hidden h-4 w-3 rounded-b-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-md md:block" />
+                    <div
+                      className={`absolute -bottom-4 left-4 h-4 w-3 rounded-b-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-md ${
+                        viewMode === 'stack' ? 'block' : 'hidden md:block'
+                      }`}
+                    />
+                    <div
+                      className={`absolute -bottom-4 right-4 h-4 w-3 rounded-b-sm bg-gradient-to-b from-amber-700 to-amber-900 shadow-md ${
+                        viewMode === 'stack' ? 'block' : 'hidden md:block'
+                      }`}
+                    />
                   </div>
                 </div>
               ))}

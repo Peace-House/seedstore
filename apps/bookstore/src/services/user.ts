@@ -304,11 +304,11 @@ export const resendVerificationEmail = async (
 
 export interface RetrievePHCodeParams {
   surname: string
-  phoneNumber: string
-  email: string
-  day: string
-  month: string
-  year: string
+  phoneNumber?: string
+  email?: string
+  day?: string
+  month?: string
+  year?: string
 }
 
 export const retrievePHCode = async (

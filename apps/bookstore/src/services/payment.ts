@@ -2,6 +2,12 @@ import api from './apiService'
 
 export type PaymentMethod = 'paystack' | 'applepay' | 'flutterwave'
 
+export interface PaymentMethodConfig {
+  key: PaymentMethod
+  label: string
+  enabled: boolean
+}
+
 export interface PaystackMetadataCartItem {
   bookId: number | string
   title?: string
@@ -81,6 +87,14 @@ export const initiateFlutterwavePayment = async ({
 export const verifyFlutterwavePayment = async (txRef: string) => {
   const res = await api.get(`/payment/verify_flutterwave?tx_ref=${txRef}`)
   return res.data
+}
+
+export const getPaymentMethods = async (): Promise<PaymentMethodConfig[]> => {
+  const res = await api.get('/payment/methods')
+  if (Array.isArray(res.data?.methods)) {
+    return res.data.methods as PaymentMethodConfig[]
+  }
+  return []
 }
 
 // Paystack transaction types

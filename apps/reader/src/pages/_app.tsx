@@ -12,6 +12,8 @@ import { RecoilRoot } from 'recoil'
 import { Theme } from '../components'
 import { AuthGuard } from '../components/AuthGuard'
 import { Layout } from '../components/layout/Layout'
+import { startEventStreamBridge, stopEventStreamBridge } from '../services/eventStreamBridge'
+import { eventStream } from '../services/eventStreamService'
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter()
@@ -150,6 +152,13 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     detectScreenCapture()
 
+    // Real-time sync: subscribe to the server's event stream and mirror
+    // incoming annotation/progress updates into Dexie. The reader's UI
+    // already reads from Dexie, so it picks up the changes automatically
+    // — no extra prop wiring or refetch needed.
+    eventStream.start()
+    startEventStreamBridge()
+
     // Detect if DevTools is open (via debugger timing)
     const detectDevTools = () => {
       const threshold = 160
@@ -178,6 +187,8 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       document.removeEventListener('keydown', preventDevTools, true)
       document.removeEventListener('contextmenu', preventContextMenu, true)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      stopEventStreamBridge()
+      eventStream.stop()
       // clearInterval(devToolsInterval)
     }
   }, [])

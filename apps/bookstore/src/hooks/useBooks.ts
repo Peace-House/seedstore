@@ -9,6 +9,23 @@ export function useBooks(page = 1, pageSize = 12) {
   });
 }
 
+// Fetch every featured book in one shot. Uses the backend
+// `/books?featured=true` filter so the home "Featured" rail reflects
+// the entire featured set instead of just whatever happened to land on
+// page 1 of the default catalog. pageSize is sized for the realistic
+// upper bound of curated featured titles — bump or paginate if we
+// ever cross it.
+export function useFeaturedBooks(pageSize = 50) {
+  return useQuery<PaginatedBooks>({
+    queryKey: ['featured-books', pageSize],
+    queryFn: () => getBooks({ featured: true, pageSize }),
+    // Featured set changes infrequently — admin toggles, not per
+    // navigation. Keep it in cache for 10 min so route changes don't
+    // refetch on every visit.
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
 // Fetch a single book by ID
 export function useBook(id: string | number) {
   return useQuery<Book>({

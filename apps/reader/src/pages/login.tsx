@@ -1,13 +1,13 @@
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
-import { MdEmail, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md'
+import { MdBadge, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md'
 
 import { login, isAuthenticated } from '../services/authService'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [phcode, setPhcode] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -29,14 +29,14 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      await login({ email, password })
-      
+      await login({ phcode, password })
+
       // Redirect to intended page or library
       router.replace(redirect || '/library')
     } catch (err: any) {
       const errorCode = err?.response?.data?.code
       const errorMessage = err?.response?.data?.message || err?.message || 'Login failed. Please try again.'
-      
+
       if (errorCode === 'DEVICE_LIMIT_EXCEEDED') {
         setError('You can only be logged in on 3 devices. Please log out from another device to continue.')
       } else {
@@ -78,23 +78,27 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {/* Email Input */}
+              {/* PH-Code Input */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                  Email or PH-Code
+                <label htmlFor="phcode" className="block text-sm font-medium text-gray-300 mb-2">
+                  PH-Code
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MdEmail className="h-5 w-5 text-gray-500" />
+                    <MdBadge className="h-5 w-5 text-gray-500" />
                   </div>
                   <input
-                    id="email"
+                    id="phcode"
+                    name="phcode"
                     type="text"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email or PH-Code"
+                    autoComplete="username"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    value={phcode}
+                    onChange={(e) => setPhcode(e.target.value)}
+                    placeholder="Enter your PH-Code"
                     required
-                    className="block w-full pl-10 pr-3 py-3 bg-gray-600 border border-[#0D5415] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0D5415] focus:border-transparent transition"
+                    className="block w-full pl-10 pr-3 py-3 bg-gray-600 border border-[#0D5415] rounded-lg text-white placeholder-gray-400 uppercase focus:outline-none focus:ring-2 focus:ring-[#0D5415] focus:border-transparent transition"
                   />
                 </div>
               </div>
@@ -135,7 +139,7 @@ export default function LoginPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isLoading || !email || !password}
+                disabled={isLoading || !phcode || !password}
                 className="w-full py-3 px-4 bg-[#0D5415] hover:bg-green-900 disabled:bg-green-900/50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition focus:outline-none focus:ring-2 focus:ring-[#0D5415] focus:ring-offset-2 focus:ring-offset-gray-800"
               >
                 {isLoading ? (

@@ -1,13 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
-import { useRef, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query'
+import { useRef, useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-import BookCard from './BookCard';
-import { Skeleton } from './ui/skeleton';
-import { Book, getBooks } from '@/services/book';
-import LiquidGlassWrapper from './LiquidGlassWrapper';
-import { hasValidPricing } from '@/utils/pricing';
-import { useBooks } from '@/hooks/useBooks';
+import BookCard from './BookCard'
+import { Skeleton } from './ui/skeleton'
+import { Book, getBooks } from '@/services/book'
+import LiquidGlassWrapper from './LiquidGlassWrapper'
+import { hasValidPricing } from '@/utils/pricing'
+import { useBooks } from '@/hooks/useBooks'
 
 const FeaturedBooks = () => {
   // const { data, isLoading } = useQuery({
@@ -21,113 +21,125 @@ const FeaturedBooks = () => {
   // });
   const booksData = useBooks(1, 50)
   // const books = data || [];
-  const books = booksData.data?.books
-    ?.filter((book: Book) => book.isNewRelease) || [];
+  const books =
+    booksData.data?.books?.filter((book: Book) => book.isNewRelease) || []
 
   console.log(books)
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
 
   // Check scroll position to enable/disable buttons
   const checkScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-  };
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 0)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }
 
   // Auto scroll
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || books.length === 0) return;
+    const el = scrollRef.current
+    if (!el || books.length === 0) return
 
-    let direction: 'right' | 'left' = 'right';
+    let direction: 'right' | 'left' = 'right'
     const interval: NodeJS.Timeout = setInterval(() => {
-      if (!el) return;
+      if (!el) return
       if (direction === 'right') {
         if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 1) {
-          direction = 'left';
+          direction = 'left'
         } else {
-          el.scrollBy({ left: 200, behavior: 'smooth' });
+          el.scrollBy({ left: 200, behavior: 'smooth' })
         }
       } else {
         if (el.scrollLeft <= 0) {
-          direction = 'right';
+          direction = 'right'
         } else {
-          el.scrollBy({ left: -200, behavior: 'smooth' });
+          el.scrollBy({ left: -200, behavior: 'smooth' })
         }
       }
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [books.length]);
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [books.length])
 
   useEffect(() => {
-    checkScroll();
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', checkScroll);
-    return () => el.removeEventListener('scroll', checkScroll);
-  }, [books.length]);
+    checkScroll()
+    const el = scrollRef.current
+    if (!el) return
+    el.addEventListener('scroll', checkScroll)
+    return () => el.removeEventListener('scroll', checkScroll)
+  }, [books.length])
 
   if (booksData.isLoading) {
     return (
-      <section className="container py-16 bg-white/50">
-        <h2 className="text-3xl font-bold mb-2">New Books</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-4">
-              <Skeleton className="h-[400px] w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
+      <section className="container relative px-2 pt-0">
+        <h2 className="mb-2 text-3xl font-bold">New Books</h2>
+        <div className="scrollbar-hide flex gap-6 overflow-hidden rounded-md bg-white/50 py-6 px-4 shadow-sm">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex min-w-[180px] flex-col md:min-w-[200px]">
+              <Skeleton className="h-[220px] w-full md:w-[200px]" />
+              <div className="space-y-2 px-2 py-2">
+                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
             </div>
           ))}
         </div>
       </section>
-    );
+    )
   }
 
-  if (!books || books.length === 0) return null;
+  if (!books || books.length === 0) return null
 
   // Filter for featured books with valid pricing
   // const featuredBooks = books.filter((book) => book.featured && hasValidPricing(book.prices));
   // if (featuredBooks.length === 0) return null;
 
   return (
-    <section className="container pt-12 relative px-2">
-      <h2 className="text-3xl font-bold mb-2">New Books</h2>
+    <section className="container relative px-2 pt-0">
+      <h2 className="mb-2 text-3xl font-bold">New Books</h2>
       <div className="relative">
         <button
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 rounded-full shadow p-2 hover:bg-primary/10 transition disabled:opacity-40"
+          className="hover:bg-primary/10 absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow transition disabled:opacity-40"
           style={{ marginLeft: '-1.5rem' }}
-          onClick={() => scrollRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}
+          onClick={() =>
+            scrollRef.current?.scrollBy({ left: -300, behavior: 'smooth' })
+          }
           disabled={!canScrollLeft}
           aria-label="Scroll left"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="h-6 w-6" />
         </button>
         <LiquidGlassWrapper
           liquidGlass={true}
           ref={scrollRef}
-          className="flex gap-6 py-6 px-4 shadow-sm rounded-md overflow-x-scroll scrollbar-hide scroll-smooth"
+          className="scrollbar-hide flex gap-6 overflow-x-scroll scroll-smooth rounded-md py-6 px-4 shadow-sm"
           style={{ scrollBehavior: 'smooth' }}
         >
           {books.map((book) => (
-            <BookCard key={book.id} book={book} showActions={false} className='min-w-[180px]' />
+            <BookCard
+              key={book.id}
+              book={book}
+              showActions={false}
+              className="min-w-[180px]"
+            />
           ))}
         </LiquidGlassWrapper>
         <button
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 rounded-full shadow p-2 hover:bg-primary/10 transition disabled:opacity-40"
+          className="hover:bg-primary/10 absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow transition disabled:opacity-40"
           style={{ marginRight: '-1.5rem' }}
-          onClick={() => scrollRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}
+          onClick={() =>
+            scrollRef.current?.scrollBy({ left: 300, behavior: 'smooth' })
+          }
           disabled={!canScrollRight}
           aria-label="Scroll right"
         >
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="h-6 w-6" />
         </button>
       </div>
     </section>
-  );
-};
+  )
+}
 
-export default FeaturedBooks;
+export default FeaturedBooks

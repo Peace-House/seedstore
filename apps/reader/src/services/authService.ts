@@ -8,7 +8,10 @@ const api = axios.create({
 })
 
 export interface LoginCredentials {
-  email: string
+  /** The user's unique PH-Code. Mirrors the mobile + bookstore flow,
+   *  which both authenticate by phcode rather than email. The auth
+   *  service uppercases and trims it before sending. */
+  phcode: string
   password: string
   platform?: string
   deviceId?: string
@@ -92,48 +95,38 @@ export function detectPlatform(): string {
 }
 
 /**
- * Check if input looks like an email
- */
-function isEmail(input: string): boolean {
-  return input.includes('@')
-}
-
-/**
- * Login user - matches bookstore API exactly
+ * Login user via PH-Code + password.
+ *
  * POST /users/login
- * Body: { email, password, platform, deviceId, deviceName, location } OR { phcode, password, ... }
+ * Body: { phcode, password, platform, deviceId, deviceName, location }
+ *
+ * Aligned with the mobile app and the bookstore which both authenticate
+ * by phcode. The reader used to accept either email or phcode; that
+ * dual-mode was retired so all three clients hit the same endpoint with
+ * the same field shape.
  */
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
-  const { email, password, platform, deviceId, deviceName, location } = credentials
-  
-  // Determine if email or phcode
-  const isEmailLogin = isEmail(email)
-  
-  const body = isEmailLogin
-    ? {
-        email,
-        password,
-        platform: platform || detectPlatform(),
-        deviceId: deviceId || getDeviceId(),
-        deviceName: deviceName || getDeviceName(),
-        location: location || 'Reader App',
-      }
-    : {
-        phcode: email.trim().toUpperCase(), // If not email, treat as phcode
-        password,
-        platform: platform || detectPlatform(),
-        deviceId: deviceId || getDeviceId(),
-        deviceName: deviceName || getDeviceName(),
-        location: location || 'Reader App',
-      }
-  
+  const { phcode, password, platform, deviceId, deviceName, location } = credentials
+
+  const body = {
+    // PH-Codes are conventionally upper-case; normalise so trailing
+    // whitespace or shift-key slips don't bounce the user back to the
+    // login form.
+    phcode: phcode.trim().toUpperCase(),
+    password,
+    platform: platform || detectPlatform(),
+    deviceId: deviceId || getDeviceId(),
+    deviceName: deviceName || getDeviceName(),
+    location: location || 'Reader App',
+  }
+
   const response = await api.post<LoginResponse>('/users/login', body)
-  
+
   // Store token
   if (response.data.token) {
     localStorage.setItem('auth_token', response.data.token)
   }
-  
+
   return response.data
 }
 

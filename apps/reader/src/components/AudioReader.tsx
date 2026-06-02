@@ -723,47 +723,13 @@ export const AudioReader: React.FC<AudioReaderProps> = ({
             </select>
           </div>
 
-          {/* Speed control */}
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-1">
-              Speed: {state.rate.toFixed(1)}x
-            </label>
-            <input
-              type="range"
-              min="0.5"
-              max="2"
-              step="0.1"
-              value={state.rate}
-              onChange={(e) => controls.setRate(parseFloat(e.target.value))}
-              className="w-full accent-primary"
-            />
-            <div className="flex justify-between text-xs text-on-surface-variant">
-              <span>0.5x</span>
-              <span>1x</span>
-              <span>2x</span>
-            </div>
-          </div>
-
-          {/* Pitch control */}
-          <div>
-            <label className="block text-sm font-medium text-on-surface mb-1">
-              Pitch: {state.pitch.toFixed(1)}
-            </label>
-            <input
-              type="range"
-              min="0.5"
-              max="1.5"
-              step="0.1"
-              value={state.pitch}
-              onChange={(e) => controls.setPitch(parseFloat(e.target.value))}
-              className="w-full accent-primary"
-            />
-            <div className="flex justify-between text-xs text-on-surface-variant">
-              <span>0.5</span>
-              <span>1.0</span>
-              <span>1.5</span>
-            </div>
-          </div>
+          {/* Speed + pitch sliders are intentionally hidden. The
+              backend synth payload pins speed=1.0 and pitch=0.0 so
+              every paragraph reads from the same cache row in
+              Google TTS — exposing a slider would imply re-synth
+              per change and inflate the bill. Keeping these as
+              fixed defaults preserves the cache assumption end-to-
+              end. Volume stays — it's purely client-side. */}
 
           {/* Volume control */}
           <div>

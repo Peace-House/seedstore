@@ -23,6 +23,7 @@ import { CountryProvider } from './contexts/CountryContext'
 import RetrievePHCodePage from './pages/RetrievePHCodePage'
 import ManageGroupBuy from './pages/ManageGroupBuy'
 import ManageLentBooks from './pages/ManageLentBooks'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 
 const queryClient = new QueryClient()
 
@@ -87,6 +88,14 @@ const App = () => (
               element={
                 <Navigation>
                   <ResolvePurchaseIssue />
+                </Navigation>
+              }
+            />
+            <Route
+              path="/privacy-policy"
+              element={
+                <Navigation>
+                  <PrivacyPolicy />
                 </Navigation>
               }
             />

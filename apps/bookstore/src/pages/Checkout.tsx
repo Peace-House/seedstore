@@ -21,6 +21,7 @@ import {
   initiateFlutterwavePayment,
   PaymentMethod,
 } from '@/services/payment'
+import { getAppFeatureSettings } from '@/services/admin'
 import { getCartWithGroupPurchases } from '@/services/groupPurchase'
 import Breadcrumb from '@/components/Breadcrumb'
 import { PageLoader } from '@/components/Loader'
@@ -37,6 +38,11 @@ const Checkout = () => {
     null,
   )
 
+  const { data: appFeatureSettings } = useQuery({
+    queryKey: ['app-feature-settings'],
+    queryFn: getAppFeatureSettings,
+  })
+
   const cartItems = Array.isArray(rawCartItems) ? rawCartItems : []
 
   // Get currency code for the selected country
@@ -47,15 +53,43 @@ const Checkout = () => {
   const currencyCode = currencyInfo?.currency || 'NGN'
   const normalizedCurrencyCode = currencyCode.toUpperCase()
 
-  const availableMethods: PaymentMethod[] = useMemo(
-    () =>
+  const enabledPaymentMethods = useMemo(
+    () => ({
+      paystack: appFeatureSettings?.payment_paystack_enabled !== false,
+      applepay: appFeatureSettings?.payment_applepay_enabled !== false,
+      flutterwave: appFeatureSettings?.payment_flutterwave_enabled !== false,
+    }),
+    [appFeatureSettings],
+  )
+
+  const availableMethods: PaymentMethod[] = useMemo(() => {
+    const byCurrency: PaymentMethod[] =
       normalizedCurrencyCode === 'USD'
         ? ['applepay', 'flutterwave']
         : normalizedCurrencyCode === 'NGN'
         ? ['paystack', 'flutterwave']
-        : ['flutterwave'],
-    [normalizedCurrencyCode],
-  )
+        : ['flutterwave']
+
+    return byCurrency.filter((method) => enabledPaymentMethods[method])
+  }, [enabledPaymentMethods, normalizedCurrencyCode])
+
+  const flutterwaveDefaultOptions = useMemo(() => {
+    const options = [
+      'card',
+      'banktransfer',
+      'ussd',
+      'mobilemoney',
+      'account',
+      'googlepay',
+      'nqr',
+    ]
+
+    if (enabledPaymentMethods.applepay) {
+      options.push('applepay')
+    }
+
+    return options.join(',')
+  }, [enabledPaymentMethods.applepay])
 
   const getItemBook = (
     item: unknown,
@@ -215,9 +249,7 @@ const Checkout = () => {
         fullName: `${user.firstName} ${user.lastName}`.trim(),
         phoneNumber: user.phoneNumber,
         redirect_url: `${window.location.origin}/payment-callback?method=flutterwave`,
-        payment_options:
-          paymentOptions ||
-          'card,banktransfer,ussd,mobilemoney,account,applepay,googlepay,nqr',
+        payment_options: paymentOptions || flutterwaveDefaultOptions,
         currency: currencyCode,
         metadata: {
           userId: user.id,
@@ -257,6 +289,16 @@ const Checkout = () => {
         description: 'Please log in to complete your purchase.',
       })
       navigate('/auth?redirect=checkout')
+      return
+    }
+
+    if (!selectedMethod || !availableMethods.length) {
+      toast({
+        variant: 'destructive',
+        title: 'No payment methods available',
+        description:
+          'Payment methods are currently unavailable. Please try again later.',
+      })
       return
     }
 
@@ -336,6 +378,12 @@ const Checkout = () => {
         <div className="space-y-6 lg:col-span-2">
           <LiquidGlassWrapper className="p-6">
             <h2 className="mb-4 text-xl font-bold">Select Payment Method</h2>
+            {!availableMethods.length && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                No payment methods are currently enabled. Please contact
+                support.
+              </div>
+            )}
             <div className="grid gap-4 md:grid-cols-2">
               {availableMethods.includes('paystack') && (
                 <button
@@ -497,7 +545,9 @@ const Checkout = () => {
               size="lg"
               liquidGlass={false}
               onClick={handleProceedToPayment}
-              disabled={isPending || !selectedMethod}
+              disabled={
+                isPending || !selectedMethod || !availableMethods.length
+              }
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isPending

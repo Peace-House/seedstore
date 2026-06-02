@@ -6,6 +6,7 @@ import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { subscribeToNewsletter } from '@/services/newsletter'
 import { sendSupportMessage } from '@/services/support'
+import AppDownload from './AppDownload'
 
 const Footer: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -113,6 +114,9 @@ const Footer: React.FC = () => {
               </a>
             </p>
           </div>
+          <div className="mt-6">
+            <AppDownload />
+          </div>
         </div>
         {/* Quicklinks */}
         <div className="md:text-center">
@@ -161,6 +165,11 @@ const Footer: React.FC = () => {
             <li>
               <Link to="/resolve-purchase" className="hover:underline">
                 Resolve book purchase issue
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy-policy" className="hover:underline">
+                Privacy Policy
               </Link>
             </li>
           </ul>
@@ -247,8 +256,9 @@ const Footer: React.FC = () => {
         </div>
       </div>
       <div className="text-primary container mx-auto mt-8 text-center text-sm">
-        &copy; {new Date().getFullYear()} Livingseed Community. All rights
-        reserved.
+        <Link to="/privacy-policy" className="hover:underline">
+          &copy; 2026 Livingseed Community. All rights reserved.
+        </Link>
       </div>
     </footer>
   )

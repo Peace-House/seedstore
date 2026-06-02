@@ -24,6 +24,9 @@ export interface Book {
   format?: string
   title: string
   author: string
+  authorPhcode?: string | null
+  coAuthor?: string | null
+  coAuthorPhcode?: string | null
   price: number // Deprecated: use prices array instead
   prices?: BookPrice[]
   coverImage?: string
@@ -57,6 +60,12 @@ export interface Book {
   borrowingSource?: 'BORROW' | 'PEER'
   // Group buy
   allowGroupBuy?: boolean
+  // Reading progress — populated by the /library endpoint, used by the
+  // Library page's "Continue reading" overlay. Optional because most
+  // catalogue endpoints don't include them.
+  percentage?: number
+  cfi?: string | null
+  lastReadAt?: string | null
 }
 
 export interface PaginatedBooks {
@@ -66,12 +75,67 @@ export interface PaginatedBooks {
   pageSize: number
 }
 
-// Get all books (paginated)
+// Get all books (paginated, filterable).
+//
+// `q`           — title-only search (admin Books page typeahead)
+// `author`      — exact author dropdown value
+// `groupId`     — exact match
+// `categoryIds` — array of selected category IDs (sent CSV-encoded)
+//
+// Empty/undefined params are silently dropped by axios so the URL
+// stays clean.
+export interface GetBooksParams {
+  page?: number
+  pageSize?: number
+  q?: string
+  author?: string
+  groupId?: number | string
+  categoryIds?: number[]
+  /** Restrict to featured (or non-featured) books. Backed by the
+   *  `featured=true|false` query string on /books. */
+  featured?: boolean
+}
+
 export const getBooks = async (
-  page = 1,
+  params: GetBooksParams | number = {},
   pageSize = 10,
 ): Promise<PaginatedBooks> => {
-  const res = await api.get('/books', { params: { page, pageSize } })
+  // Backwards compat: old call sites pass `(page, pageSize)`.
+  // Detect that shape and translate.
+  const opts: GetBooksParams =
+    typeof params === 'number' ? { page: params, pageSize } : params
+
+  const queryParams: Record<string, string | number> = {
+    page: opts.page ?? 1,
+    pageSize: opts.pageSize ?? 10,
+  }
+  if (opts.q && opts.q.trim()) queryParams.q = opts.q.trim()
+  if (opts.author) queryParams.author = opts.author
+  if (opts.groupId !== undefined && opts.groupId !== '') {
+    queryParams.groupId = opts.groupId
+  }
+  if (opts.categoryIds && opts.categoryIds.length > 0) {
+    queryParams.categoryIds = opts.categoryIds.join(',')
+  }
+  if (opts.featured !== undefined) {
+    // Backend reads "true"/"false" strings — send the literal so it
+    // round-trips cleanly through axios + Express query parsing.
+    queryParams.featured = opts.featured ? 'true' : 'false'
+  }
+  const res = await api.get('/books', { params: queryParams })
+  return res.data
+}
+
+export interface BookFilterOptions {
+  authors: string[]
+  groups: { id: number; name: string }[]
+  categories: { id: number; name: string }[]
+}
+
+// Filter dropdown values for the admin Books page. Cheap; cache via
+// React Query with a long staleTime since these change rarely.
+export const getBookFilterOptions = async (): Promise<BookFilterOptions> => {
+  const res = await api.get('/books/filter-options')
   return res.data
 }
 

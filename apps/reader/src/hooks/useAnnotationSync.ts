@@ -73,6 +73,31 @@ export function useAnnotationSync(bookId: string | undefined) {
         }
       }
 
+      // Detect a structural no-op so we don't churn Dexie/Valtio when
+      // the merge result is identical to local. Without this, every
+      // merge produces a new array + spread object reference, which
+      // tickles the [book.annotations] effect in this hook and starts
+      // a fresh debounced sync — turning idle reading into a self-
+      // perpetuating round-trip every 3 seconds.
+      const sameLength = merged.length === localAnnotations.length
+      const localByCfi = new Map(localAnnotations.map((a) => [a.cfi, a]))
+      const isUnchanged =
+        sameLength &&
+        merged.every((m) => {
+          const l = localByCfi.get(m.cfi)
+          if (!l) return false
+          return (
+            l.text === m.text &&
+            (l.notes ?? '') === (m.notes ?? '') &&
+            l.color === m.color &&
+            l.type === m.type &&
+            l.updatedAt === m.updatedAt
+          )
+        })
+      if (isUnchanged) {
+        return
+      }
+
       // Update local database
       await db?.books.update(bookId, { annotations: merged })
 
@@ -90,7 +115,15 @@ export function useAnnotationSync(bookId: string | undefined) {
     }
   }, [bookId])
 
-  // Sync local annotations to server
+  // Sync local annotations to server.
+  //
+  // Pull-before-push: `/annotations/sync` is destructive — anything
+  // not in the payload is deleted server-side. If SSE has been down
+  // (or just had a transient gap) our local copy might be missing
+  // annotations another device added in the meantime, and pushing
+  // straight away would silently nuke them. So we re-fetch first,
+  // merge with local (newer-wins per row), and push the union. This
+  // matches the mobile sync's pull-before-push pattern.
   const syncToServer = useCallback(async () => {
     if (!bookId || !isAuthenticated() || isSyncingRef.current) return
 
@@ -100,27 +133,41 @@ export function useAnnotationSync(bookId: string | undefined) {
     isSyncingRef.current = true
 
     try {
-      // Get current local annotations
       const localBook = await db?.books.get(bookId)
       const localAnnotations = localBook?.annotations || []
 
-      if (localAnnotations.length === 0) {
+      // Pull current server state, merge into local. fetchAndMerge
+      // writes the merged set back into Dexie + Valtio so the next
+      // read picks it up. We re-read after the merge to send the
+      // freshest local view as the push payload.
+      try {
+        await fetchAndMerge()
+      } catch (e) {
+        // Network error during pull — fall back to push-only with
+        // whatever local has. Better than no sync.
+        console.warn('[AnnotationSync] Pull-before-push failed, pushing local set anyway:', e)
+      }
+
+      const refreshed = await db?.books.get(bookId)
+      const toPush = refreshed?.annotations || localAnnotations
+
+      if (toPush.length === 0) {
         isSyncingRef.current = false
         return
       }
 
-      const result = await syncAnnotationsToServer(numericBookId, localAnnotations)
+      const result = await syncAnnotationsToServer(numericBookId, toPush)
 
       if (result.success) {
         lastSyncRef.current = Date.now()
-        console.log(`[AnnotationSync] Synced ${localAnnotations.length} annotations to server`)
+        console.log(`[AnnotationSync] Synced ${toPush.length} annotations to server`)
       }
     } catch (error) {
       console.error('[AnnotationSync] Error syncing to server:', error)
     } finally {
       isSyncingRef.current = false
     }
-  }, [bookId])
+  }, [bookId, fetchAndMerge])
 
   // Debounced sync trigger
   const triggerSync = useCallback(() => {
