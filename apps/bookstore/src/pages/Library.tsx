@@ -325,10 +325,34 @@ const Library = () => {
   // container uses w-fit + mx-auto so the shelf reads as a
   // centred bookcase row regardless of viewport width.
   const booksPerShelf = viewMode === 'stack' ? 10 : 5
+  // Push currently-lent-out books to the END of the shelf list
+  // before grouping. The user's manual drag-arrangement is
+  // preserved within each partition, so a book temporarily lent
+  // out moves to the back of the shelf and slides back into its
+  // original position once the lend ends.
+  const lentBookIds = new Set(
+    myLends
+      .filter((l) => l.status === 'ACTIVE' && !l.lenderHasAccess)
+      .map((l) => Number(l.book?.id))
+      .filter((n) => Number.isFinite(n)),
+  )
+  const sortedBooks = (() => {
+    if (!orderedBooks?.length) return orderedBooks
+    const front: Book[] = []
+    const tail: Book[] = []
+    for (const b of orderedBooks) {
+      if (lentBookIds.has(Number(b.id))) tail.push(b)
+      else front.push(b)
+    }
+    return [...front, ...tail]
+  })()
   const shelves: Book[][] = []
-  if (orderedBooks && orderedBooks.length > 0) {
-    for (let i = 0; i < orderedBooks.length; i += booksPerShelf) {
-      shelves.push(orderedBooks.slice(i, i + booksPerShelf))
+  // Use the lent-tail-sorted list (sortedBooks) below so currently-
+  // lent-out covers land in the last shelf, preserving the user's
+  // manual order within each partition.
+  if (sortedBooks && sortedBooks.length > 0) {
+    for (let i = 0; i < sortedBooks.length; i += booksPerShelf) {
+      shelves.push(sortedBooks.slice(i, i + booksPerShelf))
     }
   }
 

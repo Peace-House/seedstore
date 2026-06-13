@@ -409,7 +409,7 @@ const Auth = () => {
                   <Input
                     id="phcode"
                     type="text"
-                    placeholder="Enter your PHCode"
+                    placeholder="Enter your PH-Code"
                     value={phcode}
                     onChange={(e) => setPhcode(e.target.value.toUpperCase())}
                     required
@@ -632,7 +632,7 @@ const Auth = () => {
                       <Input
                         id="phcode"
                         type="text"
-                        placeholder="Enter your PHCode"
+                        placeholder="Enter your PH-Code"
                         value={phcode}
                         onChange={(e) =>
                           setPhcode(e.target.value.toUpperCase())
