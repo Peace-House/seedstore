@@ -346,6 +346,53 @@ export interface TTSControls {
 
 const TTS_SETTINGS_KEY = 'reader_tts_settings'
 
+// Reader-exposed voice catalogue. Trimmed to two voices (Studio-C
+// and Studio-B) so the live Google TTS bill stays predictable —
+// every voice in the list multiplies cache misses by 1×. Olivia (O)
+// and Quinn (Q) were removed; they can be re-added here if usage
+// volume drops or if you cap Studio behind a paid tier.
+const STUDIO_VOICE_DISPLAY: Record<string, string> = {
+  C: 'Charlotte',
+  B: 'Benjamin',
+}
+
+/**
+ * Inspect a SpeechSynthesisVoice name and return the Studio letter
+ * (O / C / B / Q) when it matches one of our allow-listed Studio
+ * voices, or `null` otherwise. The match is intentionally loose so
+ * it catches variations like "Studio-O", "Studio O", "Studio_O",
+ * regardless of the surrounding locale prefix (en-US, en-GB, etc).
+ */
+function studioLetterFromName(name: string): string | null {
+  const m = /\bStudio[-_ ]?([A-Z])\b/i.exec(name)
+  if (!m) return null
+  const letter = m[1]?.toUpperCase() ?? ''
+  return letter && letter in STUDIO_VOICE_DISPLAY ? letter : null
+}
+
+/**
+ * Map the raw browser voice list down to our curated 4-voice catalogue
+ * with friendly names. Voices that don't match a Studio O/C/B/Q name
+ * are dropped. If multiple voices in different locales match the same
+ * letter (e.g. en-US-Studio-O and en-GB-Studio-O), the first one wins.
+ */
+function curateStudioVoices(raw: SpeechSynthesisVoice[]): TTSVoice[] {
+  const out: TTSVoice[] = []
+  const seen = new Set<string>()
+  for (const v of raw) {
+    const letter = studioLetterFromName(v.name)
+    if (!letter || seen.has(letter)) continue
+    seen.add(letter)
+    out.push({
+      name: STUDIO_VOICE_DISPLAY[letter] ?? letter,
+      lang: v.lang,
+      voiceURI: v.voiceURI,
+      default: v.default,
+    })
+  }
+  return out
+}
+
 interface SavedTTSSettings {
   voiceURI?: string
   rate: number
@@ -411,15 +458,15 @@ export function useTextToSpeech(): [TTSState, TTSControls] {
     setPitchState(saved.pitch)
     setVolumeState(saved.volume)
 
-    // Load voices
+    // Load voices.
+    //
+    // We pass the raw OS/browser voice list through `curateStudioVoices`,
+    // which keeps only the four Studio voices (O / C / B / Q) and renames
+    // them to Olivia, Charlotte, Benjamin, Quinn. This is the single
+    // choke point — every consumer of the hook sees only those voices.
     const loadVoices = () => {
       const availableVoices = speechSynthesis.getVoices()
-      const mappedVoices: TTSVoice[] = availableVoices.map((v) => ({
-        name: v.name,
-        lang: v.lang,
-        voiceURI: v.voiceURI,
-        default: v.default,
-      }))
+      const mappedVoices = curateStudioVoices(availableVoices)
       setVoices(mappedVoices)
 
       // Set default voice
@@ -432,7 +479,10 @@ export function useTextToSpeech(): [TTSState, TTSControls] {
             return
           }
         }
-        // Fall back to default or first English voice
+        // Fall back to default or first English voice within the
+        // curated set. If none match either, take whatever the
+        // curator returned first (Olivia by alphabetical order of
+        // the source list).
         const defaultVoice = mappedVoices.find((v) => v.default)
         const englishVoice = mappedVoices.find((v) => v.lang.startsWith('en'))
         setSelectedVoice(defaultVoice || englishVoice || mappedVoices[0] || null)

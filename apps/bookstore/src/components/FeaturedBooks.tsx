@@ -72,14 +72,17 @@ const FeaturedBooks = () => {
 
   if (booksData.isLoading) {
     return (
-      <section className="container bg-white/50 py-16">
+      <section className="container relative px-2 pt-0">
         <h2 className="mb-2 text-3xl font-bold">New Books</h2>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-4">
-              <Skeleton className="h-[400px] w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
+        <div className="scrollbar-hide flex gap-6 overflow-hidden rounded-md bg-white/50 py-6 px-4 shadow-sm">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex min-w-[180px] flex-col md:min-w-[200px]">
+              <Skeleton className="h-[220px] w-full md:w-[200px]" />
+              <div className="space-y-2 px-2 py-2">
+                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
             </div>
           ))}
         </div>

@@ -17,6 +17,9 @@ import { useSnapshot } from 'valtio'
 import { RenditionSpread } from '@flow/epubjs/types/rendition'
 import { navbarState } from '@flow/reader/state'
 
+import { BibleVerseSheet } from '../bible/BibleVerseSheet'
+import { installBibleRefDetector } from '../bible/refDetector'
+import type { BibleRef } from '../bible/refParser'
 import { db } from '../db'
 import { handleFiles } from '../file'
 import {
@@ -297,9 +300,53 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
     updateCustomStyle(contents, typography, sourceColor)
   }, [rendition, typography, sourceColor])
 
+  // ── Bible-verse detection ──────────────────────────────────
+  // Active reference being shown in the verse sheet (null = the
+  // sheet is closed). When a user taps a wrapped reference in
+  // the iframe, the detector hands us back a `BibleRef` and we
+  // open the sheet against it.
+  const [activeBibleRef, setActiveBibleRef] = useState<BibleRef | null>(null)
+  // Holds the detector teardown for the currently-rendered
+  // chapter. Each new render swaps it out — the old chapter's
+  // span listeners + wrappers are removed before we install
+  // fresh ones for the next chapter.
+  const bibleDetectorCleanup = useRef<(() => void) | null>(null)
+
+  const installBibleHooks = useCallback(() => {
+    const contents = rendition?.getContents()?.[0]
+    const doc = (contents as { document?: Document } | undefined)?.document
+    if (!doc) return
+    // Tear down the previous chapter's detector before scanning
+    // the new one — otherwise the cleanup function would point
+    // at nodes that no longer exist.
+    bibleDetectorCleanup.current?.()
+    bibleDetectorCleanup.current = installBibleRefDetector(
+      doc,
+      (_usfm, _raw, ref) => {
+        // The detector hands us back the parsed BibleRef along
+        // with the raw text — we only need the ref to drive the
+        // sheet.
+        setActiveBibleRef(ref)
+      },
+    )
+  }, [rendition])
+
   useEffect(() => {
-    tab.onRender = applyCustomStyle
-  }, [applyCustomStyle, tab])
+    tab.onRender = () => {
+      applyCustomStyle()
+      installBibleHooks()
+    }
+  }, [applyCustomStyle, installBibleHooks, tab])
+
+  // Tear down the detector when the pane unmounts so click
+  // listeners don't leak past navigation away from the reader.
+  useEffect(
+    () => () => {
+      bibleDetectorCleanup.current?.()
+      bibleDetectorCleanup.current = null
+    },
+    [],
+  )
 
   useEffect(() => {
     if (ref.current) tab.render(ref.current)
@@ -479,10 +526,15 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
           onPrevPage={handlePrevPage}
         />
       )}
-      <ReaderPaneFooter 
-        tab={tab} 
+      <ReaderPaneFooter
+        tab={tab}
         showAudioReader={showAudioReader}
         onToggleAudioReader={() => setShowAudioReader((prev) => !prev)}
+      />
+      <BibleVerseSheet
+        open={activeBibleRef !== null}
+        bibleRef={activeBibleRef}
+        onClose={() => setActiveBibleRef(null)}
       />
     </div>
   )

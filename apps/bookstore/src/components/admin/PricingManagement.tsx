@@ -101,15 +101,42 @@ const PricingManagement = () => {
 
   if (loading) return <div>Loading...</div>;
 
+  // Reorder country columns so the ones with at least one set price
+  // (on the current page) appear first, and "empty" columns are
+  // pushed to the end. Within each group we preserve the original
+  // order returned by the server so the admin's mental model of the
+  // list stays stable across paginations.
+  //
+  // "Has a price" = at least one book on the current page has a
+  // non-empty, non-zero numeric value typed (or loaded) for that
+  // country. Whitespace-only inputs and "0" are treated as unset
+  // so a stale 0 doesn't pin a column to the front.
+  const countryHasAnyPrice = (country: string): boolean => {
+    for (const book of books) {
+      const raw = prices[book.id]?.[country];
+      if (raw == null) continue;
+      const trimmed = String(raw).trim();
+      if (trimmed === '') continue;
+      const num = Number(trimmed);
+      if (!Number.isNaN(num) && num > 0) return true;
+    }
+    return false;
+  };
+
+  const orderedCountryCurrencies = [
+    ...countryCurrencies.filter((c) => countryHasAnyPrice(c.country)),
+    ...countryCurrencies.filter((c) => !countryHasAnyPrice(c.country)),
+  ];
+
   // Build columns for AdminTable
   const columns = [
-    { 
-      label: 'Book', 
+    {
+      label: 'Book',
       render: (book: Book) => (
         <span className="block min-w-[200px] whitespace-nowrap font-bold">{book.title}</span>
       )
     },
-    ...countryCurrencies.map((c) => ({
+    ...orderedCountryCurrencies.map((c) => ({
       label: <span>{c.country} {c.currency ? <span className="text-xs text-gray-500">({c.currency})</span> : null}</span>,
       render: (book: Book) => (
         <Input
