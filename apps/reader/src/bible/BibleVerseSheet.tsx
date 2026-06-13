@@ -11,7 +11,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
-import { DEFAULT_BIBLE_ID, fetchPassage } from './bibleService'
+import {
+  DEFAULT_BIBLE_ID,
+  fetchLicensedVersions,
+  fetchPassage,
+  VerseUnit,
+} from './bibleService'
 import { BibleRef, labelForRef } from './refParser'
 import { usfmDisplayNames } from './usfmAliases'
 
@@ -22,8 +27,10 @@ interface Translation {
   name?: string
 }
 
-// Quick-access chips — kept short so they don't crowd the sheet header.
-// The user can switch to any of these in a single click.
+// Fallback quick-access chips — only used if the licensed-versions fetch
+// from the backend fails (offline / API down). Normally the chips are the
+// first few entries of the licensed list. Kept short so they don't crowd
+// the sheet header.
 const TRANSLATIONS: Translation[] = [
   { id: 3034, abbr: 'BSB' },
   { id: 1, abbr: 'KJV' },
@@ -32,9 +39,9 @@ const TRANSLATIONS: Translation[] = [
   { id: 59, abbr: 'ESV' },
 ]
 
-// Extended list shown in the "More ▾" dropdown. Sourced from
-// the public YouVersion catalogue — each `id` is the same value
-// that appears in a `bible.com/bible/<id>/…` URL.
+// Fallback extended list for the "More ▾" dropdown — only used if the
+// licensed-versions fetch fails. Normally the dropdown shows the remaining
+// licensed versions. Each `id` matches a `bible.com/bible/<id>/…` URL.
 const EXTRA_TRANSLATIONS: Translation[] = [
   { id: 116, abbr: 'NLT', name: 'New Living Translation' },
   { id: 1713, abbr: 'CSB', name: 'Christian Standard Bible' },
@@ -52,6 +59,16 @@ const EXTRA_TRANSLATIONS: Translation[] = [
   { id: 100, abbr: 'NASB1995', name: 'New American Standard Bible 1995' },
   { id: 2407, abbr: 'CEB', name: 'Common English Bible' },
 ]
+
+// Preferred quick-access chips (by abbreviation), in display order. These
+// surface as the default chips when licensed; anything else goes in the
+// searchable "More" list. Lower index = higher priority.
+const PREFERRED_CHIPS: string[] = ['AMP', 'ASV', 'TPT', 'EASY', 'BSB']
+
+function popularityRank(abbr: string): number {
+  const i = PREFERRED_CHIPS.indexOf(abbr.toUpperCase())
+  return i === -1 ? Number.MAX_SAFE_INTEGER : i
+}
 
 const VERSION_PREF_KEY = 'ls_bible_version_v1'
 
@@ -79,10 +96,19 @@ export function BibleVerseSheet({
   const [chapterMode, setChapterMode] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
   const [verseText, setVerseText] = useState<string>('')
+  const [verses, setVerses] = useState<VerseUnit[]>([])
+  console.log('verse units', verses)
+  console.log('verse text', verseText)
   const [reference, setReference] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   // Controls visibility of the extended-versions dropdown ("More ▾").
   const [moreOpen, setMoreOpen] = useState<boolean>(false)
+  // Licensed versions fetched from the backend. `null` until loaded (or if
+  // the fetch fails), in which case we fall back to the built-in lists so
+  // the picker is never empty.
+  const [licensed, setLicensed] = useState<Translation[] | null>(null)
+  // Search query for the "More" version list.
+  const [versionQuery, setVersionQuery] = useState<string>('')
   // Tracks in-flight requests so a slow earlier fetch can't overwrite the
   // result of a faster later one (translation switching, chapter toggle).
   const requestId = useRef(0)
@@ -103,6 +129,52 @@ export function BibleVerseSheet({
       // localStorage may throw in private-mode iframes; ignore.
     }
   }, [bibleId])
+
+  // Load the licensed version list once on mount. On failure we keep
+  // `licensed` null and fall back to the built-in arrays.
+  useEffect(() => {
+    let cancelled = false
+    void fetchLicensedVersions().then((list) => {
+      if (!cancelled && list && list.length) setLicensed(list)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Full set of versions to choose from — the licensed list when loaded,
+  // otherwise the built-in fallback so the picker is never empty.
+  const allVersions: Translation[] = licensed ?? [
+    ...TRANSLATIONS,
+    ...EXTRA_TRANSLATIONS,
+  ]
+
+  // Quick-access chips = the most popular licensed versions (so the common
+  // ones are one click away). The user picks anything else from "More".
+  const chipVersions = [...allVersions]
+    .sort((a, b) => {
+      const r = popularityRank(a.abbr) - popularityRank(b.abbr)
+      return r !== 0 ? r : a.abbr.localeCompare(b.abbr)
+    })
+    .slice(0, 5)
+
+  // "More" list = every version, alphabetical (backend already sorts, but we
+  // re-sort to be safe for the fallback list), filtered by the search box.
+  const moreVersions = (() => {
+    const q = versionQuery.trim().toLowerCase()
+    return [...allVersions]
+      .sort((a, b) => a.abbr.localeCompare(b.abbr))
+      .filter(
+        (t) =>
+          q === '' ||
+          t.abbr.toLowerCase().includes(q) ||
+          (t.name ?? '').toLowerCase().includes(q),
+      )
+  })()
+
+  // Whether the active version is shown as a chip (controls the "More"
+  // button's pressed/label state).
+  const activeInChips = chipVersions.some((t) => t.id === bibleId)
 
   // Helper for changing the version from any picker (chip or
   // dropdown). Always closes the dropdown.
@@ -133,6 +205,7 @@ export function BibleVerseSheet({
     setLoading(true)
     setError(null)
     setVerseText('')
+    setVerses([])
     setReference('')
 
     void fetchPassage({ usfm: activeUsfm, bibleId }).then((res) => {
@@ -142,6 +215,8 @@ export function BibleVerseSheet({
         setError('Could not load this verse.')
       } else {
         setVerseText(res.verseText)
+        console.log('fetched res', res)
+        setVerses(res.verses)
         setReference(res.reference)
       }
     })
@@ -190,7 +265,8 @@ export function BibleVerseSheet({
 
   const bookName = usfmDisplayNames[ref.book] ?? ref.book
   const fallbackLabel = labelForRef(ref)
-  const title = reference || (chapterMode ? `${bookName} ${ref.chapter}` : fallbackLabel)
+  const title =
+    reference || (chapterMode ? `${bookName} ${ref.chapter}` : fallbackLabel)
 
   // No scrim — we pass through clicks on the page behind the sheet.
   // The sheet root sits at the bottom, centered horizontally on wide
@@ -212,7 +288,7 @@ export function BibleVerseSheet({
           'transition-all duration-200 ease-out ' +
           (open
             ? 'translate-y-0 opacity-100'
-            : 'translate-y-4 opacity-0 pointer-events-none')
+            : 'pointer-events-none translate-y-4 opacity-0')
         }
       >
         {/* Drag-handle visual cue (cosmetic on web). */}
@@ -259,7 +335,7 @@ export function BibleVerseSheet({
             ref={moreWrapRef}
             className="relative mt-2 flex flex-wrap items-center gap-1.5"
           >
-            {TRANSLATIONS.map((t) => {
+            {chipVersions.map((t) => {
               const selected = t.id === bibleId
               return (
                 <button
@@ -279,17 +355,20 @@ export function BibleVerseSheet({
               )
             })}
             {(() => {
-              const activeInExtras = EXTRA_TRANSLATIONS.find(
-                (t) => t.id === bibleId,
-              )
-              const moreLabel = activeInExtras
-                ? activeInExtras.abbr
-                : 'More'
-              const morePressed = !!activeInExtras
+              // When the active version isn't one of the quick chips, show its
+              // abbreviation on the "More" button so the user can see their
+              // current pick at a glance.
+              const activeVersion = allVersions.find((t) => t.id === bibleId)
+              const moreLabel =
+                !activeInChips && activeVersion ? activeVersion.abbr : 'More'
+              const morePressed = !activeInChips && !!activeVersion
               return (
                 <button
                   type="button"
-                  onClick={() => setMoreOpen((v) => !v)}
+                  onClick={() => {
+                    setMoreOpen((v) => !v)
+                    setVersionQuery('')
+                  }}
                   aria-haspopup="listbox"
                   aria-expanded={moreOpen}
                   aria-pressed={morePressed}
@@ -313,8 +392,7 @@ export function BibleVerseSheet({
                     // Caret starts pointing down (collapsed) and
                     // flips up when the dropdown opens upward.
                     className={
-                      'transition-transform ' +
-                      (moreOpen ? '-rotate-180' : '')
+                      'transition-transform ' + (moreOpen ? '-rotate-180' : '')
                     }
                   >
                     <polyline points="3 5 6 8 9 5" />
@@ -336,33 +414,52 @@ export function BibleVerseSheet({
               <div
                 role="listbox"
                 aria-label="Choose a Bible version"
-                className="absolute left-0 bottom-full z-10 mb-2 max-h-64 w-64 overflow-y-auto rounded-xl bg-white p-1 shadow-xl ring-1 ring-black/10 dark:bg-neutral-900 dark:ring-white/10"
+                className="absolute left-0 bottom-full z-10 mb-2 flex max-h-72 w-64 flex-col overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/10 dark:bg-neutral-900 dark:ring-white/10"
               >
-                {EXTRA_TRANSLATIONS.map((t) => {
-                  const selected = t.id === bibleId
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      onClick={() => selectVersion(t.id)}
-                      className={
-                        'flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-1.5 text-left text-xs transition-colors ' +
-                        (selected
-                          ? 'bg-emerald-600/10 text-emerald-700 dark:text-emerald-300'
-                          : 'text-gray-700 hover:bg-gray-100 dark:text-neutral-200 dark:hover:bg-neutral-800')
-                      }
-                    >
-                      <span className="font-semibold">{t.abbr}</span>
-                      {t.name ? (
-                        <span className="truncate text-[11px] text-gray-500 dark:text-neutral-400">
-                          {t.name}
-                        </span>
-                      ) : null}
-                    </button>
-                  )
-                })}
+                {/* Search box — filters the full version list as you type. */}
+                <div className="sticky top-0 border-b border-black/5 bg-white p-2 dark:border-white/10 dark:bg-neutral-900">
+                  <input
+                    type="text"
+                    autoFocus
+                    value={versionQuery}
+                    onChange={(e) => setVersionQuery(e.target.value)}
+                    placeholder="Search versions"
+                    aria-label="Search Bible versions"
+                    className="w-full rounded-md bg-gray-100 px-2.5 py-1.5 text-xs text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-emerald-500/40 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
+                  />
+                </div>
+                <div className="overflow-y-auto p-1">
+                  {moreVersions.length === 0 ? (
+                    <p className="px-2.5 py-3 text-center text-xs text-gray-400 dark:text-neutral-500">
+                      No versions found
+                    </p>
+                  ) : null}
+                  {moreVersions.map((t) => {
+                    const selected = t.id === bibleId
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => selectVersion(t.id)}
+                        className={
+                          'flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-1.5 text-left text-xs transition-colors ' +
+                          (selected
+                            ? 'bg-emerald-600/10 text-emerald-700 dark:text-emerald-300'
+                            : 'text-gray-700 hover:bg-gray-100 dark:text-neutral-200 dark:hover:bg-neutral-800')
+                        }
+                      >
+                        <span className="font-semibold">{t.abbr}</span>
+                        {t.name ? (
+                          <span className="truncate text-[11px] text-gray-500 dark:text-neutral-400">
+                            {t.name}
+                          </span>
+                        ) : null}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             ) : null}
           </div>
@@ -377,9 +474,24 @@ export function BibleVerseSheet({
               <div className="py-2 text-sm text-gray-600 dark:text-neutral-400">
                 {error}
               </div>
+            ) : verses.length > 0 ? (
+              // Parsed verse units — render each verse number as a small
+              // superscript before its text.
+              <p className="text-[15px] leading-relaxed">
+                {verses.map((v, i) => (
+                  <span key={`${v.num}-${i}`}>
+                    {v.num ? (
+                      <sup className="mr-0.5 align-super text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                        {v.num}
+                      </sup>
+                    ) : null}
+                    <span>{v.text} </span>
+                  </span>
+                ))}
+              </p>
             ) : verseText.trim() ? (
-              // `whitespace-pre-wrap` preserves the verse-number spacing the
-              // YouVersion text format ships ("16 For God so loved…").
+              // Fallback: plain text when the HTML had no parseable verse
+              // labels. `whitespace-pre-wrap` preserves any inline spacing.
               <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
                 {verseText}
               </p>

@@ -58,7 +58,38 @@ const ManageLentBooks = () => {
   const activeLends = myLends.filter((lend) => lend.status === 'ACTIVE')
   const pastLends = myLends.filter((lend) => lend.status !== 'ACTIVE')
 
-  const renderLendCard = (lend: PeerLendingRecord, showAction: boolean) => (
+  const renderActiveLendCard = (lend: PeerLendingRecord) => (
+    <Card
+      key={lend.id}
+      className="border-red-200 bg-red-50 ring-1 ring-red-200 shadow-sm"
+    >
+      <CardContent className="flex flex-col justify-between gap-3 p-4 md:flex-row md:items-center">
+        <div>
+          <p className="font-semibold text-red-900">{lend.book?.title}</p>
+          <p className="text-red-800/80 text-sm">
+            Shared with {lend.borrower?.firstName} {lend.borrower?.lastName}
+          </p>
+          <p className="text-red-800/80 text-sm">
+            Active until {new Date(lend.endAt).toLocaleDateString()}
+          </p>
+          <p className="text-red-700 text-xs font-medium uppercase tracking-wide">
+            Status: {lend.status}
+          </p>
+        </div>
+
+        <Button
+          variant="default"
+          className="rounded-full bg-red-700 text-white hover:bg-red-800"
+          disabled={revokeMutation.isPending}
+          onClick={() => revokeMutation.mutate(lend.id)}
+        >
+          Take Back
+        </Button>
+      </CardContent>
+    </Card>
+  )
+
+  const renderPastLendCard = (lend: PeerLendingRecord) => (
     <LiquidGlassWrapper
       key={lend.id}
       style={{
@@ -72,24 +103,12 @@ const ManageLentBooks = () => {
             Shared with {lend.borrower?.firstName} {lend.borrower?.lastName}
           </p>
           <p className="text-muted-foreground text-sm">
-            {showAction ? 'Active until' : 'Ended on'}{' '}
-            {new Date(lend.endAt).toLocaleDateString()}
+            Ended on {new Date(lend.endAt).toLocaleDateString()}
           </p>
           <p className="text-muted-foreground text-xs">
             Status: {lend.status === 'REVOKED' ? 'RECALLED' : lend.status}
           </p>
         </div>
-
-        {showAction ? (
-          <Button
-            variant="default"
-            className="rounded-full"
-            disabled={revokeMutation.isPending}
-            onClick={() => revokeMutation.mutate(lend.id)}
-          >
-            Take Back
-          </Button>
-        ) : null}
       </CardContent>
     </LiquidGlassWrapper>
   )
@@ -110,17 +129,27 @@ const ManageLentBooks = () => {
         </div>
 
         <div className="space-y-8">
-          <section className="space-y-3">
-            <h2 className="text-primary text-2xl font-bold">Active</h2>
+          <section className="rounded-xl bg-red-50/60 p-4 ring-1 ring-red-200 md:p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-600" />
+              <h2 className="text-2xl font-bold text-red-700">
+                Currently Lent Out
+              </h2>
+              {activeLends.length > 0 ? (
+                <span className="ml-auto inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800">
+                  {activeLends.length} active
+                </span>
+              ) : null}
+            </div>
             {activeLends.length === 0 ? (
-              <Card className="border border-dashed">
+              <Card className="border border-dashed border-red-200 bg-white/60">
                 <CardContent className="text-muted-foreground p-6 text-sm">
                   You do not have any active lent books.
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 gap-4 space-y-3 md:grid-cols-3 lg:grid-cols-4">
-                {activeLends.map((lend) => renderLendCard(lend, true))}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {activeLends.map((lend) => renderActiveLendCard(lend))}
               </div>
             )}
           </section>
@@ -135,7 +164,7 @@ const ManageLentBooks = () => {
               </Card>
             ) : (
               <div className="grid grid-cols-1 gap-4 space-y-3 md:grid-cols-4 lg:grid-cols-6">
-                {pastLends.map((lend) => renderLendCard(lend, false))}
+                {pastLends.map((lend) => renderPastLendCard(lend))}
               </div>
             )}
           </section>

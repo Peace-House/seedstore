@@ -332,7 +332,7 @@ import {
   MdHeadphones,
 } from 'react-icons/md'
 
-import { useTextToSpeech } from '../hooks/useTextToSpeech'
+import { useBackendTTS } from '../hooks/useBackendTTS'
 
 interface AudioReaderProps {
   getText: () => string
@@ -342,8 +342,20 @@ interface AudioReaderProps {
   onNextPage?: () => void
   onPrevPage?: () => void
   className?: string
-  bookId?: string // Unique identifier for the book
+  bookId?: string // Local book record id (used for position persistence)
   chapter?: number | string // Current chapter
+  /**
+   * Numeric library id required by the backend `/audio/synthesize`
+   * endpoint. Separate from `bookId` because the local book record id
+   * is a string while the server expects a positive integer.
+   */
+  remoteBookId?: number
+  /**
+   * Stable per-chapter identifier sent to the backend so the cache row
+   * is keyed predictably. Typically derived from `location.start.cfi`
+   * by the parent.
+   */
+  chapterId?: string
 }
 
 interface ReadingPosition {
@@ -415,8 +427,13 @@ export const AudioReader: React.FC<AudioReaderProps> = ({
   className,
   bookId = 'default-book',
   chapter = 1,
+  remoteBookId,
+  chapterId,
 }) => {
-  const [state, controls] = useTextToSpeech()
+  const [state, controls] = useBackendTTS({
+    bookId: remoteBookId,
+    chapterId,
+  })
   const [showSettings, setShowSettings] = useState(false)
   const prevTextRef = useRef<string>("")
   const prevPageRef = useRef<number | string | undefined>(undefined)
@@ -588,7 +605,7 @@ export const AudioReader: React.FC<AudioReaderProps> = ({
     return (
       <div className={clsx('bg-surface-variant rounded-lg p-4 text-center', className)}>
         <p className="text-on-surface-variant">
-          Text-to-speech is not supported in your browser.
+          Audio reader unavailable. Check your connection and try again.
         </p>
       </div>
     )

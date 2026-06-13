@@ -4,6 +4,7 @@ import React, {
   ComponentProps,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react'
@@ -228,7 +229,8 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
     return last !== null && !isNaN(Number(last)) ? Number(last) : 0
   })
 
-  const { iframe, rendition, rendered, container, book } = useSnapshot(tab)
+  const { iframe, rendition, rendered, container, book, location } =
+    useSnapshot(tab)
 
   // Sync annotations with server
   useAnnotationSync(book?.id)
@@ -262,6 +264,29 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
 
   const setNavbar = useSetRecoilState(navbarState)
   const mobile = useMobile()
+
+  // Backend TTS needs (a) the numeric library id and (b) a stable
+  // per-chapter id for the synthesis cache key. The local BookRecord
+  // id is a string but library books have numeric ids server-side, so
+  // we Number()-coerce defensively — if it's NaN the hook falls back
+  // to a no-op (synth requires a positive integer bookId).
+  const remoteBookId = useMemo(() => {
+    if (!book?.id) return undefined
+    const n = Number(book.id)
+    return Number.isFinite(n) && n > 0 ? n : undefined
+  }, [book?.id])
+
+  // Mobile uses the substring of the cfi before the `!` separator as
+  // the chapter id; we mirror that exactly so cache rows line up
+  // across platforms when a user listens to the same chapter on web
+  // and mobile.
+  const chapterId = useMemo(() => {
+    const cfi = location?.start.cfi
+    if (!cfi) return undefined
+    const bang = cfi.indexOf('!')
+    const id = (bang > 0 ? cfi.substring(0, bang) : cfi).trim()
+    return id.length > 0 ? id : undefined
+  }, [location?.start.cfi])
 
   // Get text content from current page for TTS
   const getCurrentPageText = useCallback(() => {
@@ -520,10 +545,13 @@ function BookPane({ tab, onMouseDown }: BookPaneProps) {
         <AudioReader
           getText={getCurrentPageText}
           page={page}
-          onPageChange={(page:number|string)=>setPage(page as number)}
+          onPageChange={(page: number | string) => setPage(page as number)}
           onClose={() => setShowAudioReader(false)}
           onNextPage={handleNextPage}
           onPrevPage={handlePrevPage}
+          bookId={book?.id}
+          remoteBookId={remoteBookId}
+          chapterId={chapterId}
         />
       )}
       <ReaderPaneFooter
