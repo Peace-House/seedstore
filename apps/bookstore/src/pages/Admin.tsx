@@ -46,6 +46,7 @@ import CommunicationsManagement from '@/components/admin/CommunicationsManagemen
 import OutreachManagement from '@/components/admin/OutreachManagement'
 import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
 import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
+import ReferralSettings from '@/components/admin/ReferralSettings'
 import AppVersioningManagement from '@/components/admin/AppVersioningManagement'
 import EmailSettings from '@/components/admin/EmailSettings'
 import BookAuthorAccess from '@/components/admin/BookAuthorAccess'
@@ -422,7 +423,12 @@ const Admin = () => {
           {tab === 'group-buy' && <GroupBuyingManagement />}
           {tab === 'transactions' && <TransactionManagement />}
           {tab === 'payment-gateways' && <PaymentGatewayManagement />}
-          {tab === 'app-settings' && <AppUpdateSettings />}
+          {tab === 'app-settings' && (
+            <div className="space-y-8">
+              <AppUpdateSettings />
+              <ReferralSettings />
+            </div>
+          )}
           {tab === 'app-versioning' && <AppVersioningManagement />}
           {tab === 'email-settings' && <EmailSettings />}
           {tab === 'converter' && <EPUBConverter />}

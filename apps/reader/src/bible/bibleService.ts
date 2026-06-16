@@ -1,21 +1,19 @@
-// Talks to the YouVersion Platform Bible API. Web port of
-// `lib/bible/services/bible_service.dart` — same endpoint + headers, but
-// uses `fetch` instead of Dio and an in-memory `Map` cache instead of Drift.
-//
-// The YouVersion app key is read from `NEXT_PUBLIC_YVP_APP_KEY`. It travels
-// in the `X-YVP-App-Key` header on every request. The default Bible id
-// (e.g. 3034 = BSB) comes from `NEXT_PUBLIC_YVP_DEFAULT_BIBLE_ID`.
+// Bible passage client. Now points at the LivingSeed backend's
+// `/bible/passages/:bibleId/:usfm` endpoint, which proxies to YouVersion
+// server-side and caches results in Postgres. Previously this hit
+// `api.youversion.com` directly and carried `NEXT_PUBLIC_YVP_APP_KEY` in
+// the browser bundle — moving the key server-side means it no longer
+// ships in client JS and the cache is shared across all platforms and
+// users (web, mobile, future surfaces).
 //
 // Passages are immutable, so a cache hit is always authoritative. Cache
 // state lives in module scope — there's one service for the whole tab; if
 // the user reloads the page we re-fetch, which is fine.
 
-const API_BASE = 'https://api.youversion.com'
-
-const APP_KEY: string =
+const API_BASE: string =
   (typeof process !== 'undefined' &&
     process.env &&
-    process.env.NEXT_PUBLIC_YVP_APP_KEY) ||
+    process.env.NEXT_PUBLIC_API_BASE_URL) ||
   ''
 
 /** Default translation id. BSB (3034) matches the mobile fallback. */
@@ -205,16 +203,18 @@ export async function fetchPassage(
     }
   }
 
-  const url = `${API_BASE}/v1/bibles/${bibleId}/passages/${encodeURIComponent(
+  // Backend proxy — `/bible/passages/:bibleId/:usfm` returns the same
+  // `{ reference, content, fetchedAt, ... }` shape, but with no client-
+  // side YouVersion key. Backend caches per-(bibleId, usfm) so this is
+  // typically a single Postgres read in production after the first
+  // user to view a given passage has warmed the cache.
+  const url = `${API_BASE}/bible/passages/${bibleId}/${encodeURIComponent(
     opts.usfm,
-  )}?format=html`
+  )}`
 
   try {
     const res = await fetch(url, {
-      headers: {
-        'X-YVP-App-Key': APP_KEY,
-        Accept: 'application/json',
-      },
+      headers: { Accept: 'application/json' },
     })
     if (!res.ok) {
       // 4xx/5xx — leave the cache untouched and return an empty result so

@@ -4,6 +4,8 @@ export interface AppFeatureSettings {
   peer_lending_enabled: boolean
   seedstore_lending_enabled: boolean
   group_buying_enabled: boolean
+  /** Master on/off switch for the Refer & Share program. */
+  referral_enabled: boolean
   payment_paystack_enabled: boolean
   payment_applepay_enabled: boolean
   payment_flutterwave_enabled: boolean
@@ -104,6 +106,7 @@ export const getAppFeatureSettings = async (): Promise<AppFeatureSettings> => {
     peer_lending_enabled: !!res.data?.peer_lending_enabled,
     seedstore_lending_enabled: !!res.data?.seedstore_lending_enabled,
     group_buying_enabled: !!res.data?.group_buying_enabled,
+    referral_enabled: !!res.data?.referral_enabled,
     payment_paystack_enabled: res.data?.payment_paystack_enabled !== false,
     payment_applepay_enabled: res.data?.payment_applepay_enabled !== false,
     payment_flutterwave_enabled:
@@ -150,6 +153,7 @@ export const updateAppFeatureSettings = async (
     peer_lending_enabled: !!res.data?.peer_lending_enabled,
     seedstore_lending_enabled: !!res.data?.seedstore_lending_enabled,
     group_buying_enabled: !!res.data?.group_buying_enabled,
+    referral_enabled: !!res.data?.referral_enabled,
     payment_paystack_enabled: res.data?.payment_paystack_enabled !== false,
     payment_applepay_enabled: res.data?.payment_applepay_enabled !== false,
     payment_flutterwave_enabled:

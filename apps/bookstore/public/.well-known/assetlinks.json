@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.livingseed.seedapp",
+      "sha256_cert_fingerprints": [
+        "AA:37:6B:48:F0:50:09:8F:56:70:B4:F2:42:20:2D:DB:27:C5:FD:46:A9:DE:93:D1:4C:1B:D8:FD:D9:F4:11:D7"
+      ]
+    }
+  }
+]
