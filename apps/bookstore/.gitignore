@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Vite writes a transient `vite.config.ts.timestamp-<epoch>-<hash>.mjs`
+# next to the source config every time it (re)loads the config — those
+# files embed absolute `file:///Users/...` imports, so committing them
+# leaks local paths and pollutes diffs. Vite never reads its own
+# timestamp files on subsequent runs, so they're safe to ignore.
+vite.config.ts.timestamp-*.mjs
+vite.config.js.timestamp-*.mjs
+vite.config.mjs.timestamp-*.mjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

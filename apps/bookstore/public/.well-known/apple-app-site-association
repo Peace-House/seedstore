@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appID": "F7AWC8SVB3.com.livingseed.app",
+        "paths": [
+          "/r",
+          "/r/*",
+          "/referral",
+          "/referral/*"
+        ]
+      }
+    ]
+  }
+}

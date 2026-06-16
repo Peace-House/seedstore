@@ -24,6 +24,7 @@ import RetrievePHCodePage from './pages/RetrievePHCodePage'
 import ManageGroupBuy from './pages/ManageGroupBuy'
 import ManageLentBooks from './pages/ManageLentBooks'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import AppRedirect from './pages/AppRedirect'
 
 const queryClient = new QueryClient()
 
@@ -36,6 +37,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            {/* Device-detecting referral share landing — /r?ref=CODE */}
+            <Route path="/r" element={<AppRedirect />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/retrieve-phcode" element={<RetrievePHCodePage />} />
             <Route path="/reset-password" element={<ResetPassword />} />
