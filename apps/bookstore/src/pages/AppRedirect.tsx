@@ -66,11 +66,9 @@ const AppRedirect = () => {
     // claim it from the clipboard on first launch (best-effort; ignore
     // failures e.g. when the browser blocks clipboard access).
     if (ref) {
-      try {
-        void navigator.clipboard?.writeText(`SEEDSTORE_REF_${ref}`)
-      } catch {
-        /* no-op */
-      }
+      void navigator.clipboard
+        ?.writeText(`SEEDSTORE_REF_${ref}`)
+        .catch(() => {})
     }
 
     if (p === 'ios' || p === 'android') {
