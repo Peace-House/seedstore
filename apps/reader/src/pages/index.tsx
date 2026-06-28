@@ -75,16 +75,6 @@ export default function Index() {
     if (!bookId || !orderId) return;
 
     let cancelled = false;
-    const cleanUrl = () => {
-      // Strip ?bookId=...&orderId=... so the address bar reflects the
-      // user's actual location after a successful open.
-      if (typeof window !== 'undefined') {
-        const url = new URL(window.location.href);
-        if (url.search) {
-          window.history.replaceState({}, '', url.pathname + url.hash);
-        }
-      }
-    };
 
     const finalize = (file: File) => {
       if (cancelled) return;
@@ -92,7 +82,17 @@ export default function Index() {
       setLoading(false);
       setDownloadPct(null);
       setHasOpenedBook(true);
-      cleanUrl();
+      // Intentionally NOT stripping `?bookId=...&orderId=...` from the
+      // URL here. The `reader` proxy is in-memory only — refreshing the
+      // page wipes `reader.groups`, so the URL params are the only
+      // anchor we have to re-open the book. Stripping them left users
+      // staring at "No book opened" after every refresh while reading.
+      //
+      // With the params preserved, a refresh re-runs this same effect:
+      // the IndexedDB `db.files` cache hits, finalize() fires, and the
+      // book reopens in <100ms. The trade-off is a noisier URL bar,
+      // which is the right call — refresh-resilience > address cosmetics
+      // for a reading app.
     };
 
     /** Stream the EPUB from the network and surface byte-level progress.
