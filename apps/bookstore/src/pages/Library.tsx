@@ -287,10 +287,40 @@ const Library = () => {
   if (!user) {
     return <Navigate to="/auth" replace />
   }
-  const handleReadNow = (bookId: number | string, orderId: string) => {
-    const reader_route = import.meta.env.VITE_BOOKREADER_URL!
+  const handleReadNow = (
+    bookId: number | string,
+    orderId: string | number | null | undefined,
+  ) => {
+    const reader_route = import.meta.env.VITE_BOOKREADER_URL
+    if (!reader_route) {
+      // Surface the misconfiguration rather than silently doing
+      // nothing — the user's experience would otherwise be "I clicked
+      // the book and nothing happened."
+      toast({
+        variant: 'destructive',
+        title: 'Reader unavailable',
+        description:
+          'Reader URL not configured (VITE_BOOKREADER_URL). Please contact support.',
+      })
+      return
+    }
+    if (orderId === null || orderId === undefined || orderId === '') {
+      // Purchased copies always have orderId; borrowed/peer-lent copies
+      // have orderId like `borrow:N` / `peerlend:N`. Missing here means
+      // the library data is malformed for this book — without orderId
+      // the reader can't verify access.
+      toast({
+        variant: 'destructive',
+        title: 'Unable to open book',
+        description:
+          'This book is missing an order reference. Please refresh your library.',
+      })
+      return
+    }
     const token = localStorage.getItem('auth_token')
-    const url = `${reader_route}?bookId=${bookId}&orderId=${orderId}${
+    const url = `${reader_route}?bookId=${encodeURIComponent(
+      String(bookId),
+    )}&orderId=${encodeURIComponent(String(orderId))}${
       token ? `&auth_token=${encodeURIComponent(token)}` : ''
     }`
     window.location.href = url
@@ -603,9 +633,46 @@ const Library = () => {
                           onDragEnd={handleDragEnd}
                           onDragOver={(e) => handleDragOver(e, globalIndex)}
                           onDrop={(e) => handleDrop(e, globalIndex)}
-                          className={`group relative cursor-grab transition-all duration-200 hover:z-10 hover:-translate-y-2 active:cursor-grabbing ${stackBookSizing} ${
+                          // Card-level click handler. The cover used to
+                          // own this onClick on its own, which only
+                          // worked when the user clicked the cover img
+                          // squarely — clicks on shelf gaps or below
+                          // the cover did nothing. Hoisting it to the
+                          // outer draggable card means the whole book
+                          // footprint opens the reader.
+                          //
+                          // The browser already discriminates click vs
+                          // drag at the spec level — `onClick` only
+                          // fires on a clean mousedown→mouseup with no
+                          // intervening drag. So a real drag-to-
+                          // reorder gesture suppresses the click; only
+                          // a tap routes to handleReadNow.
+                          onClick={() => {
+                            if (isLentOutNoAccess) return
+                            handleReadNow(book.id, book.orderId)
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            // Keyboard parity — Enter/Space activates
+                            // the same open-in-reader action so this
+                            // is reachable for non-mouse users.
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              if (isLentOutNoAccess) return
+                              e.preventDefault()
+                              handleReadNow(book.id, book.orderId)
+                            }
+                          }}
+                          // `cursor-pointer` first so the default state
+                          // signals "clickable". The HTML5 drag image
+                          // is only triggered when the user actually
+                          // starts dragging; while a drag is in flight
+                          // we switch to `cursor-grabbing` for feedback.
+                          className={`group relative cursor-pointer transition-all duration-200 hover:z-10 hover:-translate-y-2 active:cursor-grabbing ${stackBookSizing} ${
                             isDragging ? 'scale-90 opacity-30' : ''
-                          } ${isDragOver ? 'z-20 -translate-y-4' : ''}`}
+                          } ${isDragOver ? 'z-20 -translate-y-4' : ''} ${
+                            isLentOutNoAccess ? '!cursor-not-allowed' : ''
+                          }`}
                         >
                           {/* Drop indicator - shows where book will be placed */}
                           {isDragOver && (
@@ -641,10 +708,14 @@ const Library = () => {
                                   ? '0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px -2px rgba(0,0,0,0.10), -4px 0 6px -1px rgba(0,0,0,0.45)'
                                   : undefined,
                             }}
-                            onClick={() => {
-                              if (isLentOutNoAccess) return
-                              handleReadNow(book.id, book.orderId!)
-                            }}
+                            // Click is now owned by the outer card so
+                            // the whole book footprint (including the
+                            // shelf gap below the cover) opens the
+                            // reader. Removing the duplicate onClick
+                            // here avoids the double-fire that would
+                            // otherwise happen on touch devices where
+                            // both the outer card and the inner cover
+                            // would receive the synthetic click.
                           >
                             {/* Book cover */}
                             {book.coverImage ? (

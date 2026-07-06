@@ -235,7 +235,19 @@ function PageActionBar({ env }: EnvActionBarProps) {
             active={mobile ? action === name : undefined}
             disabled={disabled}
             onClick={() => {
-              Component ? reader.addTab(Component) : reader.clear()
+              // Page actions with a `Component` (e.g. Settings) open as
+              // a PageTab inside the current reader group.
+              //
+              // Page actions WITHOUT a component used to call
+              // `reader.clear()` here, which wiped every open book tab
+              // — the user would tap the home icon thinking "go home"
+              // and lose their entire reading session. Tabs are user-
+              // owned state; navigating somewhere should never close
+              // them. The 'home' button now just leaves the open tabs
+              // intact and updates the local action highlight.
+              if (Component) {
+                reader.addTab(Component)
+              }
               setAction(name)
             }}
             key={i}
