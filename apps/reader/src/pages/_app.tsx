@@ -14,6 +14,7 @@ import { AuthGuard } from '../components/AuthGuard'
 import { Layout } from '../components/layout/Layout'
 import { startEventStreamBridge, stopEventStreamBridge } from '../services/eventStreamBridge'
 import { eventStream } from '../services/eventStreamService'
+import { startTabPersistence } from '../services/tabPersistence'
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter()
@@ -158,6 +159,11 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     // — no extra prop wiring or refetch needed.
     eventStream.start()
     startEventStreamBridge()
+
+    // Persist every reader-tab change to localStorage so the user's
+    // open books survive a refresh / app close. Idempotent; safe even
+    // though _app's effect can re-run during dev hot-reload.
+    startTabPersistence()
 
     // Detect if DevTools is open (via debugger timing)
     const detectDevTools = () => {

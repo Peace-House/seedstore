@@ -42,6 +42,17 @@ const ViewActionBar = ({ className, env }: EnvActionBarProps) => {
                   return
                 }
 
+                // If the user is currently on /library and they pick a
+                // reader-only side panel (TOC, search, annotations,
+                // typography, theme), the book they previously opened
+                // isn't visible — it only renders on `/`. Bounce them
+                // back to the reader so the chosen panel actually has
+                // a book on screen next to it. The reader tab tree
+                // persists across navigation, so no state is lost.
+                if (router.pathname === '/library') {
+                  router.push('/')
+                }
+
                 setAction(active ? undefined : (name as any))
               }}
               key={name}

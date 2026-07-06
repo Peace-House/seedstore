@@ -162,7 +162,14 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="p-4">
+    // `h-full overflow-y-auto` is mandatory here: the parent `<Reader>`
+    // wrapper in Layout.tsx is `flex-1 overflow-hidden`, so without an
+    // own scroller this page's tall grid is silently clipped past the
+    // viewport (no scrollbar, no visible "more" hint — the user just
+    // sees the first row). Scoping the scroll to this container also
+    // means the activity bar / sidebar stay docked while the book
+    // grid scrolls.
+    <div className="p-4 h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Library</h1>
         <button

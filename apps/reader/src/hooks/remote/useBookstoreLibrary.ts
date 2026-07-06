@@ -73,7 +73,28 @@ export function useBookstoreLibrary() {
   // re-run on every parent render and can cascade into surprise loops.
   const transformedData = useMemo(() => {
     if (!data) return []
-    return data.map((book: any) => ({
+
+    // De-dupe by book id. The server returns three concatenated source
+    // arrays — purchases (`books`), library borrows (`borrowedBooks`),
+    // and peer-lend borrows (`peerBorrowedBooks`). If a user has the
+    // same physical book reachable through more than one source — e.g.
+    // they own a copy AND a friend is lending them another, or there
+    // are two purchase orders for the same book (gifting / re-buy) —
+    // the bare list contains the same book id twice and the reader
+    // library page renders the cover twice. Keeping the FIRST source
+    // we see preserves the server's preferred ordering: owned copies
+    // appear before borrowed ones, so the user sees the entry whose
+    // access they're least likely to lose.
+    const seen = new Set<string>()
+    const deduped: any[] = []
+    for (const book of data) {
+      const id = String(book.id)
+      if (seen.has(id)) continue
+      seen.add(id)
+      deduped.push(book)
+    }
+
+    return deduped.map((book: any) => ({
       ...book,
       id: String(book.id), // Ensure id is a string
       name: String(book.title),

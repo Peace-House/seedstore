@@ -15,6 +15,7 @@ import { useBookstoreLibrary } from '../hooks/remote/useBookstoreLibrary'
 import { useGetLibraryBookById } from '../hooks/remote/useGetLibraryBookById'
 import { useLibrarySync } from '../hooks/useLibrarySync'
 import { reader, useReaderSnapshot } from '../models'
+import { restorePersistedTabs } from '../services/tabPersistence'
 
 
 // Store auth_token from URL to localStorage if present, then remove it from the URL
@@ -61,6 +62,46 @@ export default function Index() {
       router.push('/library');
     }
   }, [hadOpenTabs, groups.length, router]);
+
+  // Hard-state guard: if the restore attempt completed AND there's no
+  // URL deeplink to open AND we still don't have any tabs in memory,
+  // there's nothing for this page to render. Send the user to /library
+  // so they can pick a book — otherwise they'd see the "No book
+  // opened" placeholder with no obvious next step. We wait for
+  // `hasRestoredTabs` so a slow IndexedDB read doesn't bounce them
+  // away from a tab that's about to come back.
+
+  // Restore persisted tabs from localStorage on first mount. Runs in
+  // parallel with the URL-deeplink open path — the persistence service
+  // bails out if `reader.groups` is already populated, so whichever
+  // path lands first wins without producing duplicates. In the common
+  // case (refresh while reading) the URL still has bookId/orderId AND
+  // the persisted snapshot lists the same book; only one tab gets
+  // added because `Group.addTab` short-circuits on duplicate id.
+  const [hasRestoredTabs, setHasRestoredTabs] = useState(false);
+  useEffect(() => {
+    if (hasRestoredTabs) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await restorePersistedTabs();
+      } catch (err) {
+        console.warn('[Reader] tab restore failed:', err);
+      } finally {
+        if (!cancelled) setHasRestoredTabs(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasRestoredTabs]);
+
+  useEffect(() => {
+    if (!hasRestoredTabs) return;
+    if (bookId || orderId) return;
+    if (groups.length > 0) return;
+    router.push('/library');
+  }, [hasRestoredTabs, bookId, orderId, groups.length, router]);
 
   // Fetch book details from server using custom hook
   const { book: remoteBook, error: remoteBookError } = useGetLibraryBookById(
@@ -207,14 +248,14 @@ export default function Index() {
     }
   }, [])
 
-  useEffect(() => {
-    router.beforePopState(({ url }) => {
-      if (url === '/') {
-        reader.clear()
-      }
-      return true
-    })
-  }, [router])
+  // NOTE: The previous version cleared every reader tab on pop-state
+  // back to `/`, which was the root cause of "I opened a book, went to
+  // the library, came back, and my tab is gone." Tabs are user-owned
+  // state — they should only close when the user explicitly closes
+  // them, not as a side effect of navigation. The popstate hook is
+  // removed deliberately; if we need to react to back-nav for other
+  // reasons in the future, gate the clear behind an explicit user
+  // signal (e.g. a Close-all action) instead of putting it here.
 
   return (
     <>
