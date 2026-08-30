@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getBooks } from '@/services/book';
+import { getBooks, bookMatchesCategories } from '@/services/book';
 import { getCategories } from '@/services/category';
 import { Skeleton } from './ui/skeleton';
 import { Button } from './ui/button';
@@ -59,7 +59,9 @@ const AllBooks = () => {
     
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.author.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter.length === 0 || (book.category && categoryFilter.includes(book.category.id));
+    // Matches ANY of the book's categories (primary + many-to-many),
+    // not just the legacy primary one.
+    const matchesCategory = bookMatchesCategories(book, categoryFilter);
     const matchesAuthor = authorFilter.length === 0 || authorFilter.some(a => a.toLowerCase().trim() === book.author.toLowerCase().trim());
     // Get price for selected country
     const priceData = getBookPriceForCountry(book.prices, selectedCountry, 'soft_copy', countryCurrencies);
