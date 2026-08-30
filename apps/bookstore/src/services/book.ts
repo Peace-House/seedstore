@@ -266,3 +266,34 @@ export const seedBookGroups = async (): Promise<{
   const res = await api.post('/book-groups/seed')
   return res.data
 }
+
+// ── Category helpers ────────────────────────────────────────────────
+/** All category ids a book belongs to (primary + many-to-many). */
+export const getBookCategoryIds = (book: Book): number[] => {
+  const ids = new Set<number>()
+  if (book.category?.id != null) ids.add(book.category.id)
+  book.categoryList?.forEach((c) => {
+    if (c?.id != null) ids.add(c.id)
+  })
+  return Array.from(ids)
+}
+
+/** All category names a book belongs to (primary + many-to-many). */
+export const getBookCategoryNames = (book: Book): string[] => {
+  const names = new Set<string>()
+  if (book.category?.name) names.add(book.category.name)
+  book.categoryList?.forEach((c) => {
+    if (c?.name) names.add(c.name)
+  })
+  return Array.from(names)
+}
+
+/** True when the book belongs to ANY of the selected category ids. */
+export const bookMatchesCategories = (
+  book: Book,
+  selected: (string | number)[],
+): boolean => {
+  if (selected.length === 0) return true
+  const selectedIds = new Set(selected.map((s) => String(s)))
+  return getBookCategoryIds(book).some((id) => selectedIds.has(String(id)))
+}

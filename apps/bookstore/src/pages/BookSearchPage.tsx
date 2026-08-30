@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useBookSearchParams } from '@/hooks/useBookSearchParams';
-import { getBooks, Book } from '@/services/book';
+import { getBooks, Book, getBookCategoryNames } from '@/services/book';
 import { getCategories } from '@/services/category';
 import BookCard from '@/components/BookCard';
 import { Input } from '@/components/ui/input';
@@ -63,7 +63,11 @@ const BookSearchPage = () => {
     if (!search) return true;
     const inTitle = book.title && book.title.toLowerCase().includes(search);
     const inAuthor = book.author && book.author.toLowerCase().includes(search);
-    const inCategory = book.category && book.category.name && book.category.name.toLowerCase().includes(search);
+    // Search across ALL of the book's category names, not just the
+    // legacy primary one.
+    const inCategory = getBookCategoryNames(book).some((n) =>
+      n.toLowerCase().includes(search),
+    );
     return inTitle || inAuthor || inCategory;
   });
 

@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { getBookById } from '@/services/book'
+import { getBookById, getBookCategoryIds } from '@/services/book'
 import { getBorrowEligibility } from '@/services/library'
 import { useAuth } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
@@ -445,10 +445,13 @@ const BookDetail = () => {
           </div>
         </div>
         {/* related books */}
-        {book.category?.id && (
+        {/* Related books key off any category the book belongs to —
+            books whose categories come only from the many-to-many
+            list (no legacy primary) used to show no related section. */}
+        {getBookCategoryIds(book)[0] != null && (
           <div className="mt-32 mb-10">
             <RelatedBooks
-              categoryId={book.category.id}
+              categoryId={getBookCategoryIds(book)[0]}
               excludeBookId={book.id}
               showActions={false}
             />
