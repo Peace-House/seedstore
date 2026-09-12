@@ -1,4 +1,5 @@
 import Navbar from '@/components/Navbar';
+import AnnouncementBar from '@/components/AnnouncementBar';
 import Hero from '@/components/Hero';
 import FeaturedBooks from '@/components/FeaturedBooks';
 import AllBooks from '@/components/AllBooks';
@@ -40,6 +41,10 @@ const Index = () => {
           desktop Navbar occupies the same screen real estate. */}
       <StickyAppDownload />
       <Navbar />
+      {/* Site-wide announcement — rendered here, BELOW the header and
+          outside the Navbar component, so it can't affect the navbar's
+          sticky positioning. Renders nothing when none is live. */}
+      <AnnouncementBar />
       <div className="min-h-screen ">
         <Hero />
         {user && <div id='featured-books' className='from-transparent via-transparent to-primary/20 bg-gradient-to-t'>
