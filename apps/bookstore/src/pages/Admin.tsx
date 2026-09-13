@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ChevronRight,
   BookCheck,
+  Megaphone,
 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -44,6 +45,7 @@ import LendingManagement from '@/components/admin/LendingManagement'
 import GroupBuyingManagement from '@/components/admin/GroupBuyingManagement'
 import CommunicationsManagement from '@/components/admin/CommunicationsManagement'
 import OutreachManagement from '@/components/admin/OutreachManagement'
+import AnnouncementManagement from '@/components/admin/AnnouncementManagement'
 import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
 import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
 import ReferralSettings from '@/components/admin/ReferralSettings'
@@ -112,6 +114,7 @@ const Admin = () => {
       label: 'Outreach',
       items: [
         { value: 'communications', label: 'Communications', icon: <Bell className="h-5 w-5" /> },
+        { value: 'announcements', label: 'Announcements', icon: <Megaphone className="h-5 w-5" /> },
         { value: 'locations', label: 'Locations', icon: <MapPin className="h-5 w-5" /> },
       ],
     },
@@ -439,6 +442,7 @@ const Admin = () => {
             <CommunicationsManagement defaultChannel="email" />
           )}
           {tab === 'locations' && <OutreachManagement />}
+          {tab === 'announcements' && <AnnouncementManagement />}
         </main>
       </div>
     </>
