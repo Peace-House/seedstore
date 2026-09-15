@@ -442,25 +442,7 @@ const StudyResourcesManagement = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Study Resources
-            </CardTitle>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Meeting outlines and seminar handouts for the mobile app.
-              Published resources appear under Study Resources; drafts stay
-              hidden.
-            </p>
-          </div>
-          <Button variant="default" onClick={openNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            New resource
-          </Button>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <div className="flex items-center gap-3">
             <Label className="text-sm">Status</Label>
             <Select
@@ -488,7 +470,13 @@ const StudyResourcesManagement = () => {
               {total} {total === 1 ? 'resource' : 'resources'}
             </span>
           </div>
+          <Button className="rounded-full" variant="default" onClick={openNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            New resource
+          </Button>
+        </CardHeader>
 
+        <CardContent className="space-y-4">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
