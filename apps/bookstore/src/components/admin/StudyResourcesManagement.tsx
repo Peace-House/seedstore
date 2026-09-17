@@ -49,6 +49,7 @@ import {
   Eye,
   Download,
   RotateCcw,
+  ChevronDown,
   X,
 } from 'lucide-react'
 import {
@@ -137,6 +138,12 @@ function materialHasFile(m: MaterialDraft): boolean {
   )
 }
 
+function materialCardLabel(m: MaterialDraft, index: number): string {
+  const type = resolvedType(m) || `Material ${index + 1}`
+  const title = m.title.trim()
+  return title ? `${type} - ${title}` : type
+}
+
 const emptyForm = {
   id: null as string | null,
   theme: '',
@@ -177,60 +184,60 @@ function FormatSlot({
   disabled: boolean
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const hasValue = Boolean(value.trim())
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline gap-2">
-        <Label className="text-xs font-semibold">{label}</Label>
-        <span className="text-muted-foreground text-[11px]">{hint}</span>
+    <div
+      className={`bg-background space-y-2 rounded-lg border ${
+        hasValue ? 'border-primary' : ''
+      } p-3 `}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <Label className="text-xs font-semibold">{label}</Label>
+          <p className="text-muted-foreground mt-0.5 text-[11px]">{hint}</p>
+        </div>
+        <Badge variant={hasValue ? 'secondary' : 'outline'}>
+          {hasValue ? 'Uploaded' : progress !== null ? 'Uploading...' : null}
+        </Badge>
       </div>
-      <div className="flex gap-1.5">
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Upload a PDF, or paste a URL"
-          disabled={disabled}
-          className="h-8 text-xs"
-        />
+
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={disabled}
+        className="hover:bg-muted/40 flex w-full items-center justify-between rounded-md border border-dashed px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <div className="flex items-center gap-2">
+          <Upload className="text-primary h-4 w-4" />
+          <span className="text-[11px] font-medium">
+            {hasValue ? 'Replace PDF' : 'Upload PDF'}
+          </span>
+        </div>
+        <span className="text-muted-foreground text-[11px]">Choose file</span>
+      </button>
+
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Or paste a PDF link"
+        disabled={disabled}
+        className="h-8 text-xs placeholder:text-xs"
+      />
+
+      <div className="flex justify-end gap-1.5">
         <Button
           type="button"
-          variant="outline"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          title={`Upload ${label} PDF`}
-          disabled={disabled}
-          onClick={() => inputRef.current?.click()}
+          variant="destructive"
+          className="h-8 w-full shrink-0 rounded-full"
+          title="Clear"
+          disabled={disabled || !hasValue}
+          onClick={() => onChange('')}
         >
-          <Upload className="h-3.5 w-3.5" />
+          Clear
         </Button>
-        {value && (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              title="Open in a new tab"
-              asChild
-            >
-              <a href={value} target="_blank" rel="noreferrer">
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              title="Clear"
-              disabled={disabled}
-              onClick={() => onChange('')}
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </>
-        )}
       </div>
+
       {/* These run to several MB, so a bare spinner would look stalled. */}
       {progress !== null && (
         <div className="space-y-1">
@@ -261,6 +268,7 @@ const StudyResourcesManagement = () => {
   const [form, setForm] = useState<FormState>({ ...emptyForm })
   const [composerOpen, setComposerOpen] = useState(false)
   const [page, setPage] = useState(1)
+  const [openMaterialIndex, setOpenMaterialIndex] = useState(0)
 
   /**
    * Status filter. 'ALL' is a UI-only value — the API omits the param
@@ -332,24 +340,40 @@ const StudyResourcesManagement = () => {
     }))
 
   const addMaterial = () =>
-    setForm((prev) => ({
-      ...prev,
-      materials: [...prev.materials, emptyMaterial()],
-    }))
+    setForm((prev) => {
+      const next = [...prev.materials, emptyMaterial()]
+      setOpenMaterialIndex(next.length - 1)
+      return {
+        ...prev,
+        materials: next,
+      }
+    })
 
   const removeMaterial = (index: number) =>
-    setForm((prev) => ({
-      ...prev,
+    setForm((prev) => {
       // Always leave one row: an empty repeater gives the admin nothing
       // to click, and a programme needs a material anyway.
-      materials:
+      const next =
         prev.materials.length === 1
           ? [emptyMaterial()]
-          : prev.materials.filter((_, i) => i !== index),
-    }))
+          : prev.materials.filter((_, i) => i !== index)
+
+      setOpenMaterialIndex((current) => {
+        if (next.length === 0) return 0
+        if (current > index) return current - 1
+        if (current === index) return Math.max(0, index - 1)
+        return Math.min(current, next.length - 1)
+      })
+
+      return {
+        ...prev,
+        materials: next,
+      }
+    })
 
   const openNew = () => {
     setForm({ ...emptyForm, materials: [emptyMaterial()] })
+    setOpenMaterialIndex(0)
     setUploads({})
     setComposerOpen(true)
   }
@@ -381,6 +405,7 @@ const StudyResourcesManagement = () => {
             }))
           : [emptyMaterial()],
     })
+    setOpenMaterialIndex(0)
     setUploads({})
     setComposerOpen(true)
   }
@@ -388,6 +413,7 @@ const StudyResourcesManagement = () => {
   const closeComposer = () => {
     setComposerOpen(false)
     setForm({ ...emptyForm, materials: [emptyMaterial()] })
+    setOpenMaterialIndex(0)
     setUploads({})
   }
 
@@ -880,95 +906,140 @@ const StudyResourcesManagement = () => {
                 </Button>
               </div>
 
-              {form.materials.map((m, index) => (
-                <div
-                  key={index}
-                  className="bg-muted/40 space-y-3 rounded-md border p-3"
-                >
-                  <div className="flex items-end gap-2">
-                    <div className="w-52 space-y-1.5">
-                      <Label className="text-xs font-semibold">Type</Label>
-                      <Select
-                        value={m.type}
-                        onValueChange={(v) => setMaterial(index, { type: v })}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Pick a type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {materialTypeOptions.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value={OTHER_MATERIAL_TYPE}>
-                            {OTHER_MATERIAL_TYPE}…
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+              {form.materials.map((m, index) => {
+                const isOpen = openMaterialIndex === index
+                const fileCount = MATERIAL_FORMATS.filter((f) =>
+                  Boolean(m[f.key].trim()),
+                ).length
 
-                    {m.type === OTHER_MATERIAL_TYPE && (
-                      <div className="flex-1 space-y-1.5">
-                        <Label className="text-xs font-semibold">
-                          Type name
-                        </Label>
-                        <Input
-                          value={m.customType}
-                          onChange={(e) =>
-                            setMaterial(index, { customType: e.target.value })
-                          }
-                          placeholder="e.g. Workbook"
-                          className="h-8 text-xs"
+                return (
+                  <div
+                    key={index}
+                    className="bg-muted/40 rounded-md border p-3"
+                  >
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-3 text-left"
+                      onClick={() => setOpenMaterialIndex(index)}
+                    >
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {materialCardLabel(m, index)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={fileCount > 0 ? 'secondary' : 'outline'}
+                        >
+                          {fileCount} {fileCount === 1 ? 'file' : 'files'}
+                        </Badge>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${
+                            isOpen ? 'rotate-180' : ''
+                          }`}
                         />
                       </div>
+                    </button>
+
+                    {isOpen && (
+                      <div className="mt-3 space-y-3 border-t pt-3">
+                        <div className="flex items-end gap-2">
+                          <div className="w-52 space-y-1.5">
+                            <Label className="text-xs font-semibold">
+                              Type
+                            </Label>
+                            <Select
+                              value={m.type}
+                              onValueChange={(v) =>
+                                setMaterial(index, { type: v })
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Pick a type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {materialTypeOptions.map((t) => (
+                                  <SelectItem key={t} value={t}>
+                                    {t}
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value={OTHER_MATERIAL_TYPE}>
+                                  {OTHER_MATERIAL_TYPE}…
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {m.type === OTHER_MATERIAL_TYPE && (
+                            <div className="flex-1 space-y-1.5">
+                              <Label className="text-xs font-semibold">
+                                Type name
+                              </Label>
+                              <Input
+                                value={m.customType}
+                                onChange={(e) =>
+                                  setMaterial(index, {
+                                    customType: e.target.value,
+                                  })
+                                }
+                                placeholder="e.g. Workbook"
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex-1 space-y-1.5">
+                            <Label className="text-xs font-semibold">
+                              Title
+                            </Label>
+                            <Input
+                              value={m.title}
+                              onChange={(e) =>
+                                setMaterial(index, { title: e.target.value })
+                              }
+                              placeholder="e.g. Day 1"
+                              className="h-8 text-xs"
+                            />
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive h-8 w-8 shrink-0"
+                            title="Remove this material"
+                            disabled={busy}
+                            onClick={() => removeMaterial(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-3">
+                          {MATERIAL_FORMATS.map((f) => (
+                            <FormatSlot
+                              key={f.key}
+                              label={f.label}
+                              hint={f.hint}
+                              value={m[f.key]}
+                              onChange={(v) =>
+                                setMaterial(index, {
+                                  [f.key]: v,
+                                } as Partial<MaterialDraft>)
+                              }
+                              onUpload={(file) =>
+                                uploadFormat(index, f.key, file)
+                              }
+                              progress={uploads[`${index}:${f.key}`] ?? null}
+                              disabled={busy}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     )}
-
-                    <div className="flex-1 space-y-1.5">
-                      <Label className="text-xs font-semibold">Title</Label>
-                      <Input
-                        value={m.title}
-                        onChange={(e) =>
-                          setMaterial(index, { title: e.target.value })
-                        }
-                        placeholder="e.g. Day 1"
-                        className="h-8 text-xs"
-                      />
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive h-8 w-8 shrink-0"
-                      title="Remove this material"
-                      disabled={busy}
-                      onClick={() => removeMaterial(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
-
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {MATERIAL_FORMATS.map((f) => (
-                      <FormatSlot
-                        key={f.key}
-                        label={f.label}
-                        hint={f.hint}
-                        value={m[f.key]}
-                        onChange={(v) =>
-                          setMaterial(index, {
-                            [f.key]: v,
-                          } as Partial<MaterialDraft>)
-                        }
-                        onUpload={(file) => uploadFormat(index, f.key, file)}
-                        progress={uploads[`${index}:${f.key}`] ?? null}
-                        disabled={busy}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -977,32 +1048,70 @@ const StudyResourcesManagement = () => {
                 <p className="text-muted-foreground text-xs">
                   Shown on the browse cards in the app. Optional.
                 </p>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={form.thumbnailUrl}
-                    onChange={(e) => set('thumbnailUrl', e.target.value)}
-                    placeholder="Upload an image, or paste a URL"
-                    disabled={busy}
-                  />
-                  <Button
+                <div className="bg-background space-y-2 rounded-lg border p-3">
+                  <button
                     type="button"
-                    variant="outline"
-                    size="icon"
+                    className="hover:bg-muted/40 flex w-full items-center justify-between rounded-md border border-dashed px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-50"
                     title="Upload cover image"
                     disabled={busy}
                     onClick={() => thumbInputRef.current?.click()}
                   >
-                    <Upload className="h-4 w-4" />
-                  </Button>
-                  {form.thumbnailUrl && (
-                    <img
-                      src={form.thumbnailUrl}
-                      alt=""
-                      className="h-10 w-10 rounded object-cover"
-                    />
-                  )}
+                    <div className="flex items-center gap-2">
+                      <Upload className="text-primary h-4 w-4" />
+                      <span className="text-xs font-medium">
+                        {form.thumbnailUrl ? 'Replace image' : 'Upload image'}
+                      </span>
+                    </div>
+                    <span className="text-muted-foreground text-[11px]">
+                      JPEG, PNG, WEBP
+                    </span>
+                  </button>
+
+                  <Input
+                    value={form.thumbnailUrl}
+                    onChange={(e) => set('thumbnailUrl', e.target.value)}
+                    placeholder="Or paste an image URL"
+                    disabled={busy}
+                  />
+
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {form.thumbnailUrl ? (
+                        <img
+                          src={form.thumbnailUrl}
+                          alt=""
+                          className="h-10 w-10 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="bg-muted text-muted-foreground flex h-10 w-10 items-center justify-center rounded">
+                          <Upload className="h-4 w-4" />
+                        </div>
+                      )}
+                      <span className="text-muted-foreground text-xs">
+                        {form.thumbnailUrl
+                          ? 'Image ready for this programme'
+                          : 'No cover image uploaded yet'}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={busy || !form.thumbnailUrl}
+                      onClick={() => set('thumbnailUrl', '')}
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 </div>
-                {uploads.thumbnail != null && <Progress value={undefined} />}
+                {uploads.thumbnail != null && (
+                  <div className="space-y-1">
+                    <Progress value={uploads.thumbnail} />
+                    <p className="text-muted-foreground text-[11px]">
+                      Uploading image… {uploads.thumbnail}%
+                    </p>
+                  </div>
+                )}
                 <input
                   ref={thumbInputRef}
                   type="file"
