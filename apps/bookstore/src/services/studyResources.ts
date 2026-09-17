@@ -28,12 +28,12 @@ export const STATUS_LABEL: Record<StudyResourceStatus, string> = {
  * Programme abbreviations seen in the existing material, offered as
  * suggestions in the admin form.
  *
- * NOT a closed list — `meetingType` is free text server-side and the
+ * NOT a closed list — `programType` is free text server-side and the
  * mobile app derives its filter chips from whatever is actually
  * published (see `getStudyResourceMeta`). These are here purely so the
  * common cases are one click away instead of retyped.
  */
-export const SUGGESTED_MEETING_TYPES = [
+export const SUGGESTED_PROGRAM_TYPES = [
   'SAYCO',
   'MLR',
   'CLERGY',
@@ -42,27 +42,60 @@ export const SUGGESTED_MEETING_TYPES = [
   'Peace House General',
 ]
 
+/**
+ * Material types offered in the dropdown.
+ *
+ * A fallback only — the live list comes from `/resources/meta`
+ * (`suggestedMaterialTypes`) so the server stays the single source of
+ * truth. "Other" lets an admin type their own, which is why `type` is
+ * free text server-side.
+ */
+export const FALLBACK_MATERIAL_TYPES = [
+  'Issues Paper',
+  'Seminar',
+  'Bible Study',
+  'Discipleship',
+  'Programme Schedule',
+]
+
+/** Sentinel for the dropdown's free-text escape hatch. */
+export const OTHER_MATERIAL_TYPE = 'Other'
+
+/** The three surfaces a material can be typeset for. */
+export const MATERIAL_FORMATS = [
+  { key: 'mobileUrl', label: 'Mobile', hint: 'Phone-sized layout' },
+  { key: 'tabletUrl', label: 'Tablet', hint: 'Tablet-sized layout' },
+  { key: 'bookletUrl', label: 'Booklet', hint: 'Print / booklet layout' },
+] as const
+
+export type MaterialFormatKey = (typeof MATERIAL_FORMATS)[number]['key']
+
+/** One document within a programme, in up to three formats. */
+export interface StudyMaterial {
+  id?: string
+  /** Issues Paper | Seminar | … | anything an admin typed. */
+  type: string
+  /** Optional label when a programme has several of the same type. */
+  title: string
+  mobileUrl: string
+  tabletUrl: string
+  bookletUrl: string
+  sortOrder: number
+}
+
 export interface StudyResource {
   id: string
-  /** Meeting/seminar title. */
+  /** Title / theme of the programme. */
   theme: string
-  /** Programme abbreviation — free text, see SUGGESTED_MEETING_TYPES. */
-  meetingType: string
+  /** Programme abbreviation — free text, see SUGGESTED_PROGRAM_TYPES. */
+  programType: string
   year: number
-  /**
-   * `YYYY-MM-DD`, or '' when the exact date isn't known (much of the
-   * back catalogue is only dated by year).
-   */
-  date: string
   description: string
-  /** One-slide-per-page PDF, for reading on a phone. */
-  singlePageUrl: string
-  /** Two-up PDF, for printing. */
-  twoOnOnePageUrl: string
   thumbnailUrl: string
   tags: string[]
-  speakers: string[]
   status: StudyResourceStatus
+  /** The documents published under this programme. */
+  materials: StudyMaterial[]
   viewCount?: number
   downloadCount?: number
   /**
@@ -77,17 +110,24 @@ export interface StudyResource {
 
 export interface StudyResourceInput {
   theme: string
-  meetingType: string
+  programType: string
   year: number
-  /** `YYYY-MM-DD`, or null when only the year is known. */
-  date?: string | null
   description?: string | null
-  singlePageUrl?: string | null
-  twoOnOnePageUrl?: string | null
   thumbnailUrl?: string | null
   tags?: string[]
-  speakers?: string[]
   status?: StudyResourceStatus
+  /**
+   * Replaces the programme's material list wholesale when supplied.
+   * Omit to leave the existing materials untouched.
+   */
+  materials?: Array<{
+    type: string
+    title?: string | null
+    mobileUrl?: string | null
+    tabletUrl?: string | null
+    bookletUrl?: string | null
+    sortOrder?: number
+  }>
 }
 
 export interface StudyResourcePage {
@@ -99,10 +139,14 @@ export interface StudyResourcePage {
 
 /** Filter facets derived from the published material. */
 export interface StudyResourceMeta {
-  meetingTypes: string[]
+  programTypes: string[]
   /** Null when nothing is published yet. */
   years: { min: number; max: number } | null
   tags: string[]
+  /** Material types actually in use. */
+  materialTypes: string[]
+  /** The dropdown's suggestions, served by the API so they can't drift. */
+  suggestedMaterialTypes: string[]
 }
 
 /** Pull the server's `error` string out of an axios failure. */
@@ -121,7 +165,7 @@ export function resourceErrorMessage(err: unknown): string {
 export async function listPublishedStudyResources(params?: {
   page?: number
   pageSize?: number
-  meetingType?: string | string[]
+  programType?: string | string[]
   year?: number
   yearStart?: number
   yearEnd?: number
@@ -140,7 +184,13 @@ export async function getStudyResourceMeta(): Promise<StudyResourceMeta> {
     const res = await api.get<StudyResourceMeta>('/resources/meta')
     return res.data
   } catch {
-    return { meetingTypes: [], years: null, tags: [] }
+    return {
+      programTypes: [],
+      years: null,
+      tags: [],
+      materialTypes: [],
+      suggestedMaterialTypes: FALLBACK_MATERIAL_TYPES,
+    }
   }
 }
 
@@ -148,7 +198,7 @@ export async function getStudyResourceMeta(): Promise<StudyResourceMeta> {
 
 export async function listStudyResources(params?: {
   status?: StudyResourceStatus
-  meetingType?: string | string[]
+  programType?: string | string[]
   keyword?: string
   page?: number
   pageSize?: number

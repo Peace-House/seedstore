@@ -56,49 +56,44 @@ import {
   createStudyResource,
   updateStudyResource,
   deleteStudyResource,
+  getStudyResourceMeta,
   uploadStudyResourcePdf,
   uploadStudyResourceThumbnail,
   resourceErrorMessage,
   ALL_STATUSES,
   STATUS_LABEL,
-  SUGGESTED_MEETING_TYPES,
+  SUGGESTED_PROGRAM_TYPES,
+  FALLBACK_MATERIAL_TYPES,
+  OTHER_MATERIAL_TYPE,
+  MATERIAL_FORMATS,
   MAX_PDF_BYTES,
   formatBytes,
   type StudyResource,
   type StudyResourceStatus,
+  type MaterialFormatKey,
 } from '@/services/studyResources'
 
 /**
- * Study Resources — meeting outlines, seminar handouts and workshop
- * material published as PDFs to the mobile app's Study Resources
- * browser.
+ * Study Resources admin.
  *
- * Layout mirrors Announcements: the page itself is a read-only table of
- * what exists, and editing happens in a modal, so the list stays
- * scannable and a form that's used occasionally doesn't permanently
- * occupy the screen.
+ * The domain is three levels deep:
  *
- * Each resource carries up to TWO PDFs of the same material — a
- * single-page layout for reading on a phone and a two-on-one layout for
- * printing. Both are optional (much of the back catalogue exists in
- * only one) but a PUBLISHED resource needs at least one, which the
- * server enforces and this form pre-empts.
+ *   Programme ("SAYCO 2026")
+ *     └── Material ("Issues Paper", "Bible Study", …)
+ *           └── up to three format PDFs: Mobile, Tablet, Booklet
+ *
+ * So the composer is a programme form with a repeating list of
+ * materials, each carrying its own three upload slots. A programme can
+ * hold as many materials as it needs; every format is optional, but a
+ * material with no file at all is rejected — it would show the reader a
+ * heading with nothing under it.
+ *
+ * Layout mirrors Announcements: the page is a read-only table, and
+ * editing happens in a modal, so the list stays scannable.
  */
 
 /** Rows per page — matches the other admin tables. */
 const PAGE_SIZE = 20
-
-/** `2026-01-15` → `15 Jan 2026`. Em dash when only the year is known. */
-function formatDate(date: string): string {
-  if (!date) return '—'
-  const d = new Date(date)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString(undefined, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
 
 function StatusBadge({ status }: { status: StudyResourceStatus }) {
   // Published uses the brand colour rather than a hardcoded green, so
@@ -109,34 +104,62 @@ function StatusBadge({ status }: { status: StudyResourceStatus }) {
   return <Badge variant="secondary">Archived</Badge>
 }
 
-/** The composer's state. Strings throughout — it's a form. */
+/** A material as the form holds it. Strings throughout — it's a form. */
+interface MaterialDraft {
+  type: string
+  /** Free text when `type` is "Other"; ignored otherwise. */
+  customType: string
+  title: string
+  mobileUrl: string
+  tabletUrl: string
+  bookletUrl: string
+}
+
+function emptyMaterial(): MaterialDraft {
+  return {
+    type: '',
+    customType: '',
+    title: '',
+    mobileUrl: '',
+    tabletUrl: '',
+    bookletUrl: '',
+  }
+}
+
+/** Resolve what actually gets saved as the material's type. */
+function resolvedType(m: MaterialDraft): string {
+  return (m.type === OTHER_MATERIAL_TYPE ? m.customType : m.type).trim()
+}
+
+function materialHasFile(m: MaterialDraft): boolean {
+  return Boolean(
+    m.mobileUrl.trim() || m.tabletUrl.trim() || m.bookletUrl.trim(),
+  )
+}
+
 const emptyForm = {
   id: null as string | null,
   theme: '',
-  meetingType: '',
+  programType: '',
   year: String(new Date().getFullYear()),
-  date: '',
   description: '',
-  singlePageUrl: '',
-  twoOnOnePageUrl: '',
   thumbnailUrl: '',
   /** Comma-separated in the form; split on save. */
   tags: '',
-  speakers: '',
   status: 'PUBLISHED' as StudyResourceStatus,
+  materials: [emptyMaterial()] as MaterialDraft[],
 }
 
 type FormState = typeof emptyForm
 
-/** Which upload slot is in flight, so only that row shows a bar. */
-type UploadSlot = 'singlePageUrl' | 'twoOnOnePageUrl' | 'thumbnailUrl'
-
 /**
- * One PDF slot: upload a file, or paste a URL if the material is
- * already hosted. The field stays editable after an upload so a wrong
- * file can be corrected without reopening the dialog.
+ * Upload slots are keyed per material AND per format, so two uploads in
+ * flight at once each show their own progress bar.
  */
-function PdfField({
+type UploadKey = `${number}:${MaterialFormatKey}` | 'thumbnail'
+
+/** One format slot: upload a PDF, or paste a URL if already hosted. */
+function FormatSlot({
   label,
   hint,
   value,
@@ -156,25 +179,29 @@ function PdfField({
   const inputRef = useRef<HTMLInputElement>(null)
 
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <p className="text-muted-foreground text-xs">{hint}</p>
-      <div className="flex gap-2">
+    <div className="space-y-1.5">
+      <div className="flex items-baseline gap-2">
+        <Label className="text-xs font-semibold">{label}</Label>
+        <span className="text-muted-foreground text-[11px]">{hint}</span>
+      </div>
+      <div className="flex gap-1.5">
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Upload a PDF, or paste a URL"
           disabled={disabled}
+          className="h-8 text-xs"
         />
         <Button
           type="button"
           variant="outline"
           size="icon"
-          title={`Upload ${label}`}
+          className="h-8 w-8 shrink-0"
+          title={`Upload ${label} PDF`}
           disabled={disabled}
           onClick={() => inputRef.current?.click()}
         >
-          <Upload className="h-4 w-4" />
+          <Upload className="h-3.5 w-3.5" />
         </Button>
         {value && (
           <>
@@ -182,22 +209,24 @@ function PdfField({
               type="button"
               variant="outline"
               size="icon"
+              className="h-8 w-8 shrink-0"
               title="Open in a new tab"
               asChild
             >
               <a href={value} target="_blank" rel="noreferrer">
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </Button>
             <Button
               type="button"
               variant="outline"
               size="icon"
+              className="h-8 w-8 shrink-0"
               title="Clear"
               disabled={disabled}
               onClick={() => onChange('')}
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </Button>
           </>
         )}
@@ -206,7 +235,7 @@ function PdfField({
       {progress !== null && (
         <div className="space-y-1">
           <Progress value={progress} />
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-[11px]">
             Uploading… {progress}%
           </p>
         </div>
@@ -241,9 +270,9 @@ const StudyResourcesManagement = () => {
     'ALL',
   )
 
-  /** Upload progress per slot; null when that slot is idle. */
+  /** Upload progress per slot; null when idle. */
   const [uploads, setUploads] = useState<
-    Partial<Record<UploadSlot, number | null>>
+    Partial<Record<UploadKey, number | null>>
   >({})
 
   const thumbInputRef = useRef<HTMLInputElement>(null)
@@ -261,16 +290,25 @@ const StudyResourcesManagement = () => {
     placeholderData: (prev) => prev,
   })
 
+  // Material-type suggestions come from the API so the dropdown can
+  // never drift from what the server considers standard.
+  const { data: meta } = useQuery({
+    queryKey: ['study-resources-meta'],
+    queryFn: getStudyResourceMeta,
+  })
+  const materialTypeOptions = meta?.suggestedMaterialTypes?.length
+    ? meta.suggestedMaterialTypes
+    : FALLBACK_MATERIAL_TYPES
+
   const resources = data?.resources ?? []
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const editing = Boolean(form.id)
-  const uploading = Object.values(uploads).some(
-    (v) => v !== null && v !== undefined,
-  )
+  const uploading = Object.values(uploads).some((v) => v != null)
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['study-resources'] })
+    queryClient.invalidateQueries({ queryKey: ['study-resources-meta'] })
   }
 
   /**
@@ -285,8 +323,33 @@ const StudyResourcesManagement = () => {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
+  const setMaterial = (index: number, patch: Partial<MaterialDraft>) =>
+    setForm((prev) => ({
+      ...prev,
+      materials: prev.materials.map((m, i) =>
+        i === index ? { ...m, ...patch } : m,
+      ),
+    }))
+
+  const addMaterial = () =>
+    setForm((prev) => ({
+      ...prev,
+      materials: [...prev.materials, emptyMaterial()],
+    }))
+
+  const removeMaterial = (index: number) =>
+    setForm((prev) => ({
+      ...prev,
+      // Always leave one row: an empty repeater gives the admin nothing
+      // to click, and a programme needs a material anyway.
+      materials:
+        prev.materials.length === 1
+          ? [emptyMaterial()]
+          : prev.materials.filter((_, i) => i !== index),
+    }))
+
   const openNew = () => {
-    setForm({ ...emptyForm })
+    setForm({ ...emptyForm, materials: [emptyMaterial()] })
     setUploads({})
     setComposerOpen(true)
   }
@@ -295,16 +358,28 @@ const StudyResourcesManagement = () => {
     setForm({
       id: r.id,
       theme: r.theme,
-      meetingType: r.meetingType,
+      programType: r.programType,
       year: String(r.year),
-      date: r.date,
       description: r.description,
-      singlePageUrl: r.singlePageUrl,
-      twoOnOnePageUrl: r.twoOnOnePageUrl,
       thumbnailUrl: r.thumbnailUrl,
       tags: r.tags.join(', '),
-      speakers: r.speakers.join(', '),
       status: r.status,
+      materials:
+        r.materials.length > 0
+          ? r.materials.map((m) => ({
+              // A stored type that isn't one of the suggestions was
+              // typed by hand, so reopen it in the "Other" slot rather
+              // than silently losing it to an unmatched dropdown.
+              type: materialTypeOptions.includes(m.type)
+                ? m.type
+                : OTHER_MATERIAL_TYPE,
+              customType: materialTypeOptions.includes(m.type) ? '' : m.type,
+              title: m.title,
+              mobileUrl: m.mobileUrl,
+              tabletUrl: m.tabletUrl,
+              bookletUrl: m.bookletUrl,
+            }))
+          : [emptyMaterial()],
     })
     setUploads({})
     setComposerOpen(true)
@@ -312,28 +387,43 @@ const StudyResourcesManagement = () => {
 
   const closeComposer = () => {
     setComposerOpen(false)
-    setForm({ ...emptyForm })
+    setForm({ ...emptyForm, materials: [emptyMaterial()] })
     setUploads({})
   }
 
   const handleError = (err: unknown) => toast.error(resourceErrorMessage(err))
 
-  /** Upload into one slot and write the returned URL straight into it. */
-  const uploadInto = async (slot: UploadSlot, file: File) => {
-    setUploads((prev) => ({ ...prev, [slot]: 0 }))
+  /** Upload into one material's format slot. */
+  const uploadFormat = async (
+    index: number,
+    slot: MaterialFormatKey,
+    file: File,
+  ) => {
+    const key: UploadKey = `${index}:${slot}`
+    setUploads((prev) => ({ ...prev, [key]: 0 }))
     try {
-      const url =
-        slot === 'thumbnailUrl'
-          ? await uploadStudyResourceThumbnail(file)
-          : await uploadStudyResourcePdf(file, (percent) =>
-              setUploads((prev) => ({ ...prev, [slot]: percent })),
-            )
-      set(slot, url)
+      const url = await uploadStudyResourcePdf(file, (percent) =>
+        setUploads((prev) => ({ ...prev, [key]: percent })),
+      )
+      setMaterial(index, { [slot]: url } as Partial<MaterialDraft>)
       toast.success('Uploaded')
     } catch (err) {
       handleError(err)
     } finally {
-      setUploads((prev) => ({ ...prev, [slot]: null }))
+      setUploads((prev) => ({ ...prev, [key]: null }))
+    }
+  }
+
+  const uploadThumbnail = async (file: File) => {
+    setUploads((prev) => ({ ...prev, thumbnail: 0 }))
+    try {
+      const url = await uploadStudyResourceThumbnail(file)
+      set('thumbnailUrl', url)
+      toast.success('Uploaded')
+    } catch (err) {
+      handleError(err)
+    } finally {
+      setUploads((prev) => ({ ...prev, thumbnail: null }))
     }
   }
 
@@ -341,24 +431,27 @@ const StudyResourcesManagement = () => {
     mutationFn: async (status: StudyResourceStatus) => {
       const payload = {
         theme: form.theme.trim(),
-        meetingType: form.meetingType.trim(),
+        programType: form.programType.trim(),
         year: Number(form.year),
-        date: form.date || null,
         description: form.description.trim() || null,
-        singlePageUrl: form.singlePageUrl.trim() || null,
-        twoOnOnePageUrl: form.twoOnOnePageUrl.trim() || null,
         thumbnailUrl: form.thumbnailUrl.trim() || null,
-        // The server accepts a comma-separated string too, but splitting
-        // here keeps the wire format the same as the mobile client's.
         tags: form.tags
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean),
-        speakers: form.speakers
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
         status,
+        // Drop rows the admin added but never filled in, so an
+        // accidental "Add material" click doesn't block saving.
+        materials: form.materials
+          .filter((m) => resolvedType(m) && materialHasFile(m))
+          .map((m, i) => ({
+            type: resolvedType(m),
+            title: m.title.trim() || null,
+            mobileUrl: m.mobileUrl.trim() || null,
+            tabletUrl: m.tabletUrl.trim() || null,
+            bookletUrl: m.bookletUrl.trim() || null,
+            sortOrder: i,
+          })),
       }
       return form.id
         ? updateStudyResource(form.id, payload)
@@ -367,11 +460,10 @@ const StudyResourcesManagement = () => {
     onSuccess: (_resource, status) => {
       toast.success(
         status === 'PUBLISHED'
-          ? 'Resource published — it will appear in the app'
+          ? 'Programme published — it will appear in the app'
           : 'Draft saved',
       )
       closeComposer()
-      // Admin listing is newest-created first, so a new row is on page 1.
       if (!editing) setPage(1)
       invalidate()
     },
@@ -407,23 +499,40 @@ const StudyResourcesManagement = () => {
   })
 
   /**
-   * Client-side guard for the mistakes the admin can see coming. The
-   * server validates the same things authoritatively — this just avoids
-   * a pointless round trip and keeps the error next to the field.
+   * Client-side guard for mistakes the admin can see coming. The server
+   * validates the same things authoritatively — this just avoids a
+   * pointless round trip and keeps the error next to the field.
    */
   const validationError = (status: StudyResourceStatus): string | null => {
-    if (!form.theme.trim()) return 'Give the resource a title'
-    if (!form.meetingType.trim()) return 'Pick or type a meeting type'
+    if (!form.theme.trim()) return 'Give the programme a title'
+    if (!form.programType.trim()) return 'Pick or type a program type'
+
     const year = Number(form.year)
-    if (!Number.isInteger(year) || year < 1900 || year > 2200) {
-      return 'Enter a valid year'
+    const thisYear = new Date().getFullYear()
+    if (!Number.isInteger(year) || year < 1900) return 'Enter a valid year'
+    // A programme cannot have run in a year that hasn't happened yet.
+    if (year > thisYear) return `Year cannot be later than ${thisYear}`
+
+    // Rows that are entirely blank are dropped on save, so only
+    // half-filled ones are worth complaining about.
+    for (const [i, m] of form.materials.entries()) {
+      const type = resolvedType(m)
+      const hasFile = materialHasFile(m)
+      if (!type && hasFile) {
+        return `Material ${i + 1} has a file but no type — pick one`
+      }
+      if (type && !hasFile) {
+        return `"${type}" has no file — add a Mobile, Tablet or Booklet PDF`
+      }
     }
-    if (
-      status === 'PUBLISHED' &&
-      !form.singlePageUrl.trim() &&
-      !form.twoOnOnePageUrl.trim()
-    ) {
-      return 'A published resource needs at least one PDF — add one, or save it as a draft'
+
+    if (status === 'PUBLISHED') {
+      const usable = form.materials.filter(
+        (m) => resolvedType(m) && materialHasFile(m),
+      )
+      if (usable.length === 0) {
+        return 'A published programme needs at least one material with a file — add one, or save it as a draft'
+      }
     }
     return null
   }
@@ -442,8 +551,29 @@ const StudyResourcesManagement = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
-          <div className="flex items-center gap-3">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Study Resources
+              <span className="text-muted-foreground ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-slate-300 text-sm">
+                {total}
+              </span>
+            </CardTitle>
+          </div>
+          <Button
+            className="rounded-full"
+            variant="default"
+            disabled={busy}
+            onClick={openNew}
+          >
+            New programme
+            <Plus className="mr-2 h-4 w-4" />
+          </Button>
+        </CardHeader>
+
+        <CardContent className="mt-4 space-y-4">
+          <div className="flex items-center justify-end gap-3">
             <Label className="text-sm">Status</Label>
             <Select
               value={statusFilter}
@@ -466,26 +596,16 @@ const StudyResourcesManagement = () => {
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-muted-foreground ml-auto text-sm">
-              {total} {total === 1 ? 'resource' : 'resources'}
-            </span>
           </div>
-          <Button className="rounded-full" variant="default" onClick={openNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            New resource
-          </Button>
-        </CardHeader>
 
-        <CardContent className="space-y-4">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Meeting</TableHead>
+                  <TableHead>Title / Theme</TableHead>
+                  <TableHead>Program</TableHead>
                   <TableHead>Year</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>PDFs</TableHead>
+                  <TableHead>Materials</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Engagement</TableHead>
                   <TableHead className="w-12" />
@@ -495,7 +615,7 @@ const StudyResourcesManagement = () => {
                 {isLoading && (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={7}
                       className="text-muted-foreground py-10 text-center"
                     >
                       Loading…
@@ -506,14 +626,14 @@ const StudyResourcesManagement = () => {
                 {!isLoading && resources.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={7}
                       className="text-muted-foreground py-10 text-center"
                     >
                       {statusFilter === 'ALL'
-                        ? 'No study resources yet. Add the first one to make the feature live in the app.'
+                        ? 'No programmes yet. Add the first one to make the feature live in the app.'
                         : `No ${STATUS_LABEL[
                             statusFilter
-                          ].toLowerCase()} resources.`}
+                          ].toLowerCase()} programmes.`}
                     </TableCell>
                   </TableRow>
                 )}
@@ -522,39 +642,38 @@ const StudyResourcesManagement = () => {
                   <TableRow key={r.id}>
                     <TableCell className="max-w-xs">
                       <div className="font-medium">{r.theme}</div>
-                      {r.speakers.length > 0 && (
-                        <div className="text-muted-foreground truncate text-xs">
-                          {r.speakers.join(', ')}
-                        </div>
-                      )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{r.meetingType}</Badge>
+                      <Badge variant="outline">{r.programType}</Badge>
                     </TableCell>
                     <TableCell>{r.year}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatDate(r.date)}
-                    </TableCell>
                     <TableCell>
-                      {/* Which layouts exist, at a glance — a resource
-                          with neither can't be published. */}
-                      <div className="flex gap-1">
-                        {r.singlePageUrl ? (
-                          <Badge variant="secondary" title="Single-page PDF">
-                            1-up
-                          </Badge>
-                        ) : null}
-                        {r.twoOnOnePageUrl ? (
-                          <Badge variant="secondary" title="Two-on-one PDF">
-                            2-up
-                          </Badge>
-                        ) : null}
-                        {!r.singlePageUrl && !r.twoOnOnePageUrl && (
-                          <span className="text-muted-foreground text-xs">
-                            none
-                          </span>
-                        )}
-                      </div>
+                      {/* What's inside the programme, at a glance —
+                          type plus how many formats each has. */}
+                      {r.materials.length === 0 ? (
+                        <span className="text-muted-foreground text-xs">
+                          none
+                        </span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {r.materials.map((m) => {
+                            const count = MATERIAL_FORMATS.filter(
+                              (f) => m[f.key],
+                            ).length
+                            return (
+                              <Badge
+                                key={m.id ?? m.type}
+                                variant="secondary"
+                                title={MATERIAL_FORMATS.filter((f) => m[f.key])
+                                  .map((f) => f.label)
+                                  .join(', ')}
+                              >
+                                {m.type} · {count}
+                              </Badge>
+                            )
+                          })}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={r.status} />
@@ -583,30 +702,6 @@ const StudyResourcesManagement = () => {
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          {r.singlePageUrl && (
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={r.singlePageUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                Open single-page PDF
-                              </a>
-                            </DropdownMenuItem>
-                          )}
-                          {r.twoOnOnePageUrl && (
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={r.twoOnOnePageUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                Open two-on-one PDF
-                              </a>
-                            </DropdownMenuItem>
-                          )}
                           <DropdownMenuSeparator />
                           {r.status === 'PUBLISHED' ? (
                             <DropdownMenuItem
@@ -626,12 +721,12 @@ const StudyResourcesManagement = () => {
                           <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => {
-                              // Hard delete is unrecoverable and the
-                              // menu item sits next to Archive, so
-                              // confirm before firing.
+                              // Hard delete is unrecoverable, removes
+                              // every material with it, and sits next
+                              // to Archive — so confirm first.
                               if (
                                 window.confirm(
-                                  `Permanently delete "${r.theme}"? Archiving keeps it for later instead.`,
+                                  `Permanently delete "${r.theme}" and its ${r.materials.length} material(s)? Archiving keeps it for later instead.`,
                                 )
                               ) {
                                 hardDelete.mutate(r.id)
@@ -687,40 +782,38 @@ const StudyResourcesManagement = () => {
           if (!open) closeComposer()
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editing ? 'Edit resource' : 'New study resource'}
+              {editing ? 'Edit programme' : 'New programme'}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="sr-theme">Title</Label>
-              <Input
-                id="sr-theme"
-                value={form.theme}
-                onChange={(e) => set('theme', e.target.value)}
-                placeholder="SAYCO 2026 Discipleship Seminar"
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2 sm:col-span-1">
-                <Label htmlFor="sr-meeting">Meeting type</Label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="sr-program">Program type</Label>
                 <Input
-                  id="sr-meeting"
-                  value={form.meetingType}
-                  onChange={(e) => set('meetingType', e.target.value)}
+                  id="sr-program"
+                  value={form.programType}
+                  onChange={(e) => set('programType', e.target.value)}
                   placeholder="SAYCO"
-                  list="sr-meeting-types"
+                  list="sr-program-types"
                 />
                 {/* A datalist, not a Select: the taxonomy is open —
                     server-side it's free text and the app derives its
-                    filter chips from whatever is published — so a new
+                    filter chips from what's published — so a new
                     programme must be typeable without a code change. */}
-                <datalist id="sr-meeting-types">
-                  {SUGGESTED_MEETING_TYPES.map((t) => (
+                <datalist id="sr-program-types">
+                  {(meta?.programTypes?.length
+                    ? Array.from(
+                        new Set([
+                          ...meta.programTypes,
+                          ...SUGGESTED_PROGRAM_TYPES,
+                        ]),
+                      )
+                    : SUGGESTED_PROGRAM_TYPES
+                  ).map((t) => (
                     <option key={t} value={t} />
                   ))}
                 </datalist>
@@ -731,134 +824,220 @@ const StudyResourcesManagement = () => {
                 <Input
                   id="sr-year"
                   type="number"
+                  min={1900}
+                  max={new Date().getFullYear()}
                   value={form.year}
                   onChange={(e) => set('year', e.target.value)}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sr-date">Date</Label>
-                <Input
-                  id="sr-date"
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => set('date', e.target.value)}
-                />
                 <p className="text-muted-foreground text-xs">
-                  Optional — leave blank if only the year is known.
+                  Cannot be later than {new Date().getFullYear()}.
                 </p>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sr-theme">Title/Theme</Label>
+              <Input
+                id="sr-theme"
+                value={form.theme}
+                onChange={(e) => set('theme', e.target.value)}
+                placeholder="SAYCO 2026 Discipleship Seminar"
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="sr-description">Description</Label>
               <Textarea
                 id="sr-description"
-                rows={3}
+                rows={2}
                 value={form.description}
                 onChange={(e) => set('description', e.target.value)}
-                placeholder="What the material covers."
+                placeholder="What the programme covers."
               />
             </div>
 
-            <PdfField
-              label="Single-page PDF"
-              hint={`One slide per page — what most readers open on their phone. Under ${formatBytes(
-                MAX_PDF_BYTES,
-              )}.`}
-              value={form.singlePageUrl}
-              onChange={(v) => set('singlePageUrl', v)}
-              onUpload={(file) => uploadInto('singlePageUrl', file)}
-              progress={uploads.singlePageUrl ?? null}
-              disabled={busy}
-            />
-
-            <PdfField
-              label="Two-on-one PDF"
-              hint={`Two slides per sheet, for printing. Optional. Under ${formatBytes(
-                MAX_PDF_BYTES,
-              )}.`}
-              value={form.twoOnOnePageUrl}
-              onChange={(v) => set('twoOnOnePageUrl', v)}
-              onUpload={(file) => uploadInto('twoOnOnePageUrl', file)}
-              progress={uploads.twoOnOnePageUrl ?? null}
-              disabled={busy}
-            />
-
-            <div className="space-y-2">
-              <Label>Cover image</Label>
-              <p className="text-muted-foreground text-xs">
-                Shown on the browse cards in the app. Optional.
-              </p>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={form.thumbnailUrl}
-                  onChange={(e) => set('thumbnailUrl', e.target.value)}
-                  placeholder="Upload an image, or paste a URL"
-                  disabled={busy}
-                />
+            {/* ── Materials ─────────────────────────────────────── */}
+            <div className="space-y-3 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base">Materials</Label>
+                  <p className="text-muted-foreground text-xs">
+                    Each material is one document, in up to three formats. Every
+                    format is optional — max {formatBytes(MAX_PDF_BYTES)} per
+                    file.
+                  </p>
+                </div>
                 <Button
                   type="button"
-                  variant="outline"
-                  size="icon"
-                  title="Upload cover image"
+                  variant="default"
+                  size="sm"
+                  onClick={addMaterial}
                   disabled={busy}
-                  onClick={() => thumbInputRef.current?.click()}
+                  className="rounded-full"
                 >
-                  <Upload className="h-4 w-4" />
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Add material
                 </Button>
-                {form.thumbnailUrl && (
-                  <img
-                    src={form.thumbnailUrl}
-                    alt=""
-                    className="h-10 w-10 rounded object-cover"
-                  />
-                )}
               </div>
-              {uploads.thumbnailUrl != null && <Progress value={undefined} />}
-              <input
-                ref={thumbInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) uploadInto('thumbnailUrl', file)
-                  e.target.value = ''
-                }}
-              />
+
+              {form.materials.map((m, index) => (
+                <div
+                  key={index}
+                  className="bg-muted/40 space-y-3 rounded-md border p-3"
+                >
+                  <div className="flex items-end gap-2">
+                    <div className="w-52 space-y-1.5">
+                      <Label className="text-xs font-semibold">Type</Label>
+                      <Select
+                        value={m.type}
+                        onValueChange={(v) => setMaterial(index, { type: v })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Pick a type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {materialTypeOptions.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value={OTHER_MATERIAL_TYPE}>
+                            {OTHER_MATERIAL_TYPE}…
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {m.type === OTHER_MATERIAL_TYPE && (
+                      <div className="flex-1 space-y-1.5">
+                        <Label className="text-xs font-semibold">
+                          Type name
+                        </Label>
+                        <Input
+                          value={m.customType}
+                          onChange={(e) =>
+                            setMaterial(index, { customType: e.target.value })
+                          }
+                          placeholder="e.g. Workbook"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex-1 space-y-1.5">
+                      <Label className="text-xs font-semibold">Title</Label>
+                      <Input
+                        value={m.title}
+                        onChange={(e) =>
+                          setMaterial(index, { title: e.target.value })
+                        }
+                        placeholder="e.g. Day 1"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive h-8 w-8 shrink-0"
+                      title="Remove this material"
+                      disabled={busy}
+                      onClick={() => removeMaterial(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {MATERIAL_FORMATS.map((f) => (
+                      <FormatSlot
+                        key={f.key}
+                        label={f.label}
+                        hint={f.hint}
+                        value={m[f.key]}
+                        onChange={(v) =>
+                          setMaterial(index, {
+                            [f.key]: v,
+                          } as Partial<MaterialDraft>)
+                        }
+                        onUpload={(file) => uploadFormat(index, f.key, file)}
+                        progress={uploads[`${index}:${f.key}`] ?? null}
+                        disabled={busy}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="sr-speakers">Speakers</Label>
-                <Input
-                  id="sr-speakers"
-                  value={form.speakers}
-                  onChange={(e) => set('speakers', e.target.value)}
-                  placeholder="Pastor John Doe, Rev. Jane Smith"
-                />
+                <Label>Cover image</Label>
                 <p className="text-muted-foreground text-xs">
-                  Comma-separated.
+                  Shown on the browse cards in the app. Optional.
                 </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={form.thumbnailUrl}
+                    onChange={(e) => set('thumbnailUrl', e.target.value)}
+                    placeholder="Upload an image, or paste a URL"
+                    disabled={busy}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Upload cover image"
+                    disabled={busy}
+                    onClick={() => thumbInputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4" />
+                  </Button>
+                  {form.thumbnailUrl && (
+                    <img
+                      src={form.thumbnailUrl}
+                      alt=""
+                      className="h-10 w-10 rounded object-cover"
+                    />
+                  )}
+                </div>
+                {uploads.thumbnail != null && <Progress value={undefined} />}
+                <input
+                  ref={thumbInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) uploadThumbnail(file)
+                    e.target.value = ''
+                  }}
+                />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="sr-tags">Tags</Label>
+                <p className="text-muted-foreground text-xs">
+                  Comma-separated. Readers search on these.
+                </p>
                 <Input
                   id="sr-tags"
                   value={form.tags}
                   onChange={(e) => set('tags', e.target.value)}
                   placeholder="discipleship, youth, seminar"
                 />
-                <p className="text-muted-foreground text-xs">
-                  Comma-separated. Readers search on these.
-                </p>
               </div>
             </div>
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={closeComposer} disabled={busy}>
+            <Button
+              className="rounded-full"
+              variant="destructive"
+              onClick={closeComposer}
+              disabled={busy}
+            >
               Cancel
             </Button>
             <Button
@@ -869,6 +1048,7 @@ const StudyResourcesManagement = () => {
               Save as draft
             </Button>
             <Button
+              className="rounded-full"
               variant="default"
               onClick={() => attemptSave('PUBLISHED')}
               disabled={busy}
