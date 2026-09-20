@@ -10,7 +10,6 @@ import Checkout from './pages/Checkout'
 import BookDetail from './pages/BookDetail'
 import Admin from './pages/Admin'
 import Library from './pages/Library'
-import Reader from './pages/Reader'
 import NotFound from './pages/NotFound'
 import BookSearchPage from './pages/BookSearchPage'
 import PaymentCallback from './pages/PaymentCallback'
@@ -102,7 +101,6 @@ const App = () => (
                 </Navigation>
               }
             />
-            <Route path="/reader/:orderId/:bookId" element={<Reader />} />
             <Route path="/payment-callback" element={<PaymentCallback />} />
             <Route
               path="/search"
