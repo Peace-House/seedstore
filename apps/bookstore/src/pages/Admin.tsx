@@ -26,6 +26,7 @@ import {
   ChevronRight,
   BookCheck,
   Megaphone,
+  FileText,
 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -46,6 +47,7 @@ import GroupBuyingManagement from '@/components/admin/GroupBuyingManagement'
 import CommunicationsManagement from '@/components/admin/CommunicationsManagement'
 import OutreachManagement from '@/components/admin/OutreachManagement'
 import AnnouncementManagement from '@/components/admin/AnnouncementManagement'
+import StudyResourcesManagement from '@/components/admin/StudyResourcesManagement'
 import PaymentGatewayManagement from '@/components/admin/PaymentGatewayManagement'
 import AppUpdateSettings from '@/components/admin/AppUpdateSettings'
 import ReferralSettings from '@/components/admin/ReferralSettings'
@@ -85,6 +87,7 @@ const Admin = () => {
       items: [
         { value: 'upload', label: 'Upload Book', icon: <Upload className="h-5 w-5" /> },
         { value: 'manage', label: 'Books', icon: <BookOpen className="h-5 w-5" /> },
+        { value: 'study-resources', label: 'Study Resources', icon: <FileText className="h-5 w-5" /> },
         { value: 'pricing', label: 'Pricing', icon: <CopyCheck className="h-5 w-5" /> },
         { value: 'lend', label: 'Lending', icon: <Library className="h-5 w-5" /> },
         { value: 'group-buy', label: 'Group Buying', icon: <Users className="h-5 w-5" /> },
@@ -443,6 +446,7 @@ const Admin = () => {
           )}
           {tab === 'locations' && <OutreachManagement />}
           {tab === 'announcements' && <AnnouncementManagement />}
+          {tab === 'study-resources' && <StudyResourcesManagement />}
         </main>
       </div>
     </>

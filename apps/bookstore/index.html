@@ -9,15 +9,61 @@
     <title>SeedStore</title>
     <meta name="description" content="Peace House Project" />
     <meta name="author" content="LivingSeed Media" />
+    <link rel="canonical" href="https://seedstore.livingseed.org/" />
 
-    <meta property="og:title" content="SeedStore" />
-    <meta property="og:description" content="Peace House Project" />
+    <!--
+      Social preview tags.
+
+      og:image and twitter:image MUST be absolute URLs. Crawlers
+      (facebookexternalhit, Twitterbot, WhatsApp, LinkedIn, Slack) fetch
+      this document out of band and have no base to resolve a relative
+      path like "/logo.png" against, so a relative value yields no
+      preview image at all. The domain is hardcoded rather than built
+      from an env var because only the production origin is ever
+      crawled.
+
+      The image is 1200x630 (1.91:1) to match twitter:card
+      summary_large_image and Facebook's recommendation. A square logo
+      here would be centre-cropped to a letterbox strip.
+    -->
+    <meta property="og:site_name" content="SeedStore" />
+    <meta property="og:title" content="SeedStore — Peace House Project" />
+    <meta
+      property="og:description"
+      content="Books, study resources and media from Living Seed. Read, listen and grow with the Peace House family."
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/logo.png" />
+    <meta property="og:url" content="https://seedstore.livingseed.org/" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:image"
+      content="https://seedstore.livingseed.org/og-image.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <!-- Declared so scrapers can lay out the card on first fetch,
+         before they have downloaded the image itself. -->
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="SeedStore — Peace House Project"
+    />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@livingseed" />
-    <meta name="twitter:image" content="/logo.png" />
+    <meta name="twitter:title" content="SeedStore — Peace House Project" />
+    <meta
+      name="twitter:description"
+      content="Books, study resources and media from Living Seed. Read, listen and grow with the Peace House family."
+    />
+    <meta
+      name="twitter:image"
+      content="https://seedstore.livingseed.org/og-image.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="SeedStore — Peace House Project"
+    />
   </head>
 
   <body>
