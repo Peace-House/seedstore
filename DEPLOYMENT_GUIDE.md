@@ -31,13 +31,13 @@ These are the known deployed endpoints referenced in this codebase.
 |---|---|---|
 | Bookstore (Web) | `https://seedstore.livingseed.org` | `TODO: set staging domain` |
 | Reader (Web) | `https://reader.seedstore.livingseed.org` | `TODO: set staging domain` |
-| Backend API | `TODO: confirm production API domain` | `https://ls-server-oq9l.onrender.com/api/v1` |
+| Backend API | `https://backend.seedstore.livingseed.org/api/v1` | `TODO: set staging API URL` |
 | Legacy backend (PHREMA) | `TODO: confirm` | `https://backend.livingseed.org/phrema` |
 | Legacy auth | `TODO: confirm` | `https://backend.livingseed.org/auth` |
 
 Notes:
 - The production web domains above come from `vercel.json` in this repo.
-- The staging API URL above comes from `seedstore-mobile/.env`.
+- The production API URL above is the default in `seedstore-mobile/lib/services/api_client.dart` and the `API_BASE_URL` value set in Codemagic.
 
 ---
 
