@@ -27,6 +27,20 @@ if (typeof window !== 'undefined') {
   }
 }
 
+/** The server builds the download link from its own configured base URL.
+ *  If that is plain http while this page is https, the browser blocks the
+ *  fetch outright (mixed content) and no book can open. The download
+ *  route lives on the same API we already talk to, so in that case keep
+ *  the signed token and rebuild the link on our own API base. */
+function resolveDownloadUrl(fileUrl: string): string {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '');
+  const at = fileUrl.indexOf('/library/download/');
+  const blocked =
+    window.location.protocol === 'https:' && fileUrl.startsWith('http://');
+  if (!blocked || !apiBase || at === -1) return fileUrl;
+  return `${apiBase}${fileUrl.slice(at)}`;
+}
+
 export default function Index() {
   const { focusedTab, groups } = useReaderSnapshot();
   const router = useRouter();
@@ -48,6 +62,10 @@ export default function Index() {
   // UI so the user sees motion instead of a frozen "Loading..." text on
   // multi-MB books over slow networks.
   const [downloadPct, setDownloadPct] = useState<number | null>(null);
+  // Why the book could not be opened, shown in place of the spinner.
+  // Without it a denied or failed open left the user on "Loading..."
+  // (or a bare "No book opened") with no idea what went wrong.
+  const [openError, setOpenError] = useState<string | null>(null);
 
   // Track when tabs are opened
   useEffect(() => {
@@ -97,11 +115,17 @@ export default function Index() {
   }, [hasRestoredTabs]);
 
   useEffect(() => {
+    // On a full page load (how the bookstore hands a book over) Next
+    // fills `router.query` only after hydration. With nothing to
+    // restore, the restore step finishes first, so without this check
+    // `bookId` still read as undefined here and the user was bounced
+    // to the library instead of the book they asked for.
+    if (!router.isReady) return;
     if (!hasRestoredTabs) return;
     if (bookId || orderId) return;
     if (groups.length > 0) return;
     router.push('/library');
-  }, [hasRestoredTabs, bookId, orderId, groups.length, router]);
+  }, [router.isReady, hasRestoredTabs, bookId, orderId, groups.length, router]);
 
   // Fetch book details from server using custom hook
   const { book: remoteBook, error: remoteBookError } = useGetLibraryBookById(
@@ -197,7 +221,17 @@ export default function Index() {
         if (!remoteBook || !remoteBook.fileUrl) {
           if (remoteBookError) {
             setLoading(false);
-            alert('Could not fetch book from server.');
+            setOpenError(
+              remoteBookError?.message || 'Could not fetch book from server.',
+            );
+            setHasOpenedBook(true);
+          } else if (remoteBook) {
+            // The server answered, but without a file: the order doesn't
+            // grant access (refunded, borrow expired, wrong account...).
+            setLoading(false);
+            setOpenError(
+              "This book isn't available in your library. If you just bought it, open it again from your library.",
+            );
             setHasOpenedBook(true);
           }
           return;
@@ -217,7 +251,9 @@ export default function Index() {
 
         // Cache miss → stream the file with progress, persist to
         // IndexedDB for next time, then open the tab.
-        const file = await streamingDownload(remoteBook.fileUrl);
+        const file = await streamingDownload(
+          resolveDownloadUrl(remoteBook.fileUrl),
+        );
         if (cancelled) return;
         if (db?.files) {
           await db.files.put({ id: String(remoteBook.id), file });
@@ -228,6 +264,9 @@ export default function Index() {
         setLoading(false);
         setDownloadPct(null);
         console.error('[Reader] open book failed:', err);
+        setOpenError(
+          "We couldn't download this book. Check your connection and try again.",
+        );
       }
     })();
 
@@ -288,6 +327,29 @@ export default function Index() {
               />
             </div>
           )}
+        </div>
+      ) : openError ? (
+        <div
+          role='alert'
+          className='text-on-surface flex flex-col items-center justify-center gap-4 p-6 py-12 text-center'
+        >
+          <div className='max-w-sm text-sm'>{openError}</div>
+          <div className='flex gap-3'>
+            <button
+              type='button'
+              className='rounded-lg bg-green-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-900'
+              onClick={() => window.location.reload()}
+            >
+              Try again
+            </button>
+            <button
+              type='button'
+              className='bg-surface-variant hover:bg-outline/20 rounded-lg px-4 py-2 text-sm transition-colors'
+              onClick={() => router.push('/library')}
+            >
+              Back to library
+            </button>
+          </div>
         </div>
       ) : (
         // <Library />
