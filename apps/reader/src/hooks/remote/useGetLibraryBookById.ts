@@ -18,7 +18,10 @@ async function fetchLibraryBookById(orderId: string, bookId: string | null) {
     });
     return res.data;
   } catch (err: any) {
-    throw new Error(err?.response?.data?.message || 'Failed to fetch book from server');
+    // The API reports failures under `error` (e.g. "This book is lent out
+    // ..."); `message` is kept for older responses.
+    const data = err?.response?.data;
+    throw new Error(data?.message || data?.error || 'Failed to fetch book from server');
   }
 }
 
